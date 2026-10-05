@@ -837,6 +837,37 @@ export async function ordersRoutes(fastify: FastifyInstance) {
     }
   }, ordersController.getOrderDetails.bind(ordersController));
 
+  // GET /v1/orders/user/:userid/summary - Order history totals (own orders only for customers)
+  fastify.get('/user/:userid/summary', {
+    schema: {
+      description: 'Order history summary for a customer: total, active, cancelled and total spent (non-cancelled paid amount minus completed return refunds; replacement orders excluded)',
+      tags: ['Orders'],
+      params: {
+        type: 'object',
+        properties: { userid: { type: 'string', description: 'User ID' } },
+        required: ['userid']
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                total_orders: { type: 'number' },
+                active_orders: { type: 'number' },
+                cancelled_orders: { type: 'number' },
+                total_spent: { type: 'number' }
+              }
+            }
+          }
+        }
+      }
+    }
+  }, ordersController.getOrderSummaryByUserId.bind(ordersController));
+
   // GET /v1/orders/user/:userid/details - Get orders by user ID with orderlines and address
   fastify.get('/user/:userid/details', {
     schema: {

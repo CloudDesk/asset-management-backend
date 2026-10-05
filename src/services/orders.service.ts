@@ -3542,6 +3542,58 @@ export class OrdersService {
   }
 
   /**
+   * Order history summary for one customer (Ecom "My Orders" cards).
+   * - Free replacement orders are excluded (the storefront hides them).
+   * - Cancelled = status containing "cancel".
+   * - Total spent = amount paid (orderamount + wallet_discount_total) on
+   *   non-cancelled orders, minus completed return refunds on those orders.
+   * Returned amounts are rupees.
+   */
+  async getOrderSummaryByUserId(userId: number): Promise<{
+    total_orders: number;
+    active_orders: number;
+    cancelled_orders: number;
+    total_spent: number;
+  }> {
+    const [row] = await prisma.$queryRaw<Array<{ total: number; cancelled: number; spent: Prisma.Decimal | number | null }>>`
+      WITH user_orders AS (
+        SELECT
+          o.id,
+          LOWER(COALESCE(o.orderstatus, '')) AS status,
+          COALESCE(o.orderamount, 0) + COALESCE(o.wallet_discount_total, 0) AS paid
+        FROM orders o
+        WHERE o.userid = ${userId}
+          AND LOWER(COALESCE(o.mode, '')) <> 'replacement'
+          AND COALESCE(o.orderid, '') NOT LIKE 'REP-REP-%'
+      ),
+      return_refunds AS (
+        SELECT r.order_id, SUM(r.approved_amount) AS refunded
+        FROM refund_operations r
+        WHERE r.status = 'completed' AND r.return_request_id IS NOT NULL
+        GROUP BY r.order_id
+      )
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE uo.status LIKE '%cancel%')::int AS cancelled,
+        COALESCE(SUM(
+          CASE WHEN uo.status NOT LIKE '%cancel%'
+            THEN GREATEST(uo.paid - COALESCE(rr.refunded, 0), 0)
+          END
+        ), 0) AS spent
+      FROM user_orders uo
+      LEFT JOIN return_refunds rr ON rr.order_id = uo.id
+    `;
+    const total = Number(row?.total ?? 0);
+    const cancelled = Number(row?.cancelled ?? 0);
+    return {
+      total_orders: total,
+      active_orders: Math.max(total - cancelled, 0),
+      cancelled_orders: cancelled,
+      total_spent: Math.round(Number(row?.spent ?? 0) * 100) / 100,
+    };
+  }
+
+  /**
    * Get orders by userid with orderlines and address data
    * Returns orders with nested orderlines and address information
    */
