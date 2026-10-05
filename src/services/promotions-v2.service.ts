@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PromotionEligibilityRequestSchema, PromotionQuoteRequestSchema, PromotionRuleV2Schema, type PromotionQuoteRequest, type PromotionRuleV2 } from '../schemas/promotions-v2.schema.js';
 import { evaluatePromotionQuote, isLineInPromotionScope, type PromotionCampaign, type PromotionCatalogProduct, type PromotionCartLine, type PromotionQuote } from './promotion-v2-engine.js';
-import { convertLegacyPromotionRule } from '../utils/legacy-promotion-v2.js';
+import { convertLegacyPromotionRule, isWholeOrderPromotionType } from '../utils/legacy-promotion-v2.js';
 import { isPromotionChannelEligible } from '../utils/promotionChannel.js';
 import { logger } from '../config/logger.js';
 
@@ -153,7 +153,7 @@ export class PromotionsV2Service {
     const version = await prisma.promotionRuleVersion.findFirst({ where: { promotionId }, orderBy: { version: 'desc' }, include: { promotion: true } });
     if (!version) throw new Error('No rule version exists for this promotion');
     const hydrated = await this.hydrateCart(parsed);
-    const campaigns = [{ promotionId, ruleVersion: version.version, name: version.promotion.name ?? `Promotion ${promotionId}`, rule: PromotionRuleV2Schema.parse(version.ruleJson) }];
+    const campaigns = [{ promotionId, ruleVersion: version.version, name: version.promotion.name ?? `Promotion ${promotionId}`, rule: PromotionRuleV2Schema.parse(version.ruleJson), appliesToWholeOrder: isWholeOrderPromotionType(version.promotion.type) }];
     const catalog = await this.hydrateRewardCatalog(campaigns, hydrated.catalog, parsed.channel);
     return evaluatePromotionQuote(hydrated.lines, campaigns, catalog, { shippingAmount: parsed.shipping_amount, rewardSelections: parsed.reward_selections });
   }
@@ -373,6 +373,7 @@ export class PromotionsV2Service {
         ruleVersion: row.version,
         name: promotion.name ?? `Promotion ${promotion.id}`,
         rule: parseCachedRule(row.checksum, row.ruleJson),
+        appliesToWholeOrder: isWholeOrderPromotionType(promotion.type),
         ...(remainingBudgetPaise === undefined ? {} : { remainingBudgetPaise }),
       });
     }
@@ -426,6 +427,7 @@ export class PromotionsV2Service {
           ruleVersion: 0,
           name: promotion.name ?? `Promotion ${promotion.id}`,
           rule: convertLegacyPromotionRule(promotion),
+          appliesToWholeOrder: isWholeOrderPromotionType(promotion.type),
           ...(remainingBudgetPaise === undefined ? {} : { remainingBudgetPaise }),
         });
       } catch (error) {

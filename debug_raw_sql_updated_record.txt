@@ -25477,3 +25477,101 @@ Updated record: {
   "transactionfor": "product",
   "status": "SUCCESS"
 }
+Updated record: {
+  "id": 541,
+  "productid": 78,
+  "userid": 41,
+  "createddate": 1791200636,
+  "quantity": "105",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1791225973
+}
+Updated record: {
+  "id": 529,
+  "productid": 76,
+  "userid": 41,
+  "createddate": 1791147711,
+  "quantity": "2",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1791225973
+}
+Updated record: {
+  "id": 525,
+  "productid": 69,
+  "userid": 41,
+  "createddate": 1791145783,
+  "quantity": "3",
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1791225974
+}
+Updated record: {
+  "id": 77,
+  "name": "Flat 100 On 1299",
+  "type": "FIXED_AMOUNT_OFF_CART",
+  "code": "FLAT100ON1299-D92FA7",
+  "auto_apply": false,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "max_redemptions": null,
+  "per_user_limit": null,
+  "stackable": true,
+  "createddate": 1791190005,
+  "modifieddate": 1791206571,
+  "description": "",
+  "budget": null,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "value": "1299",
+      "operator": "GTE",
+      "attribute": "cart.total_value"
+    }
+  ],
+  "start_date": 1791138600,
+  "end_date": 1793125799,
+  "action": {
+    "type": "FIXED_AMOUNT_OFF",
+    "value": 100
+  },
+  "applicable_channel": "all",
+  "application_mode": "click_to_apply"
+}
+Updated record: {
+  "id": 77,
+  "name": "Flat 100 On 1299",
+  "type": "FIXED_AMOUNT_OFF_CART",
+  "code": "FLAT100ON1299-D92FA7",
+  "auto_apply": false,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "max_redemptions": null,
+  "per_user_limit": null,
+  "stackable": false,
+  "createddate": 1791190005,
+  "modifieddate": 1791209374,
+  "description": "",
+  "budget": null,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "value": "1299",
+      "operator": "GTE",
+      "attribute": "cart.total_value"
+    }
+  ],
+  "start_date": 1791138600,
+  "end_date": 1793125799,
+  "action": {
+    "type": "FIXED_AMOUNT_OFF",
+    "value": 100
+  },
+  "applicable_channel": "all",
+  "application_mode": "click_to_apply"
+}

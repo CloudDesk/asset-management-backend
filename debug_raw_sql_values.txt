@@ -14138,3 +14138,82 @@ Values: [
   },
   1790941984
 ]
+Values: [
+  541,
+  78,
+  41,
+  105,
+  true,
+  false,
+  1791206173
+]
+Values: [
+  529,
+  76,
+  41,
+  2,
+  true,
+  false,
+  1791206173
+]
+Values: [
+  525,
+  69,
+  41,
+  3,
+  true,
+  false,
+  1791206173
+]
+Values: [
+  77,
+  "Flat 100 On 1299",
+  "",
+  "FIXED_AMOUNT_OFF_CART",
+  "FLAT100ON1299-D92FA7",
+  false,
+  1791138600,
+  1793125799,
+  "active",
+  1,
+  "public",
+  "all",
+  "click_to_apply",
+  null,
+  null,
+  null,
+  true,
+  "Asia/Kolkata",
+  15,
+  "[{\"attribute\":\"cart.total_value\",\"operator\":\"GTE\",\"value\":\"1299\"}]",
+  "{\"type\":\"FIXED_AMOUNT_OFF\",\"value\":100}",
+  77,
+  1791190005,
+  1791206571
+]
+Values: [
+  77,
+  "Flat 100 On 1299",
+  "",
+  "FIXED_AMOUNT_OFF_CART",
+  "FLAT100ON1299-D92FA7",
+  false,
+  1791138600,
+  1793125799,
+  "active",
+  1,
+  "public",
+  "all",
+  "click_to_apply",
+  null,
+  null,
+  null,
+  false,
+  "Asia/Kolkata",
+  15,
+  "[{\"attribute\":\"cart.total_value\",\"operator\":\"GTE\",\"value\":\"1299\"}]",
+  "{\"type\":\"FIXED_AMOUNT_OFF\",\"value\":100}",
+  77,
+  1791190005,
+  1791209374
+]

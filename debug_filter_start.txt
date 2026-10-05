@@ -205204,3 +205204,720 @@ Filtering data for transaction (transaction): {
   },
   "modifieddate": 1790941984017
 }
+Filtering data for product (product): {
+  "name": "NIVAANA - Coconut Soap",
+  "shortname": "Coconut Soap",
+  "benefititems": [],
+  "remarks": "Coconut Soap",
+  "category": "personal_care",
+  "subcategory": "bath_body",
+  "subsubcategory": "",
+  "brand": "nivaana",
+  "pack": "single",
+  "price": 100,
+  "discount": 0,
+  "hsn_code": "34011190",
+  "gst_rate": 18,
+  "isdealoftheday": false,
+  "iscombo": false,
+  "combotype": "fixed",
+  "purpose": "Keep personal and travel spaces fresh"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 77,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 77,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 77,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for stock (stock): {
+  "puc": "NIV-0077",
+  "platform": "nivapp",
+  "batchno": "NIV-SH-0001",
+  "stockstatus": "available",
+  "ecompublish": true,
+  "rfid": "",
+  "serialnumber": ""
+}
+Filtering data for product (product): {
+  "quantity": 23,
+  "availablequantity": 23,
+  "soldquantity": 0,
+  "ecompublishedquantity": 23,
+  "damagedquantity": 0,
+  "productstatus": "in_stock",
+  "modifieddate": 1791180476263
+}
+Filtering data for platformstock (platformstock): {
+  "ecomqty": 23,
+  "availableqty": 23,
+  "soldqty": 0,
+  "totalqty": 23,
+  "orderedqty": 0,
+  "lockqty": 0,
+  "platformstatus": "in_stock"
+}
+Filtering data for product (product): {
+  "name": "NIVAANA - Combo Incense - Kasturi,Kesar Chandan",
+  "shortname": "Combo Kasturi,Kesar Chandan",
+  "benefititems": [],
+  "remarks": "Combo Incense - Kasturi,Kesar Chandan",
+  "category": "incense_rituals",
+  "subcategory": "incense_sticks",
+  "subsubcategory": "",
+  "fragnancetype": "kasturi,kesar_chandan",
+  "brand": "nivaana",
+  "pack": "pack_of_2",
+  "price": 100,
+  "discount": 0,
+  "hsn_code": "33074100",
+  "gst_rate": 5,
+  "numberofitems": 0,
+  "isdealoftheday": false,
+  "iscombo": true,
+  "combotype": "fixed",
+  "purpose": "Incense & Rituals",
+  "quantity": 0,
+  "availablequantity": 0,
+  "ecompublishedquantity": 0
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 78,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "amazon"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 78,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "flipkart"
+}
+Filtering data for platformstock (platformstock): {
+  "productid": 78,
+  "availableqty": 0,
+  "orderedqty": 0,
+  "soldqty": 0,
+  "totalqty": 0,
+  "lockqty": 0,
+  "platformstatus": "out_of_stock",
+  "platform": "nivapp"
+}
+Filtering data for productbundlemap (productbundlemap): {
+  "bundleproductid": 78,
+  "componentproductid": 34,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1791180586030,
+  "modifieddate": 1791180586030
+}
+Filtering data for productbundlemap (productbundlemap): {
+  "bundleproductid": 78,
+  "componentproductid": 37,
+  "requiredqty": 1,
+  "isactive": true,
+  "createddate": 1791180586030,
+  "modifieddate": 1791180586030
+}
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 78,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1791180835938,
+  "modifieddate": 1791180835938
+}
+Filtering data for cart (cart): {
+  "productid": 78,
+  "userid": 41,
+  "quantity": 105,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1791206173262
+}
+Filtering data for cart (cart): {
+  "productid": 76,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1791206173262
+}
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 21,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1791206173295,
+  "modifieddate": 1791206173295
+}
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 18,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1791206173343,
+  "modifieddate": 1791206173343
+}
+Filtering data for cart (cart): {
+  "userid": 41,
+  "productid": 72,
+  "quantity": 1,
+  "iscart": true,
+  "iswishlist": false,
+  "createddate": 1791206173464,
+  "modifieddate": 1791206173464
+}
+Filtering data for cart (cart): {
+  "productid": 69,
+  "userid": 41,
+  "quantity": 3,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1791206173532
+}
+Filtering data for promotions (promotions): {
+  "name": "Flat 100 On 1299",
+  "description": "",
+  "type": "FIXED_AMOUNT_OFF_CART",
+  "code": "FLAT100ON1299-D92FA7",
+  "auto_apply": false,
+  "start_date": 1791138600,
+  "end_date": 1793125799,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "applicable_channel": "all",
+  "application_mode": "click_to_apply",
+  "max_redemptions": null,
+  "per_user_limit": null,
+  "budget": null,
+  "stackable": true,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1299"
+    }
+  ],
+  "action": {
+    "type": "FIXED_AMOUNT_OFF",
+    "value": 100
+  },
+  "id": 77,
+  "createddate": 1791190005,
+  "modifieddate": 1791206571611,
+  "configured_status": "active",
+  "redemption_count": 0,
+  "redemption_limit": null,
+  "available_redemptions": null,
+  "audience_type": "global",
+  "audience_label": "Everyone",
+  "voucher_code": "FLAT100ON1299-D92FA7"
+}
+Filtering data for transaction (transaction): {
+  "transactionid": "TXN_1791208930599_HLN3GC",
+  "merchanttransactionid": "TXN_1791208930599_HLN3GC",
+  "userid": 41,
+  "amount": 2979,
+  "mobilenumber": 9994824573,
+  "name": "Suresh",
+  "productid": [
+    72,
+    69,
+    21,
+    76,
+    18,
+    27,
+    55,
+    58,
+    66
+  ],
+  "transactionfor": "product",
+  "transactiondata": {
+    "status": "INITIATED",
+    "mode": "phonepe",
+    "evaluation_ids": [
+      "9df16a26-1f12-4cac-b395-e4f5fc95e82a"
+    ],
+    "wallet_discount": {
+      "applied": false,
+      "amount": 0,
+      "eligibility_base": null
+    },
+    "checkout_pricing": {
+      "merchandise_subtotal": 3554,
+      "merchandise_discount": 575,
+      "direct_coupon_discount": 0,
+      "merchandise_payable": 2979,
+      "shipping_amount": 150,
+      "shipping_discount": 150,
+      "shipping_payable": 0,
+      "payable_before_wallet": 2979,
+      "applied_promotions": []
+    },
+    "direct_coupon": null,
+    "invalid_evaluations": [],
+    "limit_reached_evaluations": [],
+    "originalPayload": {
+      "mode": "phonepe",
+      "payment_channel": "ecom",
+      "returnUrl": "http://localhost:5174/checkout/confirmation",
+      "order": [
+        {
+          "addressid": 52,
+          "cartId": 557,
+          "discountamount": 0,
+          "orderamount": 1800,
+          "productamount": 1800,
+          "productcategory": "home_car_fragrance",
+          "productid": 72,
+          "productname": "NIVAANA - Opulent Living",
+          "quantity": 1,
+          "userid": 41
+        },
+        {
+          "addressid": 52,
+          "cartId": 525,
+          "discountamount": 0,
+          "orderamount": 150,
+          "productamount": 50,
+          "productcategory": "incense_rituals",
+          "productid": 69,
+          "productname": "NIVAANA - Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus. Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu, consequat vitae, eleifend ac, enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus. Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi vel augue. Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. N",
+          "quantity": 3,
+          "userid": 41
+        },
+        {
+          "addressid": 52,
+          "cartId": 555,
+          "discountamount": 0,
+          "orderamount": 60,
+          "productamount": 60,
+          "productcategory": "home_car_fragrance",
+          "productid": 21,
+          "productname": "AUORA - Cherry Blossom",
+          "quantity": 1,
+          "userid": 41
+        },
+        {
+          "addressid": 52,
+          "cartId": 529,
+          "discountamount": 0,
+          "orderamount": 400,
+          "productamount": 200,
+          "productcategory": "incense_rituals",
+          "productid": 76,
+          "productname": "NIVAANA - TRY ME OUT",
+          "quantity": 2,
+          "userid": 41
+        },
+        {
+          "addressid": 52,
+          "cartId": 556,
+          "discountamount": 0,
+          "orderamount": 299,
+          "productamount": 299,
+          "productcategory": "home_car_fragrance",
+          "productid": 18,
+          "productname": "AUORA - Vanilla",
+          "quantity": 1,
+          "userid": 41
+        },
+        {
+          "addressid": 52,
+          "cartId": 530,
+          "discountamount": 0,
+          "orderamount": 125,
+          "productamount": 125,
+          "productcategory": "home_car_fragrance",
+          "productid": 27,
+          "productname": "NIVAANA - Lavender - Diffuser Oil - 10 ml",
+          "quantity": 1,
+          "userid": 41
+        },
+        {
+          "addressid": 52,
+          "cartId": 528,
+          "discountamount": 0,
+          "orderamount": 500,
+          "productamount": 500,
+          "productcategory": "incense_rituals",
+          "productid": 55,
+          "productname": "NIVAANA - ALL-IN-ONE Pack - 12 Fragrances - 120 Sticks",
+          "quantity": 1,
+          "userid": 41
+        },
+        {
+          "addressid": 52,
+          "cartId": 527,
+          "discountamount": 0,
+          "orderamount": 120,
+          "productamount": 120,
+          "productcategory": "incense_rituals",
+          "productid": 58,
+          "productname": "NIVAANA - Premium Incense sticks",
+          "quantity": 1,
+          "userid": 41
+        },
+        {
+          "addressid": 52,
+          "cartId": 526,
+          "discountamount": 0,
+          "orderamount": 100,
+          "productamount": 100,
+          "productcategory": "incense_rituals",
+          "productid": 66,
+          "productname": "NIVAANA - Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, - NIV-0066",
+          "quantity": 1,
+          "userid": 41
+        }
+      ],
+      "transaction": {
+        "amount": 2979,
+        "mobilenumber": "9994824573",
+        "name": "Suresh",
+        "productid": [
+          72,
+          69,
+          21,
+          76,
+          18,
+          27,
+          55,
+          58,
+          66
+        ],
+        "transactionfor": "product",
+        "userId": 41
+      },
+      "shippingCost": 0,
+      "taxAmount": 0,
+      "evaluation_ids": [
+        "9df16a26-1f12-4cac-b395-e4f5fc95e82a"
+      ]
+    },
+    "paymentRequest": {
+      "merchantTransactionId": "TXN_1791208930599_HLN3GC",
+      "amount": 2979,
+      "name": "Suresh",
+      "mobileNumber": "9994824573",
+      "userId": 41,
+      "productIds": [
+        72,
+        69,
+        21,
+        76,
+        18,
+        27,
+        55,
+        58,
+        66
+      ],
+      "transactionFor": "product",
+      "callbackUrl": "http://localhost:5174/checkout/confirmation"
+    },
+    "initiatedAt": "2026-10-05T14:02:10.874Z",
+    "phonePeResponses": {
+      "initiation": {
+        "timestamp": "2026-10-05T14:02:10.874Z",
+        "response": {
+          "success": true,
+          "message": "Payment initiated successfully",
+          "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v3?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3OTEyMzIzMzA4OTAsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc5MTIwODkzMDU5OV9ITE4zR0MifQ.zIl0ynS1LIgcVxB4_tHLbl0W6eTaM9S3I1mDaLJK4eA&routingKey=W",
+          "transactionId": "TXN_1791208930599_HLN3GC"
+        },
+        "status": "INITIATED",
+        "redirectUrl": "https://mercury-uat.phonepe.com/transact/uat_v3?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHBpcmVzT24iOjE3OTEyMzIzMzA4OTAsIm1lcmNoYW50SWQiOiJURVNULU0yM1FFNTMyOEg0TVYiLCJtZXJjaGFudE9yZGVySWQiOiJUWE5fMTc5MTIwODkzMDU5OV9ITE4zR0MifQ.zIl0ynS1LIgcVxB4_tHLbl0W6eTaM9S3I1mDaLJK4eA&routingKey=W"
+      }
+    },
+    "codData": null
+  },
+  "status": "INITIATED",
+  "createddate": 1791208930875,
+  "modifieddate": 1791208930875
+}
+Filtering data for promotions (promotions): {
+  "name": "Flat 100 On 1299",
+  "description": "",
+  "type": "FIXED_AMOUNT_OFF_CART",
+  "code": "FLAT100ON1299-D92FA7",
+  "auto_apply": false,
+  "start_date": 1791138600,
+  "end_date": 1793125799,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "applicable_channel": "all",
+  "application_mode": "click_to_apply",
+  "max_redemptions": null,
+  "per_user_limit": null,
+  "budget": null,
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": [
+    {
+      "attribute": "cart.total_value",
+      "operator": "GTE",
+      "value": "1299"
+    }
+  ],
+  "action": {
+    "type": "FIXED_AMOUNT_OFF",
+    "value": 100
+  },
+  "id": 77,
+  "createddate": 1791190005,
+  "modifieddate": 1791209374621,
+  "configured_status": "active",
+  "redemption_count": 0,
+  "redemption_limit": null,
+  "available_redemptions": null,
+  "audience_type": "global",
+  "audience_label": "Everyone",
+  "voucher_code": "FLAT100ON1299-D92FA7"
+}

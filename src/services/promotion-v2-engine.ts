@@ -28,6 +28,13 @@ export interface PromotionCampaign {
   rule: PromotionRuleV2;
   /** Remaining configured campaign budget in paise; omitted means unlimited. */
   remainingBudgetPaise?: number;
+  /**
+   * Whole-order offer (promotion type *_CART, e.g. "Flat 100 On 1299"). It is
+   * evaluated as one block: applied in full or not at all. Without this flag a
+   * merchandise offer is split per unit, so a non-stackable cart offer could
+   * keep only the shares on items no other offer discounted (a partial amount).
+   */
+  appliesToWholeOrder?: boolean;
 }
 
 export interface PromotionAdjustment {
@@ -155,7 +162,11 @@ function unitKeys(lines: PromotionCartLine[], maximum?: number): Set<string> {
 }
 
 function atomicCandidates(candidate: Candidate): Candidate[] {
-  if (candidate.globalExclusive || candidate.adjustments.some((adjustment) => adjustment.type === 'FREE_ITEM' || adjustment.type === 'FREE_SHIPPING')) return [candidate];
+  if (
+    candidate.globalExclusive ||
+    candidate.campaign.appliesToWholeOrder === true ||
+    candidate.adjustments.some((adjustment) => adjustment.type === 'FREE_ITEM' || adjustment.type === 'FREE_SHIPPING')
+  ) return [candidate];
   const result: Candidate[] = [];
   for (const adjustment of candidate.adjustments) {
     const quantity = Math.max(1, adjustment.affected_quantity);

@@ -13767,3 +13767,77 @@ Final rawData: {
   },
   "modifieddate": 1790941984017
 }
+Final rawData: {
+  "productid": 78,
+  "userid": 41,
+  "quantity": 105,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1791206173262
+}
+Final rawData: {
+  "productid": 76,
+  "userid": 41,
+  "quantity": 2,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1791206173262
+}
+Final rawData: {
+  "productid": 69,
+  "userid": 41,
+  "quantity": 3,
+  "iscart": true,
+  "iswishlist": false,
+  "modifieddate": 1791206173532
+}
+Final rawData: {
+  "name": "Flat 100 On 1299",
+  "description": "",
+  "type": "FIXED_AMOUNT_OFF_CART",
+  "code": "FLAT100ON1299-D92FA7",
+  "auto_apply": false,
+  "start_date": 1791138600,
+  "end_date": 1793125799,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "applicable_channel": "all",
+  "application_mode": "click_to_apply",
+  "max_redemptions": null,
+  "per_user_limit": null,
+  "budget": null,
+  "stackable": true,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": "[{\"attribute\":\"cart.total_value\",\"operator\":\"GTE\",\"value\":\"1299\"}]",
+  "action": "{\"type\":\"FIXED_AMOUNT_OFF\",\"value\":100}",
+  "id": 77,
+  "createddate": 1791190005,
+  "modifieddate": 1791206571611
+}
+Final rawData: {
+  "name": "Flat 100 On 1299",
+  "description": "",
+  "type": "FIXED_AMOUNT_OFF_CART",
+  "code": "FLAT100ON1299-D92FA7",
+  "auto_apply": false,
+  "start_date": 1791138600,
+  "end_date": 1793125799,
+  "status": "active",
+  "priority": 1,
+  "visibility": "public",
+  "applicable_channel": "all",
+  "application_mode": "click_to_apply",
+  "max_redemptions": null,
+  "per_user_limit": null,
+  "budget": null,
+  "stackable": false,
+  "timezone": "Asia/Kolkata",
+  "evaluation_expiry_minutes": 15,
+  "conditions": "[{\"attribute\":\"cart.total_value\",\"operator\":\"GTE\",\"value\":\"1299\"}]",
+  "action": "{\"type\":\"FIXED_AMOUNT_OFF\",\"value\":100}",
+  "id": 77,
+  "createddate": 1791190005,
+  "modifieddate": 1791209374621
+}

@@ -12,6 +12,19 @@ const strings = (value: unknown): string[] => {
   return value === undefined || value === null ? [] : [String(value)];
 };
 
+/**
+ * Whole-order (cart-level) promotion types: Inventory Admin's "Fixed Amount
+ * Off Entire Cart" and "Percent Off Entire Cart". Product/category/subcategory
+ * templates are saved as *_ITEM and BOGO/free product/free shipping keep their
+ * own handling. The V2 rule format does not record this, so the V2 engine
+ * receives it as a campaign flag (appliesToWholeOrder). Explicit list on
+ * purpose: a new type must be added here deliberately.
+ */
+const WHOLE_ORDER_PROMOTION_TYPES = new Set(['FIXED_AMOUNT_OFF_CART', 'PERCENT_OFF_CART']);
+
+export const isWholeOrderPromotionType = (type?: string | null): boolean =>
+  WHOLE_ORDER_PROMOTION_TYPES.has(String(type ?? '').trim().toUpperCase());
+
 export function convertLegacyPromotionRule(input: {
   type?: string | null;
   conditions?: unknown;

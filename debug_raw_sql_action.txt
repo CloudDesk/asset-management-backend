@@ -6,3 +6,5 @@ Converted action: {"type":"FREE_SHIPPING","value":1}
 Converted action: {"type":"FREE_SHIPPING","value":1}
 Converted action: {"type":"FREE_SHIPPING","value":0}
 Converted action: {"type":"FREE_SHIPPING","value":0}
+Converted action: {"type":"FIXED_AMOUNT_OFF","value":100}
+Converted action: {"type":"FIXED_AMOUNT_OFF","value":100}

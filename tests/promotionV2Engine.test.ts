@@ -633,3 +633,130 @@ test('evaluates more than one hundred active promotions without changing the bes
   assert.equal(quote.discount_total, 10_000);
   assert.deepEqual(quote.applied_promotions.map((item) => item.promotion_id), [100]);
 });
+
+// --- Whole-order (cart-level) offers: applied in full or not at all -------
+// Mirrors the reported cart: 5 incense lines (Rs. 1,270) and 4 other lines
+// (Rs. 2,284). "Flat 100 On 1299" is a non-stackable FIXED_AMOUNT_OFF_CART
+// offer; "10% off Incense Rituals" is an automatic stackable category offer.
+const wholeOrderCart = (): PromotionCartLine[] => [
+  line('69', 3, 5_000), line('66', 1, 10_000), line('58', 1, 12_000), line('55', 1, 50_000), line('76', 2, 20_000),
+  line('27', 1, 12_500, 'home'), line('21', 1, 6_000, 'home'), line('18', 1, 29_900, 'home'), line('72', 1, 180_000, 'home'),
+];
+const legacyCartOffer = (value: number, stackable: boolean, name: string) => convertLegacyPromotionRule({
+  type: 'FIXED_AMOUNT_OFF_CART',
+  conditions: [{ attribute: 'cart.total_value', operator: 'GTE', value: '1299' }],
+  action: { type: 'FIXED_AMOUNT_OFF', value },
+  stackable,
+  name,
+});
+const wholeOrder = (promotionId: number, promotionRule: PromotionRuleV2, name: string): PromotionCampaign => ({
+  ...campaign(promotionId, promotionRule, name), appliesToWholeOrder: true,
+});
+const incenseTenPercent = rule({
+  qualifier: { scope: { include: [{ facet: 'CATEGORY', values: ['incense'] }], exclude: [], group_operator: 'OR' }, metric: 'ELIGIBLE_QUANTITY', aggregation: 'ACROSS_ELIGIBLE_PRODUCTS', minimum_quantity: 1 },
+  benefit: { type: 'PERCENT_OFF', value: 10, target: 'ALL_QUALIFYING_UNITS' },
+  stacking: { stackable: true, exclusive_group: 'MERCHANDISE_DISCOUNT', item_reuse: 'DISALLOW', selection_strategy: 'BEST_CUSTOMER_VALUE', priority: 1 },
+});
+
+test('whole-order non-stackable offer is not applied partially when a better offer covers some items', () => {
+  const quote = evaluatePromotionQuote(
+    wholeOrderCart(),
+    [wholeOrder(77, legacyCartOffer(100, false, 'Flat 100 On 1299'), 'Flat 100 On 1299'), campaign(75, incenseTenPercent, '10% off Incense')],
+    [],
+  );
+  // Rs. 127 (10% on incense) beats Rs. 100: Flat 100 is not applied at all (previously Rs. 64.24 was applied).
+  assert.deepEqual(quote.applied_promotions.map((item) => item.promotion_id), [75]);
+  assert.equal(quote.merchandise_discount_total, 12_700);
+  assert.equal(quote.adjustments.some((adjustment) => adjustment.promotion_id === 77), false);
+  assert.deepEqual(quote.eligible_alternatives, [{ promotion_id: 77, name: 'Flat 100 On 1299', saving: 10_000 }]);
+  assert.ok(quote.rejected_candidates.some((item) => item.promotion_id === 77 && item.reason_code === 'CONFLICTED_WITH_BETTER_OFFER'));
+});
+
+test('whole-order non-stackable offer applies in full and replaces a smaller conflicting offer', () => {
+  // Automatic offer saving only Rs. 50 (10% on the Rs. 500 incense pack).
+  const smallAutomatic = rule({
+    qualifier: { scope: { include: [{ facet: 'PRODUCT', values: ['55'] }], exclude: [], group_operator: 'OR' }, metric: 'ELIGIBLE_QUANTITY', aggregation: 'ACROSS_ELIGIBLE_PRODUCTS', minimum_quantity: 1 },
+    benefit: { type: 'PERCENT_OFF', value: 10, target: 'ALL_QUALIFYING_UNITS' },
+    stacking: { stackable: true, exclusive_group: 'MERCHANDISE_DISCOUNT', item_reuse: 'DISALLOW', selection_strategy: 'BEST_CUSTOMER_VALUE', priority: 1 },
+  });
+  const quote = evaluatePromotionQuote(
+    wholeOrderCart(),
+    [wholeOrder(77, legacyCartOffer(100, false, 'Flat 100 On 1299'), 'Flat 100 On 1299'), campaign(80, smallAutomatic, '10% off pack')],
+    [],
+  );
+  assert.deepEqual(quote.applied_promotions, [{ promotion_id: 77, name: 'Flat 100 On 1299', saving: 10_000 }]);
+  assert.equal(quote.merchandise_discount_total, 10_000);
+});
+
+test('whole-order stackable offer still combines in full with stackable item offers', () => {
+  const quote = evaluatePromotionQuote(
+    wholeOrderCart(),
+    [wholeOrder(61, legacyCartOffer(149, true, '149 Off'), '149 Off'), campaign(75, incenseTenPercent, '10% off Incense')],
+    [],
+  );
+  assert.deepEqual(quote.applied_promotions.map((item) => item.promotion_id), [61, 75]);
+  assert.equal(quote.merchandise_discount_total, 14_900 + 12_700);
+});
+
+test('whole-order non-stackable offer still combines with free shipping', () => {
+  const freeShipping = convertLegacyPromotionRule({
+    type: 'FREE_SHIPPING',
+    conditions: [{ attribute: 'cart.total_value', operator: 'GTE', value: '250' }],
+    action: { type: 'FREE_SHIPPING', value: 0 },
+    stackable: true,
+    name: 'Free Shipping',
+  });
+  const quote = evaluatePromotionQuote(
+    wholeOrderCart(),
+    [wholeOrder(77, legacyCartOffer(100, false, 'Flat 100 On 1299'), 'Flat 100 On 1299'), campaign(70, freeShipping, 'Free Shipping')],
+    [],
+    { shippingAmount: 15_000 },
+  );
+  assert.deepEqual(quote.applied_promotions.map((item) => item.promotion_id).sort((a, b) => a - b), [70, 77]);
+  assert.equal(quote.merchandise_discount_total, 10_000);
+  assert.equal(quote.shipping_discount_total, 15_000);
+});
+
+test('whole-order percentage cart offer is also all or nothing', () => {
+  const percentCart = convertLegacyPromotionRule({
+    type: 'PERCENT_OFF_CART',
+    conditions: [{ attribute: 'cart.total_value', operator: 'GTE', value: '1000' }],
+    action: { type: 'PERCENT_OFF', value: 2 },
+    stackable: false,
+    name: '2% Off Cart',
+  });
+  const quote = evaluatePromotionQuote(
+    wholeOrderCart(),
+    [wholeOrder(62, percentCart, '2% Off Cart'), campaign(75, incenseTenPercent, '10% off Incense')],
+    [],
+  );
+  // 2% of Rs. 3,554 = Rs. 71.08 < Rs. 127, so the cart offer is not applied partially.
+  assert.deepEqual(quote.applied_promotions.map((item) => item.promotion_id), [75]);
+  assert.equal(quote.adjustments.some((adjustment) => adjustment.promotion_id === 62), false);
+});
+
+test('item-level offers without the whole-order flag keep per-item selection', () => {
+  const nonStackableItem = rule({
+    qualifier: { scope: { include: [{ facet: 'CATEGORY', values: ['home'] }], exclude: [], group_operator: 'OR' }, metric: 'ELIGIBLE_QUANTITY', aggregation: 'ACROSS_ELIGIBLE_PRODUCTS', minimum_quantity: 1 },
+    benefit: { type: 'PERCENT_OFF', value: 5, target: 'ALL_QUALIFYING_UNITS' },
+    stacking: { stackable: false, exclusive_group: 'MERCHANDISE_DISCOUNT', item_reuse: 'DISALLOW', selection_strategy: 'BEST_CUSTOMER_VALUE', priority: 1 },
+  });
+  const quote = evaluatePromotionQuote(wholeOrderCart(), [campaign(79, nonStackableItem, '5% Home'), campaign(75, incenseTenPercent, '10% off Incense')], []);
+  // Different items, no overlap: both apply exactly as before.
+  assert.deepEqual(quote.applied_promotions.map((item) => item.promotion_id), [75, 79]);
+});
+
+test('identifies whole-order promotion types', async () => {
+  const { isWholeOrderPromotionType } = await import('../src/utils/legacy-promotion-v2.js');
+  assert.equal(isWholeOrderPromotionType('FIXED_AMOUNT_OFF_CART'), true);
+  assert.equal(isWholeOrderPromotionType('percent_off_cart'), true);
+  assert.equal(isWholeOrderPromotionType('PERCENT_OFF_ITEM'), false);
+  assert.equal(isWholeOrderPromotionType('FIXED_AMOUNT_OFF_ITEM'), false);
+  assert.equal(isWholeOrderPromotionType('FREE_SHIPPING'), false);
+  assert.equal(isWholeOrderPromotionType('BOGO'), false);
+  assert.equal(isWholeOrderPromotionType(null), false);
+  // Admin template keys and scope facets are never whole-order promotion types.
+  for (const value of ['PERCENT_OFF_PRODUCTS', 'FIXED_AMOUNT_OFF_PRODUCTS', 'PERCENT_OFF_CATEGORIES', 'PERCENT_OFF_SUBCATEGORIES', 'FREE_PRODUCT', 'ENTIRE_CART']) {
+    assert.equal(isWholeOrderPromotionType(value), false, value);
+  }
+});
