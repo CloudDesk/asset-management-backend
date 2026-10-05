@@ -97,21 +97,46 @@ export class PromotionsV2Service {
   }
 
   async getFacets(): Promise<Record<string, Array<{ id: string; label: string; count: number }>>> {
-    const products = await prisma.product.findMany({
-      where: { productstatus: { notIn: ['inactive', 'deleted'] } },
-      select: { id: true, name: true, category: true, subcategory: true },
-    });
-    const facet = (selector: (product: typeof products[number]) => string | null): Array<{ id: string; label: string; count: number }> => {
+    const [products, picklistItems] = await Promise.all([
+      prisma.product.findMany({
+        where: { productstatus: { notIn: ['inactive', 'deleted'] } },
+        select: { id: true, name: true, category: true, subcategory: true },
+      }),
+      prisma.picklist.findMany({
+        where: { object: 'product', fieldname: { in: ['category', 'subcategory'] }, isactive: true },
+        select: { fieldname: true, value: true, label: true },
+        orderBy: { id: 'asc' },
+      }),
+    ]);
+    // Display names come from the picklist ("Incense & Rituals"); the id stays the
+    // stored product value ("incense_rituals"), which is what promotion rules save
+    // and match on. Values without a picklist entry keep the value as the label.
+    const picklistLabels = (fieldname: string): Map<string, string> => {
+      const labels = new Map<string, string>();
+      for (const item of picklistItems) {
+        const key = item.value?.trim().toLowerCase();
+        const label = item.label?.trim();
+        if (item.fieldname === fieldname && key && label && !labels.has(key)) labels.set(key, label);
+      }
+      return labels;
+    };
+    const facet = (
+      selector: (product: typeof products[number]) => string | null,
+      labels: Map<string, string>,
+    ): Array<{ id: string; label: string; count: number }> => {
       const counts = new Map<string, number>();
       for (const product of products) {
         const value = selector(product)?.trim();
         if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
       }
-      return [...counts].map(([value, count]) => ({ id: value, label: value, count })).sort((a, b) => a.label.localeCompare(b.label));
+      return [...counts]
+        .map(([value, count]) => ({ id: value, label: labels.get(value.toLowerCase()) ?? value, count }))
+        .sort((a, b) => a.label.localeCompare(b.label));
     };
     return {
       PRODUCT: products.map((product) => ({ id: product.id.toString(), label: product.name, count: 1 })),
-      CATEGORY: facet((product) => product.category), SUBCATEGORY: facet((product) => product.subcategory),
+      CATEGORY: facet((product) => product.category, picklistLabels('category')),
+      SUBCATEGORY: facet((product) => product.subcategory, picklistLabels('subcategory')),
       // Future facet responses intentionally disabled:
       // FRAGRANCE, BRAND, COLLECTION, TAG and SUBSUBCATEGORY.
     };

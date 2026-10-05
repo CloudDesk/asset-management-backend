@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { isPromotionListType, promotionListType } from '../utils/promotionListType.js';
 import { createHash, randomBytes } from 'crypto';
 import {
   CreatePromotionsInput,
@@ -68,6 +69,22 @@ export class PromotionsService {
           }
         : promotion;
     });
+  }
+
+  /** Latest rule version JSON per promotion (same version the admin table labels). */
+  private async latestRuleJsonByPromotion(promotionIds: number[]): Promise<Map<number, any>> {
+    const ids = promotionIds.filter((id) => Number.isInteger(id) && id > 0);
+    if (!ids.length) return new Map();
+    const versions = await this.prisma.promotionRuleVersion.findMany({
+      where: { promotionId: { in: ids } },
+      orderBy: [{ promotionId: 'asc' }, { version: 'desc' }],
+      select: { promotionId: true, ruleJson: true },
+    });
+    const latest = new Map<number, any>();
+    for (const version of versions) {
+      if (!latest.has(version.promotionId)) latest.set(version.promotionId, version.ruleJson);
+    }
+    return latest;
   }
 
   private normalizePromotionCode(value: string): string {
@@ -772,10 +789,18 @@ export class PromotionsService {
 
       let baseFilters: FilterOptions;
 
+      // Admin type filter uses the create-form types (see promotionListType):
+      // product/category/subcategory offers share one saved type, so this is
+      // applied after loading instead of as a column match.
+      const requestedListTypeValue = Array.isArray(otherFilters.type) ? otherFilters.type[0] : otherFilters.type;
+      const adminListTypeFilter =
+        adminMode && isPromotionListType(requestedListTypeValue) ? requestedListTypeValue : null;
+
       if (adminMode) {
         // Admin status is derived from configured status plus Valid From/To,
         // so it is filtered after records are formatted.
         baseFilters = { ...otherFilters };
+        if (adminListTypeFilter) delete baseFilters.type;
       } else {
         // Build base filters (existing behavior for e-commerce app)
         baseFilters = {
@@ -843,7 +868,18 @@ export class PromotionsService {
           })
           .filter((promotion: any) =>
             adminStatusFilter ? promotion.status === adminStatusFilter : true
-          )
+          );
+
+        if (adminListTypeFilter) {
+          const latestRules = await this.latestRuleJsonByPromotion(
+            matchingPromotions.map((promotion: any) => Number(promotion.id)),
+          );
+          matchingPromotions = matchingPromotions.filter((promotion: any) =>
+            promotionListType(promotion.type, latestRules.get(Number(promotion.id))) === adminListTypeFilter
+          );
+        }
+
+        matchingPromotions = matchingPromotions
           .sort((a: any, b: any) => {
             if (a.status !== b.status) {
               const statusOrder: Record<string, number> = {
