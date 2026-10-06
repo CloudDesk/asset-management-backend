@@ -1,0 +1,78 @@
+# Nivaana — Future Plans (Parked Items)
+
+Items analysed and agreed but deliberately parked. Each entry has enough context to pick up later without the original conversation. When an item is implemented, log it in `Fix_After_Sep30/Master.md` and mark it **Done** here.
+
+| ID | Parked on | Area | Summary | Priority | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **PLAN-01** | 2026-10-06 | Mobile App / PhonePe | UPI app handoff fails silently when the app is missing or not visible to Android | High (before prod release of the app) | Parked |
+| **PLAN-02** | 2026-10-06 | Backend / Security | Address API has no ownership check | High | Parked (task chip created) |
+| **PLAN-03** | 2026-10-06 | Mobile App / Promotions | Deals page shows offers the customer has already used up | Medium | Parked (awaiting BA mail) |
+| **PLAN-04** | 2026-10-06 | Ecom Web / PhonePe | Limit iframe checkout to Meta in-app browsers | Low | Parked (decided: keep as is) |
+| **PLAN-05** | 2026-10-06 | Backend / PhonePe | Server-side guard against a second payment while one is pending | Medium | Parked |
+
+---
+
+## PLAN-01: Mobile App — PhonePe/UPI App Handoff
+
+**Found:** 2026-10-06 while testing the mobile app on SIT (PhonePe sandbox, `mercury-uat`).
+
+**Symptom:** In the app's payment WebView the customer taps **PhonePe** (or another UPI app). PhonePe's page shows "Confirming Payment" and never moves. After 120s the Cloud Task (`cleanupExpiredLock`) sees `PENDING`, releases stock locks, and the transaction later expires. No order, no money taken. Example: transactions 233–235 (user 73).
+
+**Root cause of the observed case:** the tester's phone did not have the PhonePe app installed. The app does not tell the customer.
+
+**Code path:** `Vibrant-Life-mobile-app/src/components/EnhancedPaymentWebView.tsx`
+- `EXTERNAL_PAYMENT_SCHEMES = ["phonepe://", "upi://", "intent://"]` links are intercepted in `onShouldStartLoadWithRequest` (added 2026-04-30, commit `e9906ec1` "Fix iOS payment WebView handoff").
+- `openExternalUrl` calls `Linking.canOpenURL(url)`; when it returns false it **returns silently** (a warning only in dev builds). PhonePe's page keeps waiting.
+
+**Related risks (affect real customers, not only missing apps):**
+1. **Android 11+ package visibility:** `canOpenURL` returns false for apps not declared in `<queries>`. The manifest's UPI entries (`com.phonepe.app`, `com.phonepe.simulator`, `net.one97.paytm`, `com.google.android.apps.nbu.paisa.user`, `in.amazon.mShop.android.shopping`, schemes `phonepe`, `phonepe-preprod`, `upi`) were removed on 2025-06-18 (commit `e171df09`). Today `<queries>` only has `https`, so an installed PhonePe/GPay may also be treated as "not installed".
+2. **`intent://` links:** PhonePe's page on Android often uses `intent://…#Intent;scheme=…;package=…;S.browser_fallback_url=…;end`. `canOpenURL` cannot resolve these, so they always fail the check.
+
+**Evidence that it is device/method dependent, not a regression:** mobile successes on 2026-09-25/26 (users 33, 41) and 2026-10-01 (user 41); stuck on 2026-09-30 (user 74), 2026-10-05 (user 49), 2026-10-06 (user 73). Web payments were unaffected (3 successes for user 73 on 2026-10-06).
+
+**Agreed fix (mobile app only, no backend change):**
+1. **Clear message when the app can't be opened:** show "PhonePe app is not installed on this phone. Please choose another payment option." and reload the PhonePe page (same token/session) so the customer returns to the payment options. No new transaction.
+2. **Restore app visibility:** add `<queries>` for schemes `upi`, `phonepe`, `tez`, `paytmmp` and packages `com.phonepe.app`, `com.google.android.apps.nbu.paisa.user`, `net.one97.paytm` through the Expo config plugin `plugins/phonepe-plugin.js` (so prebuild does not drop them). iOS: same schemes in `LSApplicationQueriesSchemes`.
+3. **Handle `intent://`:** parse the intent URL; open the target scheme/package directly; else use `S.browser_fallback_url`; else show the message from step 1.
+
+**Release notes:** needs a new native build (manifest/Info.plist changes cannot ship over the air). Test on a real Android phone with and without PhonePe installed, and on iOS. In sandbox, UPI-app payments need PhonePe's simulator app; use the sandbox test card for general testing.
+
+**Repo/branch:** `Vibrant-Life-mobile-app`, branch `expo_rn_migrations_v2`.
+
+---
+
+## PLAN-02: Backend — Address API Ownership Check
+
+`src/controllers/address.controller.ts` (`getAddresses`, `getAddress`, update/delete) never checks the caller. Any signed-in customer can call `GET /v1/addresses?userid=<other>` or `/v1/addresses/:id` and read another customer's name, mobile and address.
+
+**Fix:** same rule as `orders.controller.ts` `getOrderSummaryByUserId`: 401 without user; inventory users read any; e-commerce customers only their own (`userid` / `address.userid` must equal `authUser.id`); otherwise 403. Check callers first: Ecom `addressService.ts`, mobile address service, Inventory `CustomerDetailPage.tsx` (inventory user, `?userid=`), guest checkout.
+
+A ready-to-run task ("Restrict address API to own addresses") was created in the 2026-10-06 session.
+
+---
+
+## PLAN-03: Mobile App — Deals Page Shows Used-Up Offers
+
+`Vibrant-Life-mobile-app/src/api/services/promotionService.ts` (`getPromotions`, ~lines 69–95) merges `/promotions/customer-offers` with `/promotions/public` for signed-in users. `/customer-offers` already includes public offers and removes those the customer cannot use (per-customer limit reached, budget/redemption cap, channel, segment). `/public` does not, so the merge re-adds used-up offers. Example: user 45 sees #63 (limit 1 per customer, already used) on mobile but not on web.
+
+**Fix:** signed-in → `/customer-offers` only; guests → `/public`. Optional backend: in `getPublicPromotions` filter expired offers before applying `limit`.
+
+Related open question sent to the BA (2026-10-06): how promotions should be grouped/shown on Web Account → Promotions vs Mobile Deals (used-up offers, guests, grouping, not-eligible offers, apply action).
+
+---
+
+## PLAN-04: Ecom Web — PhonePe Iframe Only for Meta In-App Browsers
+
+Current: `VITE_PHONEPE_IFRAME_CHECKOUT` enables the iframe PayPage for **all** web visitors (FIX-2026-10-06-44). PhonePe's docs do not cover mobile webviews/UPI app switching inside the iframe.
+
+**Option (not chosen for now):** a three-value flag (`off` / `meta` / `all`); `meta` uses the iframe only when the user agent is Instagram/Facebook (`Instagram`, `FBAN`/`FBAV`, `FB_IAB`), keeping the proven full-page redirect elsewhere.
+
+**Before production either way:** SIT tests through real Instagram/Facebook links on Android and iOS — UPI app payment, closing without paying, card with bank OTP page.
+
+---
+
+## PLAN-05: Backend — Guard Against a Second Payment While One Is Pending
+
+The backend accepts a new PhonePe payment while an earlier one for the same customer/cart is still pending. Today only the Ecom frontend prompts ("Previous payment still processing — Wait / Pay again", FIX-2026-10-06-44). If the first payment completes late and the customer paid again, two orders and two charges are possible.
+
+**Option:** in `/v1/phonepe/initiate`, check the customer's latest `INITIATED`/pending transaction (e.g. within the PhonePe expiry window); query PhonePe status; if success → return the existing order; if still pending → return a clear error code the web and app can show. Must not block legitimate retries after a confirmed failure/expiry.
