@@ -50,6 +50,8 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 | **FIX-2026-10-06-40** | 2026-10-06 | **Inventory EKART Forward Shipment / Pickup Warehouse** | The Create EKART Shipment modal sent the chosen seller address only as `seller_name`/`seller_address` text (label/invoice), never `pickup_location`, so EKART always booked pickup from the account default warehouse. The form now sends `pickup_location` and `return_location` = selected alias; the forward route schema declares both and the service logs the pickup alias sent. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/components/orders/EkartShipmentForm.tsx` |
 | **FIX-2026-10-06-41** | 2026-10-06 | **EKART Forward Shipment / Mixed-HSN Orders** | Orders whose lines had more than one HSN were blocked ("EKART shipment requires one HSN code…"). The forward shipment now sends EKART `items[]` (one entry per shippable orderline: name, product `puc` as SKU, quantity, taxable value, HSN, CGST/SGST/IGST from the orderline snapshot) in the same single `package/create` call; top-level `hsn_code` = HSN with the highest taxable value. Missing/invalid HSN/GST snapshot check kept. | 🟡 Implemented / Dev Verification Pending | `asset-management-backend/src/services/ekart.service.ts` |
 | **FIX-2026-10-06-42** | 2026-10-06 | **EKART / Shipmozo Label Product Names** | The EKART label "Product" cell (from `products_desc`) printed full product names. It now uses the orderline `productshortname`, falling back to `productname`. The Inventory order details API response schema dropped `productshortname`, so it is now declared; Shipmozo's form already preferred the short name and now receives it too (intended). | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/components/orders/EkartShipmentForm.tsx` |
+| **FIX-2026-10-06-43** | 2026-10-06 | **Ecom Promotions / Free Shipping Eligibility** | Cart and Checkout could show free shipping (or another offer) as applied for a cart that was not eligible, because totals merged saved selections and legacy backend free-shipping records into the live V2 quote. Totals now use only the live V2 quote; offers V2 rejects for minimum value/quantity are not listed as eligible; rule details are kept for ineligible offers. | 🟡 Implemented / Dev Verification Pending | `Nivaana-Ecom-Web/src/pages/Cart.tsx` |
+| **FIX-2026-10-06-44** | 2026-10-06 | **Ecom PhonePe Iframe Checkout (Meta In-App Browser)** | Customers from Instagram/Facebook could stay on PhonePe's success screen after paying. Web now opens PhonePe's iframe PayPage (flag `VITE_PHONEPE_IFRAME_CHECKOUT`, full-page redirect fallback); `CONCLUDED` is verified on the confirmation page. Closing the window keeps the customer on Checkout: pending payments are re-checked for 2 minutes and checked again before a new payment ("Wait / Pay again"). Order creation stays server-side. | 🟡 Implemented / SIT Verification Pending | [Plan](../Before%20Sep28%20Fix/Nivaana_Meta_InApp_PhonePe_UX_Fix_Report.md) |
 
 ---
 
@@ -370,3 +372,30 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Repositories Impacted:**
   - `asset-management-backend`
   - `asset_management_frontend_aromazen`
+
+### 2026-10-06: Ecom Promotions — Free Shipping Shown for Ineligible Carts
+* **Issue:** Cart and Checkout built `appliedPromotionsForTotals` from the live V2 quote plus saved V2 selections and legacy backend free-shipping records. Those records can describe an older, higher-value cart, so free shipping (or another offer) showed as applied when the current cart was not eligible.
+* **Fix (`Cart.tsx`, `Checkout.tsx`):**
+  - When a V2 quote is used, totals use only `liveV2AppliedPromotions`.
+  - Offers in the V2 quote's `rejected_candidates` with `MINIMUM_VALUE_NOT_MET` / `MINIMUM_QUANTITY_NOT_MET` are removed from the eligible list.
+  - `promotionDetailsById` is built from all raw candidates so thresholds can be enforced for compact applied records.
+  - Cart: a legacy backend-applied free-shipping record only counts as applied when no V2 quote is in use.
+* **Verification:** Tested locally by the developer. Ecom TypeScript and production build passed. Pending: dev check that free shipping shows when eligible and not when below the minimum, in Cart and Checkout.
+* **Repository Impacted:**
+  - `Nivaana-Ecom-Web` (commit `609cee5`)
+
+### 2026-10-06: Ecom PhonePe Iframe Checkout for Meta In-App Browsers
+* **Issue:** From Instagram/Facebook ads, some customers stayed on PhonePe's hosted success screen after paying because the Meta in-app browser did not return to Nivaana after the full-page redirect. Payment and order creation were already correct server-side (see plan).
+* **Fix (`Nivaana-Ecom-Web`, frontend only):**
+  - `phonePeCheckoutService.ts`: loads PhonePe `checkout.js` once (`VITE_PHONEPE_CHECKOUT_SCRIPT_URL`; SIT `mercury-stg` with SANDBOX backend, prod `mercury` with PRODUCTION backend), opens the token URL with `type: "IFRAME"`; a failed script tag is removed so a retry reloads it.
+  - Checkout: behind `VITE_PHONEPE_IFRAME_CHECKOUT` (prod `false`, SIT `true`). If the script or iframe fails, the existing full-page redirect is used with the same transaction. Pay button disabled while the iframe is open.
+  - `CONCLUDED` → confirmation page, which verifies status with the backend (never treated as success by itself).
+  - Window closed (`USER_CANCEL`): status checked once. Success → confirmation. Failed → "Payment was cancelled". Pending or status error → stay on Checkout with a persistent notice; re-checked every 5s for 2 minutes (the 120s Cloud Task window) and the confirmation opens if it succeeds.
+  - The open transaction is kept per customer in `sessionStorage` (30 min). The next Pay click checks it first: success → confirmation, failed → new payment, still pending → "Previous payment still processing" with **Wait** (default) / **Pay again**.
+  - `getStatus` timeout 120s (status can reconcile the order). Confirmation page: status-request errors show "delayed" instead of "failure", new "Loading your order" state, long product names wrap.
+* **Unchanged:** Backend (webhook, status endpoint, `cleanupExpiredLock` Cloud Task at `LOCK_CLEANUP_DELAY_SECONDS=120`, order reconciliation), Mobile App, Inventory.
+* **Known limits:** No backend guard against a second payment while one is pending (only the frontend prompt). A retry within 120s on very low stock may be refused until the first lock is released. Not yet done from the plan: backend `clientChannel`, iframe observability logs.
+* **Env (not committed):** `.env.sit` sets the flag `true` and the staging script and points `VITE_API_BASE_URL` to the dev Cloud Run URL; `.env.production` sets the flag `false` and the production script. Without them the flag is off.
+* **Verification:** Iframe success flow tested locally by the developer. Ecom TypeScript, ESLint (no errors) and production build passed. Pending: cancel flow (close without paying; close then pay in UPI app), and SIT tests through real Instagram/Facebook links on Android and iOS per the plan.
+* **Repository Impacted:**
+  - `Nivaana-Ecom-Web` (commits `49bb330`, `4d38ee5`)
