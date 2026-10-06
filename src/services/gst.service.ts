@@ -7,6 +7,7 @@ import {
   dynamicUpdate
 } from '../utils/dynamicDbOperations.js';
 import { EkartService } from './ekart.service.js';
+import { prisma } from '../models/prisma.js';
 
 /**
  * GST/HSN Mapping Service
@@ -21,18 +22,6 @@ export interface GstCalculationResult {
   sgst_amount: number;
   igst_amount: number;
   total_gst_amount: number;
-}
-
-export interface GstHsnMapping {
-  id: number;
-  subcategory_id: number | null;
-  subcategory_value: string | null;
-  subsubcategory_id: number | null;
-  subsubcategory_value: string | null;
-  hsn_code: string;
-  gst_rate: any; // Decimal type from Prisma
-  description: string | null;
-  isactive: boolean | null;
 }
 
 export interface OrderGstTotals {
@@ -55,7 +44,6 @@ export interface GstTypeResult {
 }
 
 export class GstService {
-  private readonly DEFAULT_GST_RATE = 18.00;
   private ekartService: EkartService;
 
   constructor() {
@@ -318,125 +306,6 @@ export class GstService {
   }
 
   /**
-   * Get GST/HSN mapping for a product based on subcategory/subsubcategory
-   * 
-   * Priority:
-   * 1. If product has subsubcategory → lookup by subsubcategory_value
-   * 2. Else → lookup by subcategory_value
-   * 3. If no match → return null (will use default 18% GST)
-   * 
-   * @param subcategory - Product's subcategory value (e.g., 'incense', 'essential_oils')
-   * @param subsubcategory - Product's subsubcategory value (e.g., 'incense_sticks', null)
-   * @returns GstHsnMapping or null
-   */
-  async getGstHsnMapping(
-    subcategory: string | null | undefined,
-    subsubcategory: string | null | undefined
-  ): Promise<GstHsnMapping | null> {
-    try {
-      // Priority 1: If product has subsubcategory, lookup by subsubcategory_value
-      if (subsubcategory) {
-        const { data: subsubcategoryMappings } = await dynamicFindManyWithFilters(
-          'gst_hsn_mapping',
-          {
-            subsubcategory_value: subsubcategory,
-            isactive: true
-          },
-          { take: 1, useAllColumns: true }
-        );
-
-        // Filter to ensure subsubcategory_id is not null and subcategory_id is null
-        const validMapping = subsubcategoryMappings.find(
-          (m: any) => m.subsubcategory_id !== null && m.subcategory_id === null
-        );
-
-        if (validMapping) {
-          logger.debug({
-            lookupType: 'subsubcategory',
-            subsubcategory,
-            found: true,
-            hsn_code: validMapping.hsn_code,
-            gst_rate: validMapping.gst_rate
-          }, 'GST mapping found by subsubcategory');
-
-          return validMapping as GstHsnMapping;
-        }
-      }
-
-      // Priority 2: Fallback to subcategory_value lookup
-      if (subcategory) {
-        const { data: subcategoryMappings } = await dynamicFindManyWithFilters(
-          'gst_hsn_mapping',
-          {
-            subcategory_value: subcategory,
-            isactive: true
-          },
-          { take: 1, useAllColumns: true }
-        );
-
-        // Filter to ensure subcategory_id is not null and subsubcategory_id is null
-        const validMapping = subcategoryMappings.find(
-          (m: any) => m.subcategory_id !== null && m.subsubcategory_id === null
-        );
-
-        if (validMapping) {
-          logger.debug({
-            lookupType: 'subcategory',
-            subcategory,
-            found: true,
-            hsn_code: validMapping.hsn_code,
-            gst_rate: validMapping.gst_rate
-          }, 'GST mapping found by subcategory');
-
-          return validMapping as GstHsnMapping;
-        }
-      }
-
-      // Priority 3: No mapping found
-      logger.debug({
-        subcategory,
-        subsubcategory,
-        found: false
-      }, 'No GST mapping found, will use default rate');
-
-      return null;
-    } catch (error) {
-      logger.error({
-        error,
-        subcategory,
-        subsubcategory
-      }, 'Error fetching GST/HSN mapping');
-      return null;
-    }
-  }
-
-  /**
-   * Get product category info (subcategory and subsubcategory) from product ID
-   * 
-   * @param productId - Product ID
-   * @returns Object with subcategory and subsubcategory
-   */
-  async getProductCategoryInfo(productId: number | bigint): Promise<{
-    subcategory: string | null;
-    subsubcategory: string | null;
-  }> {
-    try {
-      const product = await dynamicFindUnique('product', { id: Number(productId) });
-
-      return {
-        subcategory: product?.subcategory || null,
-        subsubcategory: product?.subsubcategory || null
-      };
-    } catch (error) {
-      logger.error({
-        error,
-        productId
-      }, 'Error fetching product category info');
-      return { subcategory: null, subsubcategory: null };
-    }
-  }
-
-  /**
    * Round to 2 decimal places
    */
   private round(value: number): number {
@@ -524,50 +393,41 @@ export class GstService {
   /**
    * Calculate GST for a single orderline
    * 
-   * @param productId - Product ID
    * @param orderamount - Orderline amount (GST-inclusive, excludes shipping)
    * @param gstType - GST type result (INTRA-STATE or INTER-STATE)
    * @returns GST calculation result with HSN code
    */
   async calculateGstForOrderline(
-    productId: number | bigint,
     orderamount: number,
-    gstType: GstTypeResult
+    gstType: GstTypeResult,
+    taxSnapshot: { hsn_code: string | null; gst_rate: number | null }
   ): Promise<GstCalculationResult> {
     logger.info({
-      productId,
       orderamount,
       gst_type: gstType.gst_type,
       note: 'orderamount should be TOTAL for line item (includes quantity), not per-unit'
     }, 'Calculating GST for orderline');
 
-    // 1. Get product category info
-    const { subcategory, subsubcategory } = await this.getProductCategoryInfo(productId);
+    const hsn_code = taxSnapshot.hsn_code?.trim() || null;
+    const gst_rate = taxSnapshot.gst_rate;
+    if (!hsn_code || gst_rate === null || !Number.isFinite(gst_rate) || gst_rate < 0 || gst_rate > 100) {
+      throw new Error('Orderline is missing its mandatory immutable HSN/GST snapshot');
+    }
 
-    // 2. Lookup GST mapping
-    const mapping = await this.getGstHsnMapping(subcategory, subsubcategory);
-
-    // 3. Use default if no mapping
-    const hsn_code = mapping?.hsn_code || null;
-    const gst_rate = mapping
-      ? parseFloat(mapping.gst_rate.toString())
-      : this.DEFAULT_GST_RATE;
-
-    // 4. Calculate GST amounts
+    // 3. Calculate GST amounts
     const gstResult = this.calculateGstAmounts(orderamount, gst_rate, gstType);
 
-    // 5. Add HSN code to result
+    // 4. Add HSN code to result
     gstResult.hsn_code = hsn_code;
 
     logger.info({
-      productId,
-      subcategory,
-      subsubcategory,
+      hsn_code,
+      gst_rate,
+      source: 'orderline_snapshot',
       orderamount,
       gst_type: gstType.gst_type,
       fromState: gstType.fromState,
       toState: gstType.toState,
-      mapping: mapping ? { hsn_code: mapping.hsn_code, gst_rate: mapping.gst_rate } : 'default',
       result: gstResult
     }, 'GST calculated for orderline');
 
@@ -590,6 +450,8 @@ export class GstService {
       id: number;
       productid: number | bigint;
       orderamount: number;
+      hsn_code: string | null;
+      gst_rate: number | null;
     }>,
     shippingCost: number,
     orderAmount: number,
@@ -634,9 +496,9 @@ export class GstService {
 
     for (const orderline of orderlines) {
       const gst = await this.calculateGstForOrderline(
-        orderline.productid,
         orderline.orderamount,
-        gstType
+        gstType,
+        { hsn_code: orderline.hsn_code, gst_rate: orderline.gst_rate }
       );
 
       orderlineGst.push({
@@ -713,12 +575,34 @@ export class GstService {
   ): Promise<void> {
     const currentTime = Date.now();
 
-    for (const { orderlineId, gst } of orderlineGst) {
-      try {
-        await dynamicUpdate(
-          'orderline',
-          { id: orderlineId },
-          {
+    await prisma.$transaction(orderlineGst.map(({ orderlineId, gst }) =>
+      prisma.orderline.update({
+        where: { id: orderlineId },
+        data: {
+          hsn_code: gst.hsn_code,
+          gst_rate: gst.gst_rate,
+          taxable_amount: gst.taxable_amount,
+          cgst_amount: gst.cgst_amount,
+          sgst_amount: gst.sgst_amount,
+          igst_amount: gst.igst_amount,
+          total_gst_amount: gst.total_gst_amount,
+          modifieddate: currentTime,
+        },
+      })
+    ));
+  }
+
+  async persistOrderGst(
+    orderId: number,
+    orderlineGst: Array<{ orderlineId: number; gst: GstCalculationResult }>,
+    orderTotals: OrderGstTotals
+  ): Promise<void> {
+    const currentTime = Date.now();
+    await prisma.$transaction(async (tx) => {
+      for (const { orderlineId, gst } of orderlineGst) {
+        await tx.orderline.update({
+          where: { id: orderlineId },
+          data: {
             hsn_code: gst.hsn_code,
             gst_rate: gst.gst_rate,
             taxable_amount: gst.taxable_amount,
@@ -726,23 +610,23 @@ export class GstService {
             sgst_amount: gst.sgst_amount,
             igst_amount: gst.igst_amount,
             total_gst_amount: gst.total_gst_amount,
-            modifieddate: currentTime
-          }
-        );
-
-        logger.debug({
-          orderlineId,
-          gst
-        }, 'Orderline updated with GST data');
-      } catch (error) {
-        logger.error({
-          error,
-          orderlineId,
-          gst
-        }, 'Error updating orderline with GST data');
-        // Continue with other orderlines even if one fails
+            modifieddate: currentTime,
+          },
+        });
       }
-    }
+      await tx.orders.update({
+        where: { id: orderId },
+        data: {
+          items_total: orderTotals.items_total,
+          total_taxable_amount: orderTotals.total_taxable_amount,
+          total_cgst_amount: orderTotals.total_cgst_amount,
+          total_sgst_amount: orderTotals.total_sgst_amount,
+          total_igst_amount: orderTotals.total_igst_amount,
+          total_gst_amount: orderTotals.total_gst_amount,
+          modifieddate: currentTime,
+        },
+      });
+    });
   }
 
   /**
@@ -892,7 +776,11 @@ export class GstService {
           return {
             id: ol.id,
             productid: ol.productid ? Number(ol.productid) : 0,
-            orderamount: orderamount // Use orderamount directly (already includes quantity)
+            orderamount: orderamount, // Use orderamount directly (already includes quantity)
+            hsn_code: ol.hsn_code ? String(ol.hsn_code) : null,
+            gst_rate: ol.gst_rate === null || ol.gst_rate === undefined
+              ? null
+              : Number(ol.gst_rate),
           };
         }),
         shippingCost,
@@ -902,11 +790,9 @@ export class GstService {
         warehouseAlias
       );
 
-      // 4. Update orderlines with GST data
-      await this.updateOrderlinesWithGst(orderlineGst);
-
-      // 5. Update order with GST totals
-      await this.updateOrderWithGst(orderId, orderTotals);
+      // 4. Persist line and order totals atomically. A partial tax snapshot is
+      // never reported as successful.
+      await this.persistOrderGst(orderId, orderlineGst, orderTotals);
 
       logger.info({
         orderId,
@@ -932,4 +818,3 @@ export class GstService {
 
 // Export singleton instance
 export const gstService = new GstService();
-

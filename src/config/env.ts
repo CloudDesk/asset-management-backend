@@ -293,6 +293,7 @@ const envSchema = z.object({
   GMAIL_PORT: z.string().optional().default("465"),
   GMAIL_AUTH_USER: z.string().optional(),
   GMAIL_AUTH_PASSWORD: z.string().optional(),
+  RESET_PASSWORD_URL: z.string().trim().url(),
 
   // PostgreSQL Configuration (alternative to DATABASE_URL)
   POSTGRES_HOST: z.string().optional(),
@@ -314,6 +315,9 @@ const envSchema = z.object({
   REDIRECT_URL_PAYMENT_STATUS: z.string().optional(),
   REDIRECT_URL_SUCCESS: z.string().optional(),
   REDIRECT_URL_FAILURE: z.string().optional(),
+  ECOM_PAYMENT_RETURN_URL: z.string().optional(),
+  MOBILE_PAYMENT_RETURN_URL: z.string().optional(),
+  PAYMENT_RETURN_URL_ALLOWED_ORIGINS: z.string().optional(),
   REDIRECT_INVENTORY_URL: z.string().optional(),
 
   // Optional OTP Configuration (has defaults)
@@ -413,9 +417,6 @@ const envSchema = z.object({
   SHIPMOZO_TRACKING_SYNC_CRON: z.string().optional().default("*/30 * * * *"),
   SHIPMOZO_TRACKING_SYNC_BATCH_SIZE: z.coerce.number().int().min(1).max(100).optional().default(25),
   SHIPMOZO_WEBHOOK_SECRET: z.string().min(16).optional(),
-  PROMOTIONS_V2_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
-  PROMOTIONS_V2_SHADOW: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
-  
   // Seller Information (for EKART shipments)
   SELLER_GST_TIN: z.string().optional(),
 

@@ -72,10 +72,10 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
                   visibility: { type: 'string', nullable: true, description: 'Visibility' },
                   applicable_channel: { type: 'string', enum: ['all', 'web', 'mobile'], description: 'Applicable app channel' },
                   application_mode: { type: 'string', enum: ['automatic', 'click_to_apply', 'code_entry'], description: 'Promotion application method' },
-                  max_redemptions: { type: 'number', nullable: true, description: 'Maximum redemptions' },
+                  max_redemptions: { type: 'number', nullable: true, description: 'Optional campaign-wide redemption limit; null means unlimited' },
                   per_user_limit: { type: 'number', nullable: true, description: 'Per user limit' },
                   stackable: { type: 'boolean', nullable: true, description: 'Stackable status' },
-                  budget: { type: 'number', nullable: true, description: 'Promotion budget' },
+                  budget: { type: 'number', nullable: true, description: 'Optional total promotion discount budget; null means unlimited' },
                   timezone: { type: 'string', nullable: true, description: 'Timezone' },
                   evaluation_expiry_minutes: { type: 'number', nullable: true, description: 'Evaluation expiry minutes' },
                   discount_type: { type: 'string', nullable: true, description: 'Discount type' },
@@ -145,7 +145,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
     },
   }, promotionsController.getPromotions.bind(promotionsController));
 
-  fastify.get('/mine', promotionsController.getMyPromotions);
+  fastify.get('/customer-offers', promotionsController.getMyPromotions);
   fastify.get('/public', promotionsController.getPublicPromotions);
 
 
@@ -276,10 +276,10 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           visibility: { type: 'string', enum: ['public', 'private'], description: 'Visibility' },
           applicable_channel: { type: 'string', enum: ['all', 'web', 'mobile'], default: 'all', description: 'Applicable app channel' },
           application_mode: { type: 'string', enum: ['automatic', 'click_to_apply', 'code_entry'], default: 'click_to_apply', description: 'How customers apply the promotion' },
-          max_redemptions: { type: 'number', description: 'Maximum redemptions' },
-          per_user_limit: { type: 'number', description: 'Per user limit' },
+          max_redemptions: { type: 'number', nullable: true, minimum: 1, description: 'Optional campaign-wide redemption limit; null means unlimited' },
+          per_user_limit: { type: 'number', nullable: true, minimum: 1, description: 'Optional per-user limit; null means unlimited' },
           stackable: { type: 'boolean', description: 'Stackable status' },
-          budget: { type: 'number', description: 'Promotion budget' },
+          budget: { type: 'number', nullable: true, exclusiveMinimum: 0, description: 'Optional total promotion discount budget; null means unlimited' },
           timezone: { type: 'string', description: 'Timezone' },
           evaluation_expiry_minutes: { type: 'number', description: 'Evaluation expiry minutes' },
           // Frontend-specific fields (for backward compatibility)
@@ -477,10 +477,10 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           visibility: { type: 'string', enum: ['public', 'private'], description: 'Visibility' },
           applicable_channel: { type: 'string', enum: ['all', 'web', 'mobile'], description: 'Applicable app channel' },
           application_mode: { type: 'string', enum: ['automatic', 'click_to_apply', 'code_entry'], description: 'How customers apply the promotion' },
-          max_redemptions: { type: 'number', description: 'Maximum redemptions' },
-          per_user_limit: { type: 'number', description: 'Per user limit' },
+          max_redemptions: { type: 'number', nullable: true, minimum: 1, description: 'Optional campaign-wide redemption limit; null means unlimited' },
+          per_user_limit: { type: 'number', nullable: true, minimum: 1, description: 'Optional per-user limit; null means unlimited' },
           stackable: { type: 'boolean', description: 'Stackable status' },
-          budget: { type: 'number', description: 'Promotion budget' },
+          budget: { type: 'number', nullable: true, exclusiveMinimum: 0, description: 'Optional total promotion discount budget; null means unlimited' },
           timezone: { type: 'string', description: 'Timezone' },
           evaluation_expiry_minutes: { type: 'number', description: 'Evaluation expiry minutes' },
           // Frontend-specific fields (for backward compatibility)
@@ -1006,6 +1006,85 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
     }
   }, redemptionController.getRedemptionsForOrder.bind(redemptionController));
 
+  // GET /v1/promotions/redemptions - Inventory promotion usage history
+  fastify.get('/redemptions', {
+    schema: {
+      description: 'Get paginated promotion redemption history for Inventory',
+      tags: ['Promotions', 'Redemption'],
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'string' },
+          limit: { type: 'string' },
+          search: { type: 'string' },
+          promotion_type: { type: 'string' },
+          status: { type: 'string' },
+          redeemed_from: { type: 'string' },
+          redeemed_to: { type: 'string' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: {
+              type: 'object',
+              properties: {
+                redemptions: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    additionalProperties: true,
+                    properties: {
+                      id: { type: 'string' },
+                      evaluation_id: { type: 'string' },
+                      promotion_id: { type: 'number', nullable: true },
+                      promotion_name: { type: 'string' },
+                      promotion_code: { type: 'string', nullable: true },
+                      promotion_type: { type: 'string' },
+                      application_mode: { type: 'string', nullable: true },
+                      order_internal_id: { type: 'number', nullable: true },
+                      order_number: { type: 'string', nullable: true },
+                      order_status: { type: 'string', nullable: true },
+                      customer_id: { type: 'number', nullable: true },
+                      customer_name: { type: 'string' },
+                      customer_email: { type: 'string', nullable: true },
+                      customer_mobile: { type: 'string', nullable: true },
+                      order_date: { type: 'number', nullable: true },
+                      original_order_value: { type: 'number' },
+                      total_promotion_discount: { type: 'number' },
+                      discount_amount: { type: 'number' },
+                      final_amount_paid: { type: 'number' },
+                      shipping_fee: { type: 'number' },
+                      redemption_status: { type: 'string' },
+                      redeemed_at: { type: 'number' },
+                      redemption_data: { type: 'object', nullable: true, additionalProperties: true },
+                      evaluation_context: { type: 'object', nullable: true, additionalProperties: true },
+                      order_available: { type: 'boolean' }
+                    }
+                  }
+                },
+                pagination: {
+                  type: 'object',
+                  properties: {
+                    page: { type: 'number' },
+                    limit: { type: 'number' },
+                    total: { type: 'number' },
+                    totalPages: { type: 'number' },
+                    hasNext: { type: 'boolean' },
+                    hasPrev: { type: 'boolean' }
+                  }
+                }
+              }
+            },
+            message: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, redemptionController.getAllRedemptionHistory.bind(redemptionController));
+
   // GET /v1/promotions/redemptions/:id - Get redemption by ID
   fastify.get('/redemptions/:id', {
     schema: {
@@ -1023,7 +1102,7 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            data: { type: 'object' },
+            data: { type: 'object', additionalProperties: true },
             message: { type: 'string' }
           }
         },
@@ -1097,8 +1176,8 @@ export async function promotionsRoutes(fastify: FastifyInstance) {
   // PROMOTION OFFERS ROUTES
   // ========================================
 
-  // POST /v1/promotions/offers - Get unified promotion offers (best + all eligible/ineligible)
-  fastify.post('/offers', {
+  // POST /v1/promotions/available-offers - Get unified promotion offers (best + all eligible/ineligible)
+  fastify.post('/available-offers', {
     schema: {
       description: 'Get unified promotion offers - best recommendation + all eligible/ineligible promotions',
       tags: ['Promotions', 'Offers'],

@@ -14,6 +14,26 @@ import {
   formatEntitiesForAPI,
 } from "../utils/dynamicDbOperations.js";
 import { logger } from "../config/logger.js";
+import { prisma } from "../models/prisma.js";
+
+/**
+ * Storefront product shape shared by the platform listing and the Home catalog:
+ * API formatting, then the platformStocks array is replaced by
+ * availablequantity from the platform stock record.
+ */
+const toPlatformProductResponse = (products: any[]): any[] =>
+  formatEntitiesForAPI(products, "product").map((product: any) => {
+    const { platformStocks, ...productWithoutPlatformStocks } = product;
+
+    // Extract availablequantity from the platform stock (first item since we only fetch one)
+    const platformStock = platformStocks && platformStocks[0];
+    const availablequantity = platformStock?.availableqty ?? null;
+
+    return {
+      ...productWithoutPlatformStocks,
+      availablequantity, // Add availablequantity from platform stock
+    };
+  });
 
 export class ProductController {
   public productService = new ProductService();
@@ -552,21 +572,7 @@ export class ProductController {
         sortOrder
       );
 
-      const formattedData = formatEntitiesForAPI(result.data, "product");
-
-      // Transform data: remove platformStocks array and add availablequantity from platform stock
-      const transformedData = formattedData.map((product: any) => {
-        const { platformStocks, ...productWithoutPlatformStocks } = product;
-
-        // Extract availablequantity from the platform stock (first item since we only fetch one)
-        const platformStock = platformStocks && platformStocks[0];
-        const availablequantity = platformStock?.availableqty ?? null;
-
-        return {
-          ...productWithoutPlatformStocks,
-          availablequantity, // Add availablequantity from platform stock
-        };
-      });
+      const transformedData = toPlatformProductResponse(result.data);
 
       const response = createSuccessResponse(
         `Products for ${platform} platform retrieved successfully`,
@@ -585,6 +591,27 @@ export class ProductController {
           sortOrder,
         },
       });
+    }
+  );
+
+  // GET /v1/products/platform/nivapp/home - Storefront Home catalog (read-only)
+  getHomeCatalogForPlatform = asyncHandler(
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      const platform = 'nivapp';
+      const catalog = await this.productService.getHomeCatalogForPlatform(platform);
+
+      const response = createSuccessResponse(
+        `Home catalog for ${platform} platform retrieved successfully`,
+        {
+          bestSellers: toPlatformProductResponse(catalog.bestSellers),
+          newArrivals: toPlatformProductResponse(catalog.newArrivals),
+          bestOfNivaana: toPlatformProductResponse(catalog.bestOfNivaana),
+          flavours: catalog.flavours,
+          categories: catalog.categories,
+        }
+      );
+
+      return reply.code(200).send(response);
     }
   );
 
@@ -635,6 +662,38 @@ export class ProductController {
         result
       );
 
+      return reply.code(200).send(response);
+    }
+  );
+
+  getTaxPresets = asyncHandler(
+    async (_request: FastifyRequest, reply: FastifyReply) => {
+      const presets = await prisma.gstHsnMapping.findMany({
+        where: { isactive: true },
+        select: {
+          id: true,
+          subcategory_value: true,
+          subsubcategory_value: true,
+          hsn_code: true,
+          gst_rate: true,
+          description: true,
+        },
+        orderBy: { id: "asc" },
+      });
+
+      const formatted = presets.map((p) => ({
+        id: p.id,
+        subcategory_value: p.subcategory_value,
+        subsubcategory_value: p.subsubcategory_value,
+        hsn_code: p.hsn_code,
+        gst_rate: parseFloat(p.gst_rate.toString()),
+        description: p.description,
+      }));
+
+      const response = createSuccessResponse(
+        "Tax presets retrieved successfully",
+        formatted
+      );
       return reply.code(200).send(response);
     }
   );

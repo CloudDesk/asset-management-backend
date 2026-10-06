@@ -16,3 +16,31 @@ export const epochToDate = (value: bigint | number | string | null | undefined):
   const date = new Date(milliseconds);
   return Number.isNaN(date.getTime()) ? null : date;
 };
+
+const INDIA_UTC_OFFSET_MILLISECONDS = 5.5 * 60 * 60 * 1000;
+const MAX_CLOCK_SKEW_MILLISECONDS = 5 * 60 * 1000;
+
+/**
+ * Promotions written by the legacy PostgreSQL trigger used
+ * `CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata'` before extracting epoch
+ * seconds. That incorrectly moves an absolute timestamp 05:30 into the
+ * future. Normalize only values that are currently in that narrow future
+ * window; ordinary historical timestamps and genuinely invalid far-future
+ * values remain untouched.
+ */
+export const normalizeLegacyIndiaShiftedEpochMilliseconds = (
+  value: bigint | number | string | null | undefined,
+  nowMilliseconds = Date.now()
+): number => {
+  const milliseconds = epochToMilliseconds(value);
+  if (!Number.isFinite(milliseconds)) return Number.NaN;
+
+  const isInLegacyShiftWindow =
+    milliseconds > nowMilliseconds + MAX_CLOCK_SKEW_MILLISECONDS &&
+    milliseconds <=
+      nowMilliseconds + INDIA_UTC_OFFSET_MILLISECONDS + MAX_CLOCK_SKEW_MILLISECONDS;
+
+  return isInLegacyShiftWindow
+    ? milliseconds - INDIA_UTC_OFFSET_MILLISECONDS
+    : milliseconds;
+};

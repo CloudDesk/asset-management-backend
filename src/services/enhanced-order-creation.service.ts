@@ -187,15 +187,22 @@ export class EnhancedOrderCreationService {
       .map((id) => BigInt(id));
     const products = await this.prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: { id: true, shortname: true },
+      select: { id: true, shortname: true, hsn_code: true, gst_rate: true },
     });
-    const shortnamesByProductId = new Map(
-      products.map((product) => [Number(product.id), product.shortname.trim()]),
+    const productMetaById = new Map(
+      products.map((product) => [Number(product.id), product]),
     );
 
     for (let i = 0; i < orderItems.length; i++) {
       const item = orderItems[i];
       const breakdown = lineLevelBreakdown[i] || {};
+      const product = productMetaById.get(Number(item.productid));
+      const gstRate = product?.gst_rate === null || product?.gst_rate === undefined
+        ? NaN
+        : Number(product.gst_rate);
+      if (!product?.hsn_code?.trim() || !Number.isFinite(gstRate) || gstRate < 0 || gstRate > 100) {
+        throw new Error(`Product ${item.productid} is missing mandatory HSN/GST configuration`);
+      }
 
       const orderlineData = {
         orderid: orderId,
@@ -207,7 +214,9 @@ export class EnhancedOrderCreationService {
         orderamount: item.orderamount,
         quantity: item.quantity,
         productname: item.productname,
-        productshortname: shortnamesByProductId.get(Number(item.productid)) || null,
+        productshortname: product.shortname.trim(),
+        hsn_code: product.hsn_code.trim(),
+        gst_rate: product.gst_rate,
         productcategory: item.productcategory,
         orderstatus: 'payment_completed',
         // Enhanced promotion tracking fields

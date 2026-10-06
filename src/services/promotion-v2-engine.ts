@@ -26,6 +26,15 @@ export interface PromotionCampaign {
   ruleVersion: number;
   name: string;
   rule: PromotionRuleV2;
+  /** Remaining configured campaign budget in paise; omitted means unlimited. */
+  remainingBudgetPaise?: number;
+  /**
+   * Whole-order offer (promotion type *_CART, e.g. "Flat 100 On 1299"). It is
+   * evaluated as one block: applied in full or not at all. Without this flag a
+   * merchandise offer is split per unit, so a non-stackable cart offer could
+   * keep only the shares on items no other offer discounted (a partial amount).
+   */
+  appliesToWholeOrder?: boolean;
 }
 
 export interface PromotionAdjustment {
@@ -62,7 +71,13 @@ export interface PromotionQuote {
   evaluation_id: string;
   currency: 'INR';
   original_total: number;
+  merchandise_subtotal: number;
+  merchandise_discount_total: number;
+  merchandise_payable: number;
   shipping_amount: number;
+  shipping_discount_total: number;
+  shipping_payable: number;
+  gift_savings_total: number;
   discount_total: number;
   payable_total: number;
   adjustments: PromotionAdjustment[];
@@ -115,7 +130,9 @@ function metricValue(rule: PromotionRuleV2, eligible: PromotionCartLine[], allLi
     case 'PER_PRODUCT_QUANTITY': return eligible.length ? Math.max(...eligible.map((line) => line.quantity)) : 0;
     case 'QUALIFYING_SUBTOTAL': return eligible.reduce((sum, line) => sum + line.unitPricePaise * line.quantity, 0);
     case 'CART_SUBTOTAL': return allLines.filter((line) => !line.isGift).reduce((sum, line) => sum + line.unitPricePaise * line.quantity, 0);
-    case 'ORDER_TOTAL': return allLines.filter((line) => !line.isGift).reduce((sum, line) => sum + line.unitPricePaise * line.quantity, 0) + shippingAmount;
+    // Promotion thresholds are always based on merchandise. Shipping must not
+    // help an order qualify for a benefit that may itself remove shipping.
+    case 'ORDER_TOTAL': return allLines.filter((line) => !line.isGift).reduce((sum, line) => sum + line.unitPricePaise * line.quantity, 0);
     case 'ELIGIBLE_QUANTITY': return eligible.reduce((sum, line) => sum + line.quantity, 0);
   }
 }
@@ -145,7 +162,11 @@ function unitKeys(lines: PromotionCartLine[], maximum?: number): Set<string> {
 }
 
 function atomicCandidates(candidate: Candidate): Candidate[] {
-  if (candidate.globalExclusive || candidate.adjustments.some((adjustment) => adjustment.type === 'FREE_ITEM' || adjustment.type === 'FREE_SHIPPING')) return [candidate];
+  if (
+    candidate.globalExclusive ||
+    candidate.campaign.appliesToWholeOrder === true ||
+    candidate.adjustments.some((adjustment) => adjustment.type === 'FREE_ITEM' || adjustment.type === 'FREE_SHIPPING')
+  ) return [candidate];
   const result: Candidate[] = [];
   for (const adjustment of candidate.adjustments) {
     const quantity = Math.max(1, adjustment.affected_quantity);
@@ -191,10 +212,14 @@ function qualificationBuckets(rule: PromotionRuleV2, eligible: PromotionCartLine
 
 function allocateAmount(lines: PromotionCartLine[], total: number, type: PromotionAdjustment['type'], campaign: PromotionCampaign): PromotionAdjustment[] {
   const eligibleTotal = lines.reduce((sum, line) => sum + line.unitPricePaise * line.quantity, 0);
-  let remainder = Math.min(total, eligibleTotal);
+  const distributableTotal = Math.min(Math.max(0, total), eligibleTotal);
+  let remainder = distributableTotal;
   return [...lines].sort((a, b) => a.id.localeCompare(b.id)).map((line, index, ordered) => {
     const lineTotal = line.unitPricePaise * line.quantity;
-    const amount = index === ordered.length - 1 ? remainder : Math.min(remainder, Math.floor(total * lineTotal / Math.max(eligibleTotal, 1)));
+    const proportionalAmount = Math.floor(distributableTotal * lineTotal / Math.max(eligibleTotal, 1));
+    const amount = index === ordered.length - 1
+      ? Math.min(lineTotal, remainder)
+      : Math.min(lineTotal, remainder, proportionalAmount);
     remainder -= amount;
     return {
       adjustment_id: randomUUID(), promotion_id: campaign.promotionId, rule_version: campaign.ruleVersion,
@@ -353,6 +378,82 @@ function optimise(candidates: Candidate[]): Candidate[] {
   return best;
 }
 
+const isAutoAddedGift = (adjustment: PromotionAdjustment): boolean =>
+  adjustment.type === 'FREE_ITEM' && adjustment.metadata.fulfilment === 'AUTO_ADD';
+
+const isShippingAdjustment = (adjustment: PromotionAdjustment): boolean =>
+  adjustment.type === 'FREE_SHIPPING';
+
+function adjustmentLineKey(adjustment: PromotionAdjustment): string | undefined {
+  if (adjustment.cart_record_id) return `cart:${adjustment.cart_record_id}`;
+  if (adjustment.product_id) return `product:${adjustment.product_id}`;
+  return undefined;
+}
+
+function lineBalanceKey(line: PromotionCartLine): string {
+  return line.cartRecordId ? `cart:${line.cartRecordId}` : `product:${line.id}`;
+}
+
+/**
+ * Promotion candidates are calculated independently so the optimiser can
+ * compare their customer value. Once a compatible set is selected, stacked
+ * merchandise benefits must share the same finite line balances. This pass
+ * converts nominal savings into the amounts that can actually be applied.
+ */
+function capSelectedCandidates(
+  selected: Candidate[],
+  lines: PromotionCartLine[],
+  shippingAmount: number,
+): Candidate[] {
+  const remainingByLine = new Map<string, number>();
+  for (const line of lines.filter((item) => !item.isGift)) {
+    const key = lineBalanceKey(line);
+    remainingByLine.set(key, (remainingByLine.get(key) ?? 0) + line.unitPricePaise * line.quantity);
+  }
+
+  let remainingShipping = Math.max(0, shippingAmount);
+  const selectedOrder = new Map(
+    selected.map((candidate, index) => [candidate.campaign.promotionId, index]),
+  );
+  const ranked = [...selected].sort((left, right) =>
+    right.saving - left.saving ||
+    right.campaign.rule.stacking.priority - left.campaign.rule.stacking.priority ||
+    left.campaign.promotionId - right.campaign.promotionId
+  );
+
+  const capped = ranked.flatMap((candidate): Candidate[] => {
+    const adjustments = candidate.adjustments.flatMap((adjustment): PromotionAdjustment[] => {
+      if (isAutoAddedGift(adjustment)) return [adjustment];
+
+      if (isShippingAdjustment(adjustment)) {
+        const amount = Math.min(Math.max(adjustment.amount, 0), remainingShipping);
+        remainingShipping -= amount;
+        return amount > 0
+          ? [{ ...adjustment, amount, payable_amount: Math.max(0, adjustment.list_amount - amount) }]
+          : [];
+      }
+
+      const key = adjustmentLineKey(adjustment);
+      if (!key) return [];
+      const remaining = Math.max(0, remainingByLine.get(key) ?? 0);
+      const amount = Math.min(Math.max(adjustment.amount, 0), remaining);
+      remainingByLine.set(key, remaining - amount);
+      return amount > 0
+        ? [{ ...adjustment, amount, payable_amount: Math.max(0, adjustment.list_amount - amount) }]
+        : [];
+    });
+    const saving = adjustments.reduce((sum, adjustment) => sum + adjustment.amount, 0);
+    return saving > 0 ? [{ ...candidate, adjustments, saving }] : [];
+  });
+
+  // Allocation follows best-value rank, but the public response keeps the
+  // optimiser's stable ordering for backward compatibility.
+  return capped.sort((left, right) =>
+    (selectedOrder.get(left.campaign.promotionId) ?? 0) -
+    (selectedOrder.get(right.campaign.promotionId) ?? 0)
+  );
+}
+
 export function evaluatePromotionQuote(
   lines: PromotionCartLine[],
   campaigns: PromotionCampaign[],
@@ -367,6 +468,7 @@ export function evaluatePromotionQuote(
   const giftChoices: Array<{ promotion_id: number; product_ids: string[] }> = [];
 
   for (const campaign of [...campaigns].sort((a, b) => a.promotionId - b.promotionId)) {
+    const candidateStart = candidates.length;
     const eligible = lines.filter((line) => isLineInPromotionScope(line, campaign.rule));
     if (!eligible.length) { rejected.push({ promotion_id: campaign.promotionId, reason_code: 'NO_ELIGIBLE_PRODUCTS' }); continue; }
     for (const bucket of qualificationBuckets(campaign.rule, eligible)) {
@@ -382,9 +484,31 @@ export function evaluatePromotionQuote(
       if (built.giftChoices && !giftChoices.some((choice) => choice.promotion_id === campaign.promotionId)) giftChoices.push({ promotion_id: campaign.promotionId, product_ids: built.giftChoices });
       if (built.candidate?.saving) candidates.push(...atomicCandidates(built.candidate));
     }
+    const campaignSaving = candidates
+      .slice(candidateStart)
+      .reduce((sum, candidate) => sum + candidate.saving, 0);
+    if (
+      campaign.remainingBudgetPaise !== undefined &&
+      campaignSaving > campaign.remainingBudgetPaise
+    ) {
+      candidates.splice(candidateStart);
+      const giftChoiceIndex = giftChoices.findIndex(
+        (choice) => choice.promotion_id === campaign.promotionId
+      );
+      if (giftChoiceIndex >= 0) giftChoices.splice(giftChoiceIndex, 1);
+      rejected.push({
+        promotion_id: campaign.promotionId,
+        reason_code: 'BUDGET_EXHAUSTED',
+        details: {
+          remaining_budget: campaign.remainingBudgetPaise,
+          required_budget: campaignSaving,
+        },
+      });
+    }
   }
 
-  const selected = optimise(candidates);
+  const nominalSelected = optimise(candidates);
+  const selected = capSelectedCandidates(nominalSelected, lines, shippingAmount);
   const selectedIds = new Set(selected.map((candidate) => candidate.campaign.promotionId));
   for (const candidate of candidates) {
     if (!selectedIds.has(candidate.campaign.promotionId) && !rejected.some((item) => item.promotion_id === candidate.campaign.promotionId && item.reason_code === 'CONFLICTED_WITH_BETTER_OFFER')) {
@@ -395,8 +519,20 @@ export function evaluatePromotionQuote(
   const merchandise = lines.filter((line) => !line.isGift).reduce((sum, line) => sum + line.unitPricePaise * line.quantity, 0);
   const autoAddedGiftValue = adjustments.filter((adjustment) => adjustment.type === 'FREE_ITEM' && adjustment.metadata.fulfilment === 'AUTO_ADD')
     .reduce((sum, adjustment) => sum + adjustment.list_amount, 0);
+  const merchandiseDiscountTotal = adjustments
+    .filter((adjustment) => !isShippingAdjustment(adjustment) && !isAutoAddedGift(adjustment))
+    .reduce((sum, adjustment) => sum + adjustment.amount, 0);
+  const shippingDiscountTotal = adjustments
+    .filter(isShippingAdjustment)
+    .reduce((sum, adjustment) => sum + adjustment.amount, 0);
+  const giftSavingsTotal = adjustments
+    .filter(isAutoAddedGift)
+    .reduce((sum, adjustment) => sum + adjustment.amount, 0);
+  const merchandisePayable = Math.max(0, merchandise - merchandiseDiscountTotal);
+  const shippingPayable = Math.max(0, shippingAmount - shippingDiscountTotal);
   const originalTotal = merchandise + shippingAmount + autoAddedGiftValue;
-  const discountTotal = adjustments.reduce((sum, adjustment) => sum + adjustment.amount, 0);
+  const discountTotal = merchandiseDiscountTotal + shippingDiscountTotal + giftSavingsTotal;
+  const payableTotal = merchandisePayable + shippingPayable;
   const now = options.now ?? new Date();
 
   const appliedByPromotion = new Map<number, { promotion_id: number; name: string; saving: number }>();
@@ -404,12 +540,30 @@ export function evaluatePromotionQuote(
     const current = appliedByPromotion.get(candidate.campaign.promotionId);
     appliedByPromotion.set(candidate.campaign.promotionId, { promotion_id: candidate.campaign.promotionId, name: candidate.campaign.name, saving: (current?.saving ?? 0) + candidate.saving });
   }
+  const alternativesByPromotion = new Map<number, { promotion_id: number; name: string; saving: number }>();
+  for (const candidate of candidates) {
+    if (selectedIds.has(candidate.campaign.promotionId)) continue;
+    const current = alternativesByPromotion.get(candidate.campaign.promotionId);
+    alternativesByPromotion.set(candidate.campaign.promotionId, {
+      promotion_id: candidate.campaign.promotionId,
+      name: candidate.campaign.name,
+      saving: (current?.saving ?? 0) + candidate.saving,
+    });
+  }
   return {
     schema_version: 2, evaluation_id: randomUUID(), currency: 'INR', original_total: originalTotal,
-    shipping_amount: shippingAmount, discount_total: discountTotal, payable_total: Math.max(0, originalTotal - discountTotal),
+    merchandise_subtotal: merchandise,
+    merchandise_discount_total: merchandiseDiscountTotal,
+    merchandise_payable: merchandisePayable,
+    shipping_amount: shippingAmount,
+    shipping_discount_total: shippingDiscountTotal,
+    shipping_payable: shippingPayable,
+    gift_savings_total: giftSavingsTotal,
+    discount_total: discountTotal,
+    payable_total: payableTotal,
     adjustments,
     applied_promotions: [...appliedByPromotion.values()],
-    eligible_alternatives: [...new Map(candidates.filter((candidate) => !selectedIds.has(candidate.campaign.promotionId)).map((candidate) => [candidate.campaign.promotionId, { promotion_id: candidate.campaign.promotionId, name: candidate.campaign.name, saving: candidate.saving }])).values()],
+    eligible_alternatives: [...alternativesByPromotion.values()],
     rejected_candidates: rejected, next_tier_progress: progress, gift_choices: giftChoices,
     expires_at: new Date(now.getTime() + (options.ttlSeconds ?? 900) * 1000).toISOString(),
   };

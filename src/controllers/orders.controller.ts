@@ -718,6 +718,30 @@ export class OrdersController {
    * Get orders by user ID with orderlines and address details
    * GET /v1/orders/user/:userid/details
    */
+  // GET /v1/orders/user/:userid/summary - Order history totals for one customer
+  getOrderSummaryByUserId = asyncHandler(async (
+    request: FastifyRequest<{ Params: { userid: string } }>,
+    reply: FastifyReply
+  ) => {
+    const { userid } = request.params;
+    const userId = Number(userid);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return reply.code(400).send({ success: false, message: 'Invalid user ID', statusCode: 400 });
+    }
+
+    // A customer may only read their own summary; inventory users may read any.
+    const authUser = (request as AuthenticatedRequest).user;
+    if (!authUser) {
+      return reply.code(401).send({ success: false, message: 'Authentication required', statusCode: 401 });
+    }
+    if (authUser.userType !== 'inventory' && Number(authUser.id) !== userId) {
+      return reply.code(403).send({ success: false, message: 'You can only view your own orders', statusCode: 403 });
+    }
+
+    const summary = await this.ordersService.getOrderSummaryByUserId(userId);
+    return reply.code(200).send(createSuccessResponse('Order summary retrieved successfully', summary));
+  });
+
   getOrdersByUserIdWithDetails = asyncHandler(async (
     request: FastifyRequest<{
       Params: { userid: string },
@@ -759,6 +783,15 @@ export class OrdersController {
         message: 'Invalid user ID',
         statusCode: 400
       });
+    }
+
+    // A customer may only read their own orders; inventory users may read any.
+    const authUser = (request as AuthenticatedRequest).user;
+    if (!authUser) {
+      return reply.code(401).send({ success: false, message: 'Authentication required', statusCode: 401 });
+    }
+    if (authUser.userType !== 'inventory' && Number(authUser.id) !== Number(userid)) {
+      return reply.code(403).send({ success: false, message: 'You can only view your own orders', statusCode: 403 });
     }
 
     const userId = parseInt(userid, 10);
@@ -871,7 +904,8 @@ export class OrdersController {
         source,
         actor?.username
       );
-      await this.sendOrderNotification(cancelledOrder, 'cancelled');
+      // Notification delivery must not delay the cancellation response.
+      void this.sendOrderNotification(cancelledOrder, 'cancelled');
 
       const response = createSuccessResponse(
         'Order cancelled successfully',

@@ -188,7 +188,18 @@ export async function ekartRoutes(fastify: FastifyInstance) {
           height: { type: 'number' },
           cod_amount: { type: 'number' },
           category_of_goods: { type: 'string' },
-          hsn_code: { type: 'string' }
+          hsn_code: { type: 'string' },
+          // EKART warehouse alias for pickup/return; omitted → EKART account default warehouse
+          pickup_location: {
+            type: 'object',
+            required: ['name'],
+            properties: { name: { type: 'string' } }
+          },
+          return_location: {
+            type: 'object',
+            required: ['name'],
+            properties: { name: { type: 'string' } }
+          }
         }
       },
       response: {

@@ -33,6 +33,8 @@
     "taxonomy:apply": "npx tsx scripts/migrate-product-taxonomy.ts --apply --confirm=NIVAANA_TWO_LEVEL_TAXONOMY",
     "taxonomy:dry-run:lower": "npx tsx scripts/migrate-product-taxonomy.ts --profile=lower",
     "taxonomy:apply:lower": "npx tsx scripts/migrate-product-taxonomy.ts --profile=lower --apply --confirm=NIVAANA_TWO_LEVEL_TAXONOMY",
+    "taxonomy:parents:dry-run": "npx tsx scripts/repair-subcategory-parents.ts",
+    "taxonomy:parents:apply": "npx tsx scripts/repair-subcategory-parents.ts --apply --confirm=NIVAANA_REPAIR_SUBCATEGORY_PARENTS",
     "taxonomy:gst:dry-run": "npx tsx scripts/migrate-gst-taxonomy.ts",
     "taxonomy:gst:apply": "npx tsx scripts/migrate-gst-taxonomy.ts --apply --confirm=NIVAANA_GST_TAXONOMY",
     "taxonomy:names:dry-run": "npx tsx scripts/migrate-product-names.ts",
@@ -41,7 +43,9 @@
     "shortnames:apply:dev": "npx tsx scripts/migrate-product-shortnames.ts --apply --confirm=NIVAANA_PRODUCT_SHORTNAMES_DEV",
     "promotions:v2:migrate:dry-run": "npx tsx scripts/migrate-promotions-v2.ts",
     "promotions:v2:migrate:apply": "npx tsx scripts/migrate-promotions-v2.ts --apply --confirm=NIVAANA_PROMOTIONS_V2",
-    "test:promotions:v2:load": "npx tsx scripts/load-test-promotions-v2.ts"
+    "coupons:policy:audit": "npx tsx scripts/audit-standalone-coupon-policy.ts",
+    "test:promotions:v2:load": "npx tsx scripts/load-test-promotions-v2.ts",
+    "perf:admin": "k6 run performance/admin-dashboard.k6.js"
   },
   "repository": {
     "type": "git",

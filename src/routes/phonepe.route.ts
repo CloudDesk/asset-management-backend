@@ -2,31 +2,13 @@ import { FastifyInstance } from "fastify";
 import { PhonePeController } from "../controllers/phonepe.controller.js";
 import logger from "../plugins/logger.js";
 import { createPaymentReconciliationTask } from "../services/gcpTasks.service.js";
+import {
+  appendPaymentReturnParams,
+  getEcomPaymentReturnUrl,
+  isAllowedPaymentReturnUrl,
+} from "../utils/paymentReturnUrl.js";
 
 type PaymentRedirectStatus = "success" | "failure" | "pending" | "processing";
-
-function isAllowedPaymentReturnUrl(value: unknown): value is string {
-  if (typeof value !== "string" || !value.trim()) return false;
-
-  try {
-    const url = new URL(value);
-    const configuredOrigins = (
-      process.env.PAYMENT_RETURN_URL_ALLOWED_ORIGINS || ""
-    )
-      .split(",")
-      .map((origin) => origin.trim())
-      .filter(Boolean);
-    const isConfiguredOrigin = configuredOrigins.includes(url.origin);
-    const isLocalDevelopment =
-      process.env.NODE_ENV !== "production" &&
-      url.protocol === "http:" &&
-      ["localhost", "127.0.0.1"].includes(url.hostname);
-
-    return isConfiguredOrigin || isLocalDevelopment;
-  } catch {
-    return false;
-  }
-}
 
 function buildPaymentReturnUrl(
   storedReturnUrl: unknown,
@@ -38,15 +20,12 @@ function buildPaymentReturnUrl(
   const baseUrl = isAllowedPaymentReturnUrl(storedReturnUrl)
     ? storedReturnUrl
     : fallbackUrl;
-  const url = new URL(baseUrl);
-
-  url.searchParams.set("payment", status);
-  url.searchParams.set("merchantTransactionId", transactionId);
-  if (orderCreationStatus) {
-    url.searchParams.set("order", orderCreationStatus);
-  }
-
-  return url.toString();
+  return appendPaymentReturnParams(
+    baseUrl,
+    status,
+    transactionId,
+    orderCreationStatus
+  );
 }
 
 export async function phonePeRoutes(fastify: FastifyInstance) {
@@ -70,10 +49,30 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
               description:
                 "Payment mode: phonepe for online payment. COD mode is currently disabled.",
             },
+            payment_channel: {
+              type: "string",
+              enum: ["ecom", "mobile"],
+              description:
+                "Calling storefront used to select a trusted post-payment destination",
+            },
             evaluation_ids: {
               type: "array",
               items: { type: "string" },
               description: "Promotion evaluation IDs array (optional)",
+            },
+            direct_coupon: {
+              type: "object",
+              properties: {
+                code: {
+                  type: "string",
+                  minLength: 4,
+                  maxLength: 100,
+                  description: "One standalone customer coupon to apply directly at checkout",
+                },
+              },
+              required: ["code"],
+              additionalProperties: false,
+              description: "Optional direct coupon. The server revalidates ownership and calculates its amount.",
             },
             wallet: {
               type: "object",
@@ -163,9 +162,10 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
               properties: {
                 amount: {
                   type: "number",
-                  minimum: 0.01,
+                  minimum: 0,
                   maximum: 100000,
-                  description: "Total transaction amount in INR",
+                  description:
+                    "Total checkout amount in INR. Zero is allowed when promotions cover merchandise and shipping.",
                 },
                 mobilenumber: {
                   type: "string",
@@ -225,7 +225,8 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
             },
             returnUrl: {
               type: "string",
-              description: "Web app page to return to after payment status handling",
+              description:
+                "Legacy web return URL. New clients should send payment_channel.",
             },
           },
           required: ["mode", "order", "transaction"],
@@ -564,8 +565,7 @@ export async function phonePeRoutes(fastify: FastifyInstance) {
           status === "failure"
             ? process.env.REDIRECT_URL_FAILURE ||
               "https://nivaana.in/payments?payment=failure"
-            : process.env.REDIRECT_URL_SUCCESS ||
-              "https://nivaana.in/payments?payment=success";
+            : getEcomPaymentReturnUrl();
 
         return reply.redirect(
           buildPaymentReturnUrl(

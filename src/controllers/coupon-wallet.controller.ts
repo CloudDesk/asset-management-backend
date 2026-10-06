@@ -1,13 +1,15 @@
 import { FastifyReply } from 'fastify';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
-import { claimCouponSchema, couponWalletListSchema, createQuickCouponSchema, updateQuickCouponSchema, walletChannelSchema, walletDiscountQuoteSchema } from '../schemas/coupon-wallet.schema.js';
+import { claimCouponSchema, couponWalletListSchema, createQuickCouponSchema, directCouponCheckoutQuoteSchema, updateQuickCouponSchema, walletChannelSchema, walletDiscountQuoteSchema } from '../schemas/coupon-wallet.schema.js';
 import { CouponWalletService } from '../services/coupon-wallet.service.js';
+import { DirectCouponCheckoutService } from '../services/direct-coupon-checkout.service.js';
 import { WalletRedemptionService } from '../services/wallet-redemption.service.js';
 import { asyncHandler, createSuccessResponse } from '../utils/errorHandler.js';
 
 export class CouponWalletController {
   private service = new CouponWalletService();
   private redemptionService = new WalletRedemptionService();
+  private directCouponService = new DirectCouponCheckoutService();
 
   getMyWallet = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
     if (!request.user || request.user.userType !== 'ecommerce') {
@@ -56,8 +58,33 @@ export class CouponWalletController {
       return reply.code(403).send({ success: false, message: 'Customer authentication required' });
     }
     const input = walletDiscountQuoteSchema.parse(request.body);
-    const quote = await this.redemptionService.quote(request.user.id, input.eligibility_base, input.payable_amount);
+    const quote = await this.redemptionService.quote(
+      request.user.id,
+      input.eligibility_base,
+      input.payable_amount,
+      input.merchandise_payable === undefined
+        ? undefined
+        : {
+            merchandisePayable: input.merchandise_payable,
+            shippingPayable: input.shipping_payable || 0,
+          },
+    );
     return reply.send(createSuccessResponse('Wallet discount calculated', quote));
+  });
+
+  quoteDirectCoupon = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    if (!request.user || request.user.userType !== 'ecommerce') {
+      return reply.code(403).send({ success: false, message: 'Customer authentication required' });
+    }
+    const input = directCouponCheckoutQuoteSchema.parse(request.body);
+    const quote = await this.directCouponService.quote(
+      request.user.id,
+      input.code,
+      input.channel,
+      input.merchandise_subtotal,
+      input.merchandise_remaining,
+    );
+    return reply.send(createSuccessResponse('Direct coupon discount calculated', quote));
   });
 
   previewCoupon = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {

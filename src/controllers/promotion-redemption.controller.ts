@@ -35,6 +35,45 @@ export class PromotionRedemptionController {
     return reply.code(200).send(response);
   });
 
+  getAllRedemptionHistory = asyncHandler(async (request: FastifyRequest<{
+    Querystring: {
+      page?: string;
+      limit?: string;
+      search?: string;
+      promotion_type?: string;
+      status?: string;
+      redeemed_from?: string;
+      redeemed_to?: string;
+    }
+  }>, reply: FastifyReply) => {
+    const page = Math.max(1, parseInt(request.query.page || '1', 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(request.query.limit || '10', 10) || 10));
+    const parseTimestamp = (value?: string) => {
+      if (!value) return undefined;
+      const numeric = Number(value);
+      if (Number.isFinite(numeric)) return numeric;
+      const parsed = new Date(value).getTime();
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+
+    const result = await this.redemptionService.getAllRedemptionHistory({
+      page,
+      limit,
+      ...(request.query.search ? { search: request.query.search } : {}),
+      ...(request.query.promotion_type ? { promotionType: request.query.promotion_type } : {}),
+      ...(request.query.status ? { status: request.query.status } : {}),
+      ...(parseTimestamp(request.query.redeemed_from) !== undefined
+        ? { redeemedFrom: parseTimestamp(request.query.redeemed_from)! }
+        : {}),
+      ...(parseTimestamp(request.query.redeemed_to) !== undefined
+        ? { redeemedTo: parseTimestamp(request.query.redeemed_to)! }
+        : {}),
+    });
+
+    const response = createSuccessResponse('Promotion redemption history retrieved successfully', result);
+    return reply.code(200).send(response);
+  });
+
   // Get redemption by ID
   getRedemptionById = asyncHandler(async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const { id } = request.params;

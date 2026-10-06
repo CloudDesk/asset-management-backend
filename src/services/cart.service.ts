@@ -13,6 +13,7 @@ import {
   dynamicDelete
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
+import { prisma } from '../models/prisma.js';
 
 export class CartService {
   async findMany(
@@ -470,31 +471,29 @@ export class CartService {
     }
   }
 
-  async clearCartByUserId(userId: string) {
+  async clearCartByUserId(userId: string, cartIds: number[] = []) {
     try {
-      logger.debug({ userId }, 'Starting clear cart for user');
+      const parsedUserId = parseInt(userId, 10);
+      const purchasedCartIds = [...new Set(cartIds.filter((id) => Number.isInteger(id) && id > 0))];
+      logger.debug({ userId: parsedUserId, purchasedCartIds }, 'Starting atomic cart clear for user');
 
-      const filters = {
-        userid: parseInt(userId),
-        iscart: true
-      };
-
-      // Find all cart items for the user
-      const { data: cartItems } = await dynamicFindManyWithFilters('cart', filters, {
-        useAllColumns: true
+      const result = await prisma.cart.deleteMany({
+        where: {
+          userid: parsedUserId,
+          iscart: true,
+          ...(purchasedCartIds.length > 0 ? { id: { in: purchasedCartIds } } : {}),
+        },
       });
 
-      // Delete each cart item
-      for (const item of cartItems) {
-        await dynamicDelete('cart', { id: item.id });
-      }
+      logger.info(
+        { userId: parsedUserId, purchasedCartIds, deletedCount: result.count },
+        'Cart cleared for user'
+      );
 
-      logger.info({ userId, deletedCount: cartItems.length }, 'Cart cleared for user');
-
-      return { deletedCount: cartItems.length };
+      return { deletedCount: result.count };
     } catch (error) {
       logger.error({ error, userId }, 'Error clearing cart for user');
       throw error;
     }
   }
-} 
+}

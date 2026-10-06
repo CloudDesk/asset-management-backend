@@ -24,7 +24,12 @@ test('cancelled orders restore consumed wallet credit to its original source', a
 
   const result = await new WalletRedemptionService().restoreForCancelledOrder(298, database as never);
 
-  assert.deepEqual(result, { restored_amount: 50, restored_count: 1 });
+  assert.deepEqual(result, {
+    restored_amount: 50,
+    restored_count: 1,
+    skipped_expired_amount: 0,
+    skipped_expired_count: 0,
+  });
   assert.equal(reservationUpdates.length, 1);
   assert.equal((reservationUpdates[0] as any).data.status, 'reversed');
   assert.equal(Number((creditUpdates[0] as any).data.remaining_amount), 75);
@@ -46,11 +51,16 @@ test('repeating cancellation does not restore wallet credit twice', async () => 
 
   const result = await new WalletRedemptionService().restoreForCancelledOrder(298, database as never);
 
-  assert.deepEqual(result, { restored_amount: 0, restored_count: 0 });
+  assert.deepEqual(result, {
+    restored_amount: 0,
+    restored_count: 0,
+    skipped_expired_amount: 0,
+    skipped_expired_count: 0,
+  });
   assert.equal(creditUpdated, false);
 });
 
-test('cancellation restores value to an expired source without making it spendable', async () => {
+test('cancellation does not restore value from an expired wallet source', async () => {
   let creditUpdate: any;
   const database = {
     wallet_reservations: {
@@ -73,7 +83,11 @@ test('cancellation restores value to an expired source without making it spendab
 
   const result = await new WalletRedemptionService().restoreForCancelledOrder(299, database as never);
 
-  assert.deepEqual(result, { restored_amount: 100, restored_count: 1 });
-  assert.equal(Number(creditUpdate.data.remaining_amount), 100);
-  assert.equal(creditUpdate.data.status, 'expired');
+  assert.deepEqual(result, {
+    restored_amount: 0,
+    restored_count: 0,
+    skipped_expired_amount: 100,
+    skipped_expired_count: 1,
+  });
+  assert.equal(creditUpdate, undefined);
 });

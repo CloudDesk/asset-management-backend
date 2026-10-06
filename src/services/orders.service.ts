@@ -28,10 +28,104 @@ import {
   validateInvoiceSellerAddress,
 } from '../utils/invoice-seller-address.js';
 import { customerEmailNotificationService } from './customer-email-notification.service.js';
+import {
+  buildLinePromotionBreakdowns,
+  buildOrderCostBreakdown,
+  type OrderCostBreakdown,
+} from '../utils/order-cost-breakdown.js';
 
 export class OrdersService {
   private walletRedemptionService = new WalletRedemptionService();
   private promotionCheckoutService = new PromotionCheckoutService();
+
+  private async getOrderCostBreakdowns(
+    orders: any[],
+    orderlinesByOrderId: Map<number, any[]>,
+  ): Promise<Map<number, {
+    costBreakdown: OrderCostBreakdown;
+    linePromotionBreakdowns: ReturnType<typeof buildLinePromotionBreakdowns>;
+  }>> {
+    if (orders.length === 0) return new Map();
+
+    const orderByIdentifier = new Map<string, any>();
+    const orderByEvaluationId = new Map<string, any>();
+    for (const order of orders) {
+      orderByIdentifier.set(String(order.id), order);
+      if (order.orderid) orderByIdentifier.set(String(order.orderid), order);
+      if (order.evaluation_id) orderByEvaluationId.set(String(order.evaluation_id), order);
+    }
+
+    const redemptions = await prisma.promotion_redemptions.findMany({
+      where: { order_id: { in: [...orderByIdentifier.keys()] } },
+      include: {
+        promotion: { select: { name: true, type: true, code: true } },
+      },
+    });
+
+    const redemptionEvaluationIds = redemptions.map((redemption) => redemption.evaluation_id);
+    const evaluationIds = [...new Set([
+      ...orderByEvaluationId.keys(),
+      ...redemptionEvaluationIds,
+    ])];
+    const evaluations = await prisma.promotion_evaluations.findMany({
+      where: {
+        OR: [
+          { order_id: { in: orders.map((order) => Number(order.id)) } },
+          ...(evaluationIds.length > 0 ? [{ evaluation_id: { in: evaluationIds } }] : []),
+        ],
+      },
+      include: {
+        adjustments: {
+          include: {
+            promotion: { select: { name: true, type: true, code: true } },
+          },
+        },
+      },
+    });
+
+    const redemptionsByOrderId = new Map<number, typeof redemptions>();
+    const evaluationsByOrderId = new Map<number, typeof evaluations>();
+    const addToMap = <T>(map: Map<number, T[]>, orderId: number, value: T) => {
+      const values = map.get(orderId) ?? [];
+      values.push(value);
+      map.set(orderId, values);
+    };
+
+    for (const redemption of redemptions) {
+      const order = orderByIdentifier.get(String(redemption.order_id));
+      if (order) addToMap(redemptionsByOrderId, Number(order.id), redemption);
+    }
+    for (const evaluation of evaluations) {
+      const order = evaluation.order_id
+        ? orders.find((candidate) => Number(candidate.id) === Number(evaluation.order_id))
+        : orderByEvaluationId.get(String(evaluation.evaluation_id))
+          ?? redemptions
+            .filter((redemption) => redemption.evaluation_id === evaluation.evaluation_id)
+            .map((redemption) => orderByIdentifier.get(String(redemption.order_id)))
+            .find(Boolean);
+      if (order) addToMap(evaluationsByOrderId, Number(order.id), evaluation);
+    }
+
+    return new Map(orders.map((order) => {
+      const orderId = Number(order.id);
+      const orderlines = orderlinesByOrderId.get(orderId) ?? [];
+      const orderEvaluations = evaluationsByOrderId.get(orderId) ?? [];
+      const costBreakdown = buildOrderCostBreakdown(
+        order,
+        orderlines,
+        redemptionsByOrderId.get(orderId) ?? [],
+        orderEvaluations,
+      );
+      return [orderId, {
+        costBreakdown,
+        linePromotionBreakdowns: buildLinePromotionBreakdowns(
+          orderlines,
+          costBreakdown.promotions,
+          orderEvaluations,
+        ),
+      }];
+    }));
+  }
 
   private notifyNewOrder(order: any): void {
     customerEmailNotificationService.queueOrderEmail(order.id, 'order_confirmation');
@@ -166,6 +260,18 @@ export class OrdersService {
     }
 
     return await this.findById(order.id) || order;
+  }
+
+  private queueProviderShipmentCancellation(order: any): void {
+    void this.cancelProviderShipment(order).catch((error) => {
+      logger.warn(
+        {
+          orderId: order?.id,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Unexpected error while processing queued provider shipment cancellation'
+      );
+    });
   }
 
   private resolveReturnWorkflowStatus(request: any): string {
@@ -588,6 +694,34 @@ export class OrdersService {
         createData.orderid = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       }
 
+      const requestedProductIds = Array.from(new Set(
+        (Array.isArray(data.orderItems) && data.orderItems.length > 0
+          ? data.orderItems.map((item: any) => Number(item.productid))
+          : Array.isArray(data.productid) ? data.productid.map(Number) : [])
+          .filter((id: number) => Number.isInteger(id) && id > 0)
+      ));
+      if (requestedProductIds.length > 0) {
+        const configuredProducts = await prisma.product.findMany({
+          where: { id: { in: requestedProductIds.map((id) => BigInt(id)) } },
+          select: { id: true, hsn_code: true, gst_rate: true },
+        });
+        const byId = new Map(configuredProducts.map((product) => [Number(product.id), product]));
+        const invalidIds = requestedProductIds.filter((id) => {
+          const product = byId.get(id);
+          const gstRate = product?.gst_rate === null || product?.gst_rate === undefined
+            ? NaN
+            : Number(product.gst_rate);
+          return !product
+            || !product.hsn_code?.trim()
+            || !Number.isFinite(gstRate)
+            || gstRate < 0
+            || gstRate > 100;
+        });
+        if (invalidIds.length > 0) {
+          throw new Error(`Cannot create order: products missing mandatory HSN/GST configuration: ${invalidIds.join(', ')}`);
+        }
+      }
+
       // Create the order first
       const order = await dynamicCreate('orders', createData);
 
@@ -696,15 +830,16 @@ export class OrdersService {
             logger.warn({
               orderId: order.id,
               error: gstResult.error
-            }, 'GST calculation failed - order created without GST data');
+            }, 'Mandatory GST calculation failed');
+            throw new Error(gstResult.error || 'GST calculation failed');
           }
         } catch (gstError: any) {
           logger.error({
             orderId: order.id,
             error: gstError.message,
             stack: gstError.stack
-          }, 'Error during GST calculation - order created without GST data');
-          // Don't fail order creation for GST calculation errors
+          }, 'Error during mandatory GST calculation');
+          throw gstError;
         }
         // ============================================
         // END GST CALCULATION
@@ -743,10 +878,17 @@ export class OrdersService {
     const orderlines = [];
     const products = await prisma.product.findMany({
       where: { id: { in: productIds.map((id) => BigInt(id)) } },
-      select: { id: true, shortname: true },
+      select: { id: true, shortname: true, hsn_code: true, gst_rate: true },
     });
-    const shortnamesByProductId = new Map(
-      products.map((product) => [Number(product.id), product.shortname.trim()]),
+    const productMetaById = new Map(
+      products.map((product) => [
+        Number(product.id),
+        {
+          shortname: product.shortname.trim(),
+          hsn_code: product.hsn_code ? String(product.hsn_code).trim() : null,
+          gst_rate: product.gst_rate ? parseFloat(product.gst_rate.toString()) : null,
+        },
+      ]),
     );
 
     // ✅ FIX: COD orderlines should start with order_confirmed, Prepaid with payment_completed
@@ -765,6 +907,7 @@ export class OrdersService {
 
     for (let i = 0; i < productIds.length; i++) {
       const productId = productIds[i]!;
+      const prodMeta = productMetaById.get(Number(productId));
 
       const orderlineData = {
         orderid: orderId, // Use the database ID, not the string orderid
@@ -776,7 +919,9 @@ export class OrdersService {
         orderamount: orderData.orderamount || null,
         quantity: orderData.quantity || 1, // Default quantity per line
         merchanttransactionid: orderData.merchanttransactionid || null,
-        productshortname: shortnamesByProductId.get(productId) || null,
+        productshortname: prodMeta?.shortname || null,
+        hsn_code: prodMeta?.hsn_code || null,
+        gst_rate: prodMeta?.gst_rate || null,
         orderstatus: orderData.orderstatus || defaultStatus, // ✅ COD: order_confirmed, Prepaid: payment_completed
         uniqueordderid: orderidString, // Use the string orderid
         deliveryfrom: orderData.deliveryfrom || null,
@@ -826,10 +971,17 @@ export class OrdersService {
       .filter((id) => Number.isInteger(id) && id > 0);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds.map((id) => BigInt(id)) } },
-      select: { id: true, shortname: true },
+      select: { id: true, shortname: true, hsn_code: true, gst_rate: true },
     });
-    const shortnamesByProductId = new Map(
-      products.map((product) => [Number(product.id), product.shortname.trim()]),
+    const productMetaById = new Map(
+      products.map((product) => [
+        Number(product.id),
+        {
+          shortname: product.shortname.trim(),
+          hsn_code: product.hsn_code ? String(product.hsn_code).trim() : null,
+          gst_rate: product.gst_rate ? parseFloat(product.gst_rate.toString()) : null,
+        },
+      ]),
     );
 
     logger.info({
@@ -862,6 +1014,7 @@ export class OrdersService {
 
     for (let i = 0; i < orderItems.length; i++) {
       const orderItem = orderItems[i];
+      const prodMeta = productMetaById.get(Number(orderItem.productid));
 
       const orderlineData = {
         orderid: orderId, // Use the database ID, not the string orderid
@@ -873,7 +1026,9 @@ export class OrdersService {
         orderamount: parseFloat(orderItem.orderamount?.toString() || '0') || null,
         quantity: parseInt(orderItem.quantity?.toString() || '1') || 1,
         productname: orderItem.productname || null,
-        productshortname: shortnamesByProductId.get(Number(orderItem.productid)) || null,
+        productshortname: prodMeta?.shortname || null,
+        hsn_code: prodMeta?.hsn_code || null,
+        gst_rate: prodMeta?.gst_rate || null,
         productcategory: orderItem.productcategory || null,
         orderstatus: orderlineStatus, // ✅ COD: order_confirmed, Prepaid: payment_completed
         uniqueordderid: orderidString, // Use the string orderid
@@ -3140,6 +3295,10 @@ export class OrdersService {
             product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
             promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
             manual_discount_amount: ol.manual_discount_amount ? Number(ol.manual_discount_amount) : null,
+            line_type: ol.line_type,
+            is_free_item: ol.is_free_item,
+            list_unit_price: ol.list_unit_price ? Number(ol.list_unit_price) : null,
+            promotion_unit_discount: ol.promotion_unit_discount ? Number(ol.promotion_unit_discount) : null,
             shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
             gst_rate: ol.gst_rate ? Number(ol.gst_rate) : null,
             taxable_amount: ol.taxable_amount ? Number(ol.taxable_amount) : null,
@@ -3355,9 +3514,22 @@ export class OrdersService {
         hasAddress: !!address
       }, 'Order details retrieved successfully');
 
+      const costBreakdowns = await this.getOrderCostBreakdowns(
+        [fullOrder],
+        new Map([[Number(fullOrder.id), rawOrderlines]]),
+      );
+      const pricingBreakdown = costBreakdowns.get(Number(fullOrder.id));
+      const costBreakdown = pricingBreakdown?.costBreakdown;
+      const linePromotionBreakdowns = pricingBreakdown?.linePromotionBreakdowns ?? new Map();
+      for (const orderline of orderlines) {
+        orderline.promotion_breakdown = linePromotionBreakdowns.get(Number(orderline.id)) ?? [];
+      }
       const [orderWithEffectiveStatus] = await this.attachEffectiveStatuses([order]);
       return {
-        order: orderWithEffectiveStatus,
+        order: {
+          ...orderWithEffectiveStatus,
+          cost_breakdown: costBreakdown,
+        },
         orderlines,
         address,
         wallet_usage,
@@ -3367,6 +3539,58 @@ export class OrdersService {
       logger.error({ error, idOrOrderNumber }, 'Error getting order details');
       throw error;
     }
+  }
+
+  /**
+   * Order history summary for one customer (Ecom "My Orders" cards).
+   * - Free replacement orders are excluded (the storefront hides them).
+   * - Cancelled = status containing "cancel".
+   * - Total spent = amount paid (orderamount + wallet_discount_total) on
+   *   non-cancelled orders, minus completed return refunds on those orders.
+   * Returned amounts are rupees.
+   */
+  async getOrderSummaryByUserId(userId: number): Promise<{
+    total_orders: number;
+    active_orders: number;
+    cancelled_orders: number;
+    total_spent: number;
+  }> {
+    const [row] = await prisma.$queryRaw<Array<{ total: number; cancelled: number; spent: Prisma.Decimal | number | null }>>`
+      WITH user_orders AS (
+        SELECT
+          o.id,
+          LOWER(COALESCE(o.orderstatus, '')) AS status,
+          COALESCE(o.orderamount, 0) + COALESCE(o.wallet_discount_total, 0) AS paid
+        FROM orders o
+        WHERE o.userid = ${userId}
+          AND LOWER(COALESCE(o.mode, '')) <> 'replacement'
+          AND COALESCE(o.orderid, '') NOT LIKE 'REP-REP-%'
+      ),
+      return_refunds AS (
+        SELECT r.order_id, SUM(r.approved_amount) AS refunded
+        FROM refund_operations r
+        WHERE r.status = 'completed' AND r.return_request_id IS NOT NULL
+        GROUP BY r.order_id
+      )
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE uo.status LIKE '%cancel%')::int AS cancelled,
+        COALESCE(SUM(
+          CASE WHEN uo.status NOT LIKE '%cancel%'
+            THEN GREATEST(uo.paid - COALESCE(rr.refunded, 0), 0)
+          END
+        ), 0) AS spent
+      FROM user_orders uo
+      LEFT JOIN return_refunds rr ON rr.order_id = uo.id
+    `;
+    const total = Number(row?.total ?? 0);
+    const cancelled = Number(row?.cancelled ?? 0);
+    return {
+      total_orders: total,
+      active_orders: Math.max(total - cancelled, 0),
+      cancelled_orders: cancelled,
+      total_spent: Math.round(Number(row?.spent ?? 0) * 100) / 100,
+    };
   }
 
   /**
@@ -3393,6 +3617,8 @@ export class OrdersService {
       orderamount: number | null;
       orderid: string | null;
       orderstatus: string | null;
+      transactionid: string | null;
+      merchanttransactionid: string | null;
       quantity: number | null;
       productamount: number | null;
       discountamount: number | null;
@@ -3680,10 +3906,16 @@ export class OrdersService {
         });
       }
 
+      const costBreakdowns = await this.getOrderCostBreakdowns(orders, orderlinesByOrderId);
+
       // Build response with orders, orderlines, and address
       const ordersWithDetails = orders.map((order: any) => {
+        const pricingBreakdown = costBreakdowns.get(Number(order.id));
+        const costBreakdown = pricingBreakdown?.costBreakdown;
+        const sourceOrderlines = orderlinesByOrderId.get(order.id) || [];
+        const linePromotionBreakdowns = pricingBreakdown?.linePromotionBreakdowns ?? new Map();
         // Get orderlines for this order
-        const orderOrderlines = (orderlinesByOrderId.get(order.id) || []).map((ol: any) => ({
+        const orderOrderlines = sourceOrderlines.map((ol: any) => ({
           id: ol.id,
           productname: ol.productname,
           productcategory: ol.productcategory,
@@ -3696,6 +3928,11 @@ export class OrdersService {
           original_price: ol.original_price ? Number(ol.original_price) : null,
           product_discount_amount: ol.product_discount_amount ? Number(ol.product_discount_amount) : null,
           promotion_discount_amount: ol.promotion_discount_amount ? Number(ol.promotion_discount_amount) : null,
+          promotion_breakdown: linePromotionBreakdowns.get(Number(ol.id)) ?? [],
+          line_type: ol.line_type,
+          is_free_item: ol.is_free_item,
+          list_unit_price: ol.list_unit_price ? Number(ol.list_unit_price) : null,
+          promotion_unit_discount: ol.promotion_unit_discount ? Number(ol.promotion_unit_discount) : null,
           shipping_cost: ol.shipping_cost ? Number(ol.shipping_cost) : null,
           gst_rate: ol.gst_rate ? Number(ol.gst_rate) : null,
           taxable_amount: ol.taxable_amount ? Number(ol.taxable_amount) : null,
@@ -3726,6 +3963,8 @@ export class OrdersService {
           orderamount: order.orderamount ? Number(order.orderamount) : null,
           orderid: order.orderid,
           orderstatus: order.orderstatus,
+          transactionid: order.transactionid,
+          merchanttransactionid: order.merchanttransactionid,
           quantity: order.quantity,
           productid: order.productid,
           productamount: order.productamount ? Number(order.productamount) : null,
@@ -3761,6 +4000,7 @@ export class OrdersService {
           refund_initiated_date: order.refund_initiated_date,
           refund_completed_date: order.refund_completed_date,
           status_history: this.parseStatusHistory(order.status_history),
+          cost_breakdown: costBreakdown,
           orderlines: orderOrderlines,
           address
         };
@@ -3832,7 +4072,10 @@ export class OrdersService {
         const walletRestoration = await this.walletRedemptionService.restoreForCancelledOrder(orderId);
         logger.info({ orderId, ...walletRestoration }, 'Wallet restoration checked for already-cancelled order');
 
-        if (order.orderstatus !== 'cancelled') return await this.cancelProviderShipment(order);
+        if (order.orderstatus !== 'cancelled') {
+          this.queueProviderShipmentCancellation(order);
+          return order;
+        }
 
         logger.info({
           orderId,
@@ -3871,7 +4114,8 @@ export class OrdersService {
               finalStatus: finalOrder.orderstatus
             }, 'COD order auto-completed during idempotent check');
 
-            return await this.cancelProviderShipment(finalOrder);
+            this.queueProviderShipmentCancellation(finalOrder);
+            return finalOrder;
           } catch (autoCompleteError: any) {
             logger.error({
               error: autoCompleteError.message,
@@ -3880,12 +4124,14 @@ export class OrdersService {
               orderNumber: order.orderid
             }, 'Failed to auto-complete COD order during idempotent check - returning cancelled order');
 
-            return await this.cancelProviderShipment(order);
+            this.queueProviderShipmentCancellation(order);
+            return order;
           }
         }
 
         // PhonePe orders: Just return as-is (already cancelled, waiting for admin refund)
-        return await this.cancelProviderShipment(order);
+        this.queueProviderShipmentCancellation(order);
+        return order;
       }
 
       // Define cancellable statuses
@@ -4163,8 +4409,10 @@ export class OrdersService {
             finalStatus: finalOrder.orderstatus
           }, 'COD order cancellation completed automatically');
 
-          // ASYNC PROVIDER CANCELLATION - Final step after all local updates (COD path)
-          return await this.cancelProviderShipment(finalOrder);
+          // Courier cancellation is external follow-up work. The local order is
+          // already cancelled, so do not hold the customer response open for it.
+          this.queueProviderShipmentCancellation(finalOrder);
+          return finalOrder;
         } catch (autoCompleteError: any) {
           // If auto-complete fails, log but return the cancelled order
           logger.error({
@@ -4176,8 +4424,8 @@ export class OrdersService {
             currentStatus: updatedOrder.orderstatus
           }, 'CRITICAL: Failed to auto-complete COD order, remains in cancelled status');
 
-          // ASYNC PROVIDER CANCELLATION - Even if COD auto-complete fails (fallback)
-          return await this.cancelProviderShipment(updatedOrder);
+          this.queueProviderShipmentCancellation(updatedOrder);
+          return updatedOrder;
         }
       } else {
         logger.info({
@@ -4197,8 +4445,8 @@ export class OrdersService {
         isPaymentSucceed: updatedOrder.ispaymentsucceed
       }, 'PhonePe order cancelled. Admin must manually process refund via PhonePe portal.');
 
-      // ASYNC PROVIDER CANCELLATION - Final step after all local updates (PhonePe path)
-      return await this.cancelProviderShipment(updatedOrder);
+      this.queueProviderShipmentCancellation(updatedOrder);
+      return updatedOrder;
     } catch (error) {
       logger.error({ error, orderId }, 'Error cancelling order');
       throw error;

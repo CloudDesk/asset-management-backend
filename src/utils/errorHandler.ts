@@ -18,6 +18,10 @@ export interface SuccessResponse<T = unknown> {
 
 export type ApiResponse<T = unknown> = SuccessResponse<T> | ErrorResponse;
 
+export function isPrismaErrorCode(code: unknown): code is string {
+  return typeof code === 'string' && /^P\d{4}$/.test(code);
+}
+
 export function createSuccessResponse<T>(
   message: string,
   data: T | null = null
@@ -487,7 +491,7 @@ export function processError(
     details = `The following fields are not valid: ${error.invalidFields.join(', ')}`;
   }
   // Handle legacy Prisma/Database errors (for backward compatibility)
-  else if ((error as any).code && (error as any).code.startsWith('P')) {
+  else if (isPrismaErrorCode((error as any).code)) {
     console.log('=== MATCHED: Legacy Prisma error');
     const prismaError = parsePrismaError(error, request.body);
     statusCode = prismaError.statusCode;

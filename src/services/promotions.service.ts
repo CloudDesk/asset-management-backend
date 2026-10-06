@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { isPromotionListType, promotionListType } from '../utils/promotionListType.js';
 import { createHash, randomBytes } from 'crypto';
 import {
   CreatePromotionsInput,
@@ -70,6 +71,22 @@ export class PromotionsService {
     });
   }
 
+  /** Latest rule version JSON per promotion (same version the admin table labels). */
+  private async latestRuleJsonByPromotion(promotionIds: number[]): Promise<Map<number, any>> {
+    const ids = promotionIds.filter((id) => Number.isInteger(id) && id > 0);
+    if (!ids.length) return new Map();
+    const versions = await this.prisma.promotionRuleVersion.findMany({
+      where: { promotionId: { in: ids } },
+      orderBy: [{ promotionId: 'asc' }, { version: 'desc' }],
+      select: { promotionId: true, ruleJson: true },
+    });
+    const latest = new Map<number, any>();
+    for (const version of versions) {
+      if (!latest.has(version.promotionId)) latest.set(version.promotionId, version.ruleJson);
+    }
+    return latest;
+  }
+
   private normalizePromotionCode(value: string): string {
     return value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
   }
@@ -123,6 +140,10 @@ export class PromotionsService {
         },
         orderBy: {
           created_at: 'desc' // Get most recent active evaluation
+        },
+        select: {
+          evaluation_id: true,
+          applied_promotions: true
         }
       });
 
@@ -188,7 +209,7 @@ export class PromotionsService {
     status?: string | null;
     start_date?: number | string | bigint | null;
     end_date?: number | string | bigint | null;
-  }): 'active' | 'inactive' | 'expired' {
+  }): 'active' | 'scheduled' | 'expired' | 'disabled' {
     const now = new Date();
     const startDate = this.convertUnixTimestampToDate(
       promotion.start_date === null || promotion.start_date === undefined
@@ -201,9 +222,9 @@ export class PromotionsService {
         : promotion.end_date.toString()
     );
 
+    if ((promotion.status || '').toLowerCase() !== 'active') return 'disabled';
     if (endDate && endDate <= now) return 'expired';
-    if ((promotion.status || '').toLowerCase() !== 'active') return 'inactive';
-    if (startDate && startDate > now) return 'inactive';
+    if (startDate && startDate > now) return 'scheduled';
     return 'active';
   }
 
@@ -522,6 +543,26 @@ export class PromotionsService {
         );
       }
     }
+    const visiblePromotionIds = [...new Set([
+      ...globalPromotions.map((promotion) => promotion.id),
+      ...assignments.map((assignment) => assignment.promotion_id)
+    ])];
+    const campaignUsage = await this.prisma.promotion_redemptions.groupBy({
+      by: ['promotion_id'],
+      where: { promotion_id: { in: visiblePromotionIds } },
+      _count: { _all: true },
+      _sum: { discount_amount: true }
+    });
+    const campaignUsageByPromotion = new Map(campaignUsage.map((usage) => [usage.promotion_id, {
+      count: usage._count._all,
+      discountAmount: Number(usage._sum.discount_amount ?? 0)
+    }]));
+    const hasCampaignCapacity = (promotion: any): boolean => {
+      const usage = campaignUsageByPromotion.get(promotion.id) ?? { count: 0, discountAmount: 0 };
+      if (promotion.max_redemptions && usage.count >= promotion.max_redemptions) return false;
+      if (Number(promotion.budget ?? 0) > 0 && usage.discountAmount >= Number(promotion.budget)) return false;
+      return true;
+    };
 
     const buildCustomerUsage = (
       promotion: any,
@@ -574,6 +615,7 @@ export class PromotionsService {
     const results = new Map<number, any>();
     for (const promotion of globalPromotions) {
       if (!this.isPromotionCurrentlyActive(promotion)) continue;
+      if (!hasCampaignCapacity(promotion)) continue;
       if (!isPromotionChannelEligible(promotion.applicable_channel, options.channel)) continue;
       if (!this.isPromotionApplicableToUser(promotion, userSegments, userCreatedDate)) continue;
       const customerUsage = buildCustomerUsage(promotion);
@@ -592,6 +634,7 @@ export class PromotionsService {
       if (assignment.end_date && assignment.end_date < nowSeconds) continue;
       if (assignment.usage_limit && assignment.used_count >= assignment.usage_limit) continue;
       if (!this.isPromotionCurrentlyActive(assignment.promotion)) continue;
+      if (!hasCampaignCapacity(assignment.promotion)) continue;
       if (!isPromotionChannelEligible(assignment.promotion.applicable_channel, options.channel)) continue;
       if (!this.isPromotionApplicableToUser(assignment.promotion, userSegments, userCreatedDate)) continue;
       const customerUsage = buildCustomerUsage(assignment.promotion, assignment);
@@ -746,10 +789,18 @@ export class PromotionsService {
 
       let baseFilters: FilterOptions;
 
+      // Admin type filter uses the create-form types (see promotionListType):
+      // product/category/subcategory offers share one saved type, so this is
+      // applied after loading instead of as a column match.
+      const requestedListTypeValue = Array.isArray(otherFilters.type) ? otherFilters.type[0] : otherFilters.type;
+      const adminListTypeFilter =
+        adminMode && isPromotionListType(requestedListTypeValue) ? requestedListTypeValue : null;
+
       if (adminMode) {
         // Admin status is derived from configured status plus Valid From/To,
         // so it is filtered after records are formatted.
         baseFilters = { ...otherFilters };
+        if (adminListTypeFilter) delete baseFilters.type;
       } else {
         // Build base filters (existing behavior for e-commerce app)
         baseFilters = {
@@ -817,13 +868,25 @@ export class PromotionsService {
           })
           .filter((promotion: any) =>
             adminStatusFilter ? promotion.status === adminStatusFilter : true
-          )
+          );
+
+        if (adminListTypeFilter) {
+          const latestRules = await this.latestRuleJsonByPromotion(
+            matchingPromotions.map((promotion: any) => Number(promotion.id)),
+          );
+          matchingPromotions = matchingPromotions.filter((promotion: any) =>
+            promotionListType(promotion.type, latestRules.get(Number(promotion.id))) === adminListTypeFilter
+          );
+        }
+
+        matchingPromotions = matchingPromotions
           .sort((a: any, b: any) => {
             if (a.status !== b.status) {
               const statusOrder: Record<string, number> = {
                 active: 0,
-                inactive: 1,
-                expired: 2
+                scheduled: 1,
+                expired: 2,
+                disabled: 3
               };
               return (statusOrder[a.status] ?? 999) - (statusOrder[b.status] ?? 999);
             }
@@ -880,8 +943,13 @@ export class PromotionsService {
           .sort((a: any, b: any) => {
             // Active promotions first
             if (a.status !== b.status) {
-              const statusOrder: Record<string, number> = { 'active': 0, 'draft': 1, 'expired': 2, 'inactive': 3 };
-              return (statusOrder[a.status] || 999) - (statusOrder[b.status] || 999);
+              const statusOrder: Record<string, number> = {
+                active: 0,
+                scheduled: 1,
+                expired: 2,
+                disabled: 3
+              };
+              return (statusOrder[a.status] ?? 999) - (statusOrder[b.status] ?? 999);
             }
             // Then by priority
             return (a.priority || 999) - (b.priority || 999);
@@ -1684,7 +1752,15 @@ export class PromotionsService {
         cart_signature: cartSignature,
         status: 'active'
       },
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
+      // Only these fields are needed here. Keeping the projection narrow also
+      // lets offer discovery continue during a rolling schema/client upgrade.
+      select: {
+        evaluation_id: true,
+        applied_promotions: true,
+        original_total: true,
+        discounted_total: true
+      }
     });
 
     let alreadyAppliedPromotionIds: number[] = [];
@@ -1727,10 +1803,17 @@ export class PromotionsService {
         useAllColumns: true
       });
       const customerId = Number(request.userId);
-      const promotionIds = allPromotions
-        .map((promotion: any) => Number(promotion.id))
-        .filter((promotionId: number) => Number.isFinite(promotionId) && promotionId > 0);
-      const [customerAssignments, restrictedAssignments, userRedemptions, campaignRedemptionCounts] = await Promise.all([
+      const campaignUsage = await this.prisma.promotion_redemptions.groupBy({
+        by: ['promotion_id'],
+        where: { promotion_id: { in: allPromotions.map((promotion: any) => promotion.id) } },
+        _count: { _all: true },
+        _sum: { discount_amount: true }
+      });
+      const campaignUsageByPromotion = new Map(campaignUsage.map((usage) => [usage.promotion_id, {
+        count: usage._count._all,
+        discountAmount: Number(usage._sum.discount_amount ?? 0)
+      }]));
+      const [customerAssignments, restrictedAssignments, userRedemptions] = await Promise.all([
         this.prisma.promotion_assignments.findMany({
           where: {
             status: 'active',
@@ -1761,11 +1844,6 @@ export class PromotionsService {
         this.prisma.promotion_redemptions.findMany({
           where: { user_id: request.userId },
           select: { promotion_id: true, assignment_id: true }
-        }),
-        this.prisma.promotion_redemptions.groupBy({
-          by: ['promotion_id'],
-          where: { promotion_id: { in: promotionIds } },
-          _count: { _all: true }
         })
       ]);
       const customerAssignmentByPromotion = new Map(
@@ -1790,11 +1868,6 @@ export class PromotionsService {
           );
         }
       }
-      const campaignUsage = new Map<number, number>(
-        campaignRedemptionCounts
-          .filter((redemption) => redemption.promotion_id !== null)
-          .map((redemption) => [redemption.promotion_id as number, redemption._count._all])
-      );
       const exhaustedPromotionIds = new Set<number>();
       logger.info(allPromotions, "allPromotions")
       logger.info({ totalPromotions: allPromotions.length }, 'Retrieved active promotions');
@@ -1832,16 +1905,21 @@ export class PromotionsService {
                 assignmentUsageByCustomer.get(customerAssignment.id) || 0
               )
             : 0;
+          const totalUsage = campaignUsageByPromotion.get(promotion.id) ?? { count: 0, discountAmount: 0 };
           // Do not advertise an offer the customer or campaign has exhausted.
           // Apply and checkout validation remain the final concurrency guard.
           if (isPromotionUsageExhausted({
+            campaignUsage: totalUsage.count,
+            campaignLimit: promotion.max_redemptions,
             customerPromotionUsage,
             perCustomerLimit: promotion.per_user_limit,
             assignmentUsage: customerAssignmentUsage,
-            assignmentLimit: customerAssignment?.usage_limit,
-            campaignUsage: campaignUsage.get(promotion.id) || 0,
-            campaignLimit: promotion.max_redemptions
+            assignmentLimit: customerAssignment?.usage_limit
           })) {
+            exhaustedPromotionIds.add(promotion.id);
+            continue;
+          }
+          if (Number(promotion.budget ?? 0) > 0 && totalUsage.discountAmount >= Number(promotion.budget)) {
             exhaustedPromotionIds.add(promotion.id);
             continue;
           }

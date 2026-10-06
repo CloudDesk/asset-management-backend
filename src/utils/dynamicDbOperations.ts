@@ -43,10 +43,34 @@ const JSONB_FIELDS = new Set([
 ]);
 const isJsonbField = (field: string | undefined): boolean => Boolean(field && JSONB_FIELDS.has(field));
 
+export function buildProductSearchCondition(searchQuery: string, paramIndex: number): {
+  condition: string;
+  values: string[];
+  nextParamIndex: number;
+} {
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const partialMatchParamIndex = paramIndex + 1;
+
+  return {
+    condition: `(
+      searchtext @@ plainto_tsquery('english', $${paramIndex}) OR
+      LOWER(COALESCE(name, '')) LIKE $${partialMatchParamIndex} OR
+      LOWER(COALESCE(shortname, '')) LIKE $${partialMatchParamIndex} OR
+      LOWER(COALESCE(puc, '')) LIKE $${partialMatchParamIndex} OR
+      LOWER(COALESCE(brand, '')) LIKE $${partialMatchParamIndex} OR
+      LOWER(COALESCE(category, '')) LIKE $${partialMatchParamIndex} OR
+      LOWER(COALESCE(subcategory, '')) LIKE $${partialMatchParamIndex} OR
+      LOWER(COALESCE(fragnancetype, '')) LIKE $${partialMatchParamIndex}
+    )`,
+    values: [normalizedQuery, `%${normalizedQuery}%`],
+    nextParamIndex: paramIndex + 2,
+  };
+}
+
 // Predefined safe columns for common tables (to avoid schema queries)
 const PREDEFINED_SAFE_COLUMNS: Record<string, string[]> = {
   stock: ['id', 'puc', 'category', 'subcategory', 'brand', 'model', 'stockstatus', 'createddate', 'modifieddate', 'productname', 'serialnumber', 'location'],
-  product: ['id', 'productname', 'category', 'subcategory', 'subsubcategory', 'brand', 'model', 'price', 'createddate', 'modifieddate', 'productstatus', 'puc', 'quantity', 'availablequantity', 'orderedquantity', 'soldquantity', 'ecompublishedquantity', 'damagedquantity'],
+  product: ['id', 'productname', 'category', 'subcategory', 'subsubcategory', 'brand', 'model', 'price', 'createddate', 'modifieddate', 'productstatus', 'puc', 'quantity', 'availablequantity', 'orderedquantity', 'soldquantity', 'ecompublishedquantity', 'damagedquantity', 'hsn_code', 'gst_rate'],
   picklist: ['id', 'label', 'value', 'object', 'controlledvalue', 'fieldname', 'controlledlabel', 'controlledfieldname', 'parent'],
   orders: ['id', 'userid', 'addressid', 'orderamount', 'orderid', 'orderstatus', 'quantity', 'transactionid', 'readytodispatchdate', 'dispatcheddate', 'productamount', 'discountamount', 'deliveryfrom', 'orderprocessingtime', 'ispaymentsucceed', 'merchanttransactionid', 'productid', 'mode', 'order_type', 'created_by_inventory_user_id', 'manual_discount_total', 'manual_discount_reason', 'delivereddate', 'cancelleddate', 'returneddate', 'paymentfaileddate', 'createddate', 'modifieddate', 'items_total', 'total_taxable_amount', 'total_cgst_amount', 'total_sgst_amount', 'total_igst_amount', 'total_gst_amount', 'shipping_cost'],
   orderline: ['id', 'orderid', 'productid', 'userid', 'addressid', 'productamount', 'discountamount', 'orderamount', 'quantity', 'merchanttransactionid', 'productname', 'productcategory', 'productcolour', 'readytodispatchdate', 'delivereddate', 'cancelleddate', 'returneddate', 'orderstatus', 'uniqueordderid', 'orderlinenumber', 'deliveryfrom', 'location', 'dispatcheddate', 'ordereddate', 'paymentfaileddate', 'createddate', 'modifieddate', 'hsn_code', 'gst_rate', 'taxable_amount', 'cgst_amount', 'sgst_amount', 'igst_amount', 'total_gst_amount', 'manual_discount_amount', 'shipping_cost'],
@@ -634,28 +658,12 @@ async function buildDynamicWhereClause(
         const trimmedQuery = searchQuery.trim().toLowerCase();
 
         if (tableName === 'product') {
-          // HYBRID SEARCH STRATEGY:
-          // - Short queries (< 3 chars): Use ILIKE pattern matching to avoid stop words
-          // - Long queries (>= 3 chars): Use full-text search for better performance
-
-          if (trimmedQuery.length < 3) {
-            // Short query: Use ILIKE on key product fields
-            // This prevents PostgreSQL from filtering out short words as stop words
-            conditions.push(`(
-              LOWER(name) LIKE $${paramIndex} OR
-              LOWER(COALESCE(brand, '')) LIKE $${paramIndex} OR
-              LOWER(COALESCE(category, '')) LIKE $${paramIndex} OR
-              LOWER(COALESCE(subcategory, '')) LIKE $${paramIndex} OR
-              LOWER(COALESCE(fragnancetype, '')) LIKE $${paramIndex}
-            )`);
-            values.push(`%${trimmedQuery}%`);
-            paramIndex++;
-          } else {
-            // Long query: Use PostgreSQL full-text search with plainto_tsquery
-            conditions.push(`searchtext @@ plainto_tsquery('english', $${paramIndex})`);
-            values.push(trimmedQuery);
-            paramIndex++;
-          }
+          // Keep full-word ranking support while also matching partial names,
+          // codes and taxonomy values such as "auo" within "AUORA".
+          const productSearch = buildProductSearchCondition(trimmedQuery, paramIndex);
+          conditions.push(productSearch.condition);
+          values.push(...productSearch.values);
+          paramIndex = productSearch.nextParamIndex;
         } else if (tableName === 'picklist') {
           // For picklist, search across multiple fields with case-insensitive matching
           // Search in: object, fieldname, label, value, parent
@@ -2282,6 +2290,9 @@ export function formatProductForAPI(product: any): any {
   // Handle Decimal fields
   if (formatted.averagerating !== undefined) {
     formatted.averagerating = formatNumericField(formatted.averagerating);
+  }
+  if (formatted.gst_rate !== undefined) {
+    formatted.gst_rate = formatNumericField(formatted.gst_rate);
   }
 
   return formatted;

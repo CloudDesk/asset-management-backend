@@ -2,10 +2,9 @@ import { createHash } from 'node:crypto';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PromotionEligibilityRequestSchema, PromotionQuoteRequestSchema, PromotionRuleV2Schema, type PromotionQuoteRequest, type PromotionRuleV2 } from '../schemas/promotions-v2.schema.js';
 import { evaluatePromotionQuote, isLineInPromotionScope, type PromotionCampaign, type PromotionCatalogProduct, type PromotionCartLine, type PromotionQuote } from './promotion-v2-engine.js';
-import { convertLegacyPromotionRule } from '../utils/legacy-promotion-v2.js';
+import { convertLegacyPromotionRule, isWholeOrderPromotionType } from '../utils/legacy-promotion-v2.js';
 import { isPromotionChannelEligible } from '../utils/promotionChannel.js';
 import { logger } from '../config/logger.js';
-import { env } from '../config/env.js';
 
 const prisma = new PrismaClient();
 
@@ -77,7 +76,6 @@ export class PromotionsV2Service {
     const matched = await this.matchedProducts(promotionId, rule, 1, 1);
     if (!matched.total) throw new Error('Promotion cannot be published because it matches no active products');
     if (draft.promotion.start_date && draft.promotion.end_date && draft.promotion.start_date >= draft.promotion.end_date) throw new Error('Promotion end date must be after its start date');
-    if (draft.promotion.budget !== null && Number(draft.promotion.budget) < 0) throw new Error('Promotion budget cannot be negative');
     await this.validateGiftAvailability(rule, draft.promotion.applicable_channel);
     await prisma.$transaction(async (tx) => {
       await tx.promotionRuleVersion.updateMany({ where: { promotionId, status: 'published' }, data: { status: 'retired', modifiedAt: seconds() } });
@@ -99,21 +97,46 @@ export class PromotionsV2Service {
   }
 
   async getFacets(): Promise<Record<string, Array<{ id: string; label: string; count: number }>>> {
-    const products = await prisma.product.findMany({
-      where: { productstatus: { notIn: ['inactive', 'deleted'] } },
-      select: { id: true, name: true, category: true, subcategory: true },
-    });
-    const facet = (selector: (product: typeof products[number]) => string | null): Array<{ id: string; label: string; count: number }> => {
+    const [products, picklistItems] = await Promise.all([
+      prisma.product.findMany({
+        where: { productstatus: { notIn: ['inactive', 'deleted'] } },
+        select: { id: true, name: true, category: true, subcategory: true },
+      }),
+      prisma.picklist.findMany({
+        where: { object: 'product', fieldname: { in: ['category', 'subcategory'] }, isactive: true },
+        select: { fieldname: true, value: true, label: true },
+        orderBy: { id: 'asc' },
+      }),
+    ]);
+    // Display names come from the picklist ("Incense & Rituals"); the id stays the
+    // stored product value ("incense_rituals"), which is what promotion rules save
+    // and match on. Values without a picklist entry keep the value as the label.
+    const picklistLabels = (fieldname: string): Map<string, string> => {
+      const labels = new Map<string, string>();
+      for (const item of picklistItems) {
+        const key = item.value?.trim().toLowerCase();
+        const label = item.label?.trim();
+        if (item.fieldname === fieldname && key && label && !labels.has(key)) labels.set(key, label);
+      }
+      return labels;
+    };
+    const facet = (
+      selector: (product: typeof products[number]) => string | null,
+      labels: Map<string, string>,
+    ): Array<{ id: string; label: string; count: number }> => {
       const counts = new Map<string, number>();
       for (const product of products) {
         const value = selector(product)?.trim();
         if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
       }
-      return [...counts].map(([value, count]) => ({ id: value, label: value, count })).sort((a, b) => a.label.localeCompare(b.label));
+      return [...counts]
+        .map(([value, count]) => ({ id: value, label: labels.get(value.toLowerCase()) ?? value, count }))
+        .sort((a, b) => a.label.localeCompare(b.label));
     };
     return {
       PRODUCT: products.map((product) => ({ id: product.id.toString(), label: product.name, count: 1 })),
-      CATEGORY: facet((product) => product.category), SUBCATEGORY: facet((product) => product.subcategory),
+      CATEGORY: facet((product) => product.category, picklistLabels('category')),
+      SUBCATEGORY: facet((product) => product.subcategory, picklistLabels('subcategory')),
       // Future facet responses intentionally disabled:
       // FRAGRANCE, BRAND, COLLECTION, TAG and SUBSUBCATEGORY.
     };
@@ -155,7 +178,7 @@ export class PromotionsV2Service {
     const version = await prisma.promotionRuleVersion.findFirst({ where: { promotionId }, orderBy: { version: 'desc' }, include: { promotion: true } });
     if (!version) throw new Error('No rule version exists for this promotion');
     const hydrated = await this.hydrateCart(parsed);
-    const campaigns = [{ promotionId, ruleVersion: version.version, name: version.promotion.name ?? `Promotion ${promotionId}`, rule: PromotionRuleV2Schema.parse(version.ruleJson) }];
+    const campaigns = [{ promotionId, ruleVersion: version.version, name: version.promotion.name ?? `Promotion ${promotionId}`, rule: PromotionRuleV2Schema.parse(version.ruleJson), appliesToWholeOrder: isWholeOrderPromotionType(version.promotion.type) }];
     const catalog = await this.hydrateRewardCatalog(campaigns, hydrated.catalog, parsed.channel);
     return evaluatePromotionQuote(hydrated.lines, campaigns, catalog, { shippingAmount: parsed.shipping_amount, rewardSelections: parsed.reward_selections });
   }
@@ -226,27 +249,27 @@ export class PromotionsV2Service {
     };
   }
 
-  async quote(input: unknown, authenticatedCustomerId?: string, allowWhenDisabled = false): Promise<PromotionQuote> {
+  async calculate(input: unknown, authenticatedCustomerId?: string): Promise<PromotionQuote> {
     const startedAt = performance.now();
     const request = PromotionQuoteRequestSchema.parse(input);
-    // Explicit selection is also the compatibility bridge used by V1 clients
-    // for a campaign that already has a published V2 rule. General automatic
-    // V2 evaluation remains protected by the rollout flags.
-    if (
-      !env.PROMOTIONS_V2_ENABLED &&
-      !env.PROMOTIONS_V2_SHADOW &&
-      !(request.selected_promotion_ids?.length) &&
-      !allowWhenDisabled
-    ) {
-      throw Object.assign(new Error('Promotions are temporarily unavailable'), { statusCode: 503 });
-    }
     if (request.selected_promotion_ids?.length) {
       const selectedIds = [...new Set(request.selected_promotion_ids)];
-      const versionedCount = await prisma.promotionRuleVersion.groupBy({
+      const versionedRows = await prisma.promotionRuleVersion.groupBy({
         by: ['promotionId'],
         where: { promotionId: { in: selectedIds }, status: 'published' },
       });
-      if (versionedCount.length !== selectedIds.length) {
+      const versionedIds = new Set(versionedRows.map((row) => row.promotionId));
+      const legacyIds = selectedIds.filter((id) => !versionedIds.has(id));
+      const legacyRows = legacyIds.length
+        ? await prisma.promotions.findMany({
+            where: {
+              id: { in: legacyIds },
+              ruleVersions: { none: { status: 'published' } },
+            },
+            select: { id: true },
+          })
+        : [];
+      if (versionedRows.length + legacyRows.length !== selectedIds.length) {
         throw Object.assign(new Error('PROMOTION_V2_RULE_NOT_FOUND'), { statusCode: 404 });
       }
     }
@@ -257,15 +280,17 @@ export class PromotionsV2Service {
     const catalog = await this.hydrateRewardCatalog(active.campaigns, hydrated.catalog, request.channel);
     const quote = evaluatePromotionQuote(hydrated.lines, active.campaigns, catalog, { shippingAmount: request.shipping_amount, rewardSelections: request.reward_selections });
     quote.rejected_candidates.push(...active.rejections.filter((rejection) => !quote.rejected_candidates.some((item) => item.promotion_id === rejection.promotion_id)));
-    await this.persistQuote(quote, request, hydrated.lines);
+    // Guest previews are informational and are always recalculated after
+    // authentication. Do not persist them as checkout-ready evaluations.
+    if (!request.preview_only) await this.persistQuote(quote, request, hydrated.lines);
     logger.info({
-      event: 'promotions_v2_quote', mode: env.PROMOTIONS_V2_ENABLED ? 'active' : 'shadow',
+      event: 'promotions_v2_calculation', mode: request.preview_only ? 'preview' : 'active',
       evaluationId: quote.evaluation_id, channel: request.channel, cartLineCount: request.cart_items.length,
       appliedCount: quote.applied_promotions.length, rejectedCount: quote.rejected_candidates.length,
       conflictCount: quote.rejected_candidates.filter((item) => item.reason_code === 'CONFLICTED_WITH_BETTER_OFFER').length,
       giftCount: quote.adjustments.filter((item) => item.type === 'FREE_ITEM').length,
       discountPaise: quote.discount_total, durationMs: Math.round((performance.now() - startedAt) * 100) / 100,
-    }, 'Promotions V2 quote completed');
+    }, 'Promotions V2 calculation completed');
     return quote;
   }
 
@@ -283,7 +308,15 @@ export class PromotionsV2Service {
         { OR: [{ end_date: null }, { end_date: { gte: BigInt(now) } }] },
       ],
     } satisfies Prisma.promotionsWhereInput;
-    const [rows, legacyAutomaticPromotions] = await Promise.all([
+    const selectedPromotionIds = [...new Set(request.selected_promotion_ids ?? [])];
+    const legacyPromotionSelectors: Prisma.promotionsWhereInput[] = [
+      { application_mode: 'automatic' },
+      { auto_apply: true },
+    ];
+    if (selectedPromotionIds.length) {
+      legacyPromotionSelectors.push({ id: { in: selectedPromotionIds } });
+    }
+    const [rows, legacyPromotions] = await Promise.all([
       prisma.promotionRuleVersion.findMany({
         where: {
           status: 'published',
@@ -292,14 +325,13 @@ export class PromotionsV2Service {
         },
         include: { promotion: { include: { assignments: { where: { status: 'active' } } } } }, orderBy: [{ promotionId: 'asc' }, { version: 'desc' }],
       }),
-      // During rollout, click-to-apply campaigns can have published V2 rules
-      // before long-lived automatic offers are migrated. Carry those legacy
-      // automatic offers into the canonical quote so shipping and payment
-      // validation cannot disagree with the legacy auto-evaluation.
+      // Bridge both automatic and explicitly selected legacy promotions into
+      // the canonical V2 engine. This keeps Web and Mobile on one quote route
+      // while older cart/free-shipping records are migrated to stored V2 rules.
       prisma.promotions.findMany({
         where: {
           ...activeDateFilter,
-          OR: [{ application_mode: 'automatic' }, { auto_apply: true }],
+          OR: legacyPromotionSelectors,
           ruleVersions: { none: { status: 'published' } },
         },
         include: { assignments: { where: { status: 'active' } } },
@@ -308,10 +340,15 @@ export class PromotionsV2Service {
     ]);
     const promotionIds = [...new Set([
       ...rows.map((row) => row.promotionId),
-      ...legacyAutomaticPromotions.map((promotion) => promotion.id),
+      ...legacyPromotions.map((promotion) => promotion.id),
     ])];
-    const [usage, customerUsage, groupMemberships] = await Promise.all([
-      prisma.promotion_redemptions.groupBy({ by: ['promotion_id'], where: { promotion_id: { in: promotionIds } }, _count: { _all: true }, _sum: { discount_amount: true } }),
+    const [campaignUsage, customerUsage, groupMemberships] = await Promise.all([
+      prisma.promotion_redemptions.groupBy({
+        by: ['promotion_id'],
+        where: { promotion_id: { in: promotionIds } },
+        _count: { _all: true },
+        _sum: { discount_amount: true },
+      }),
       request.customer_id
         ? prisma.promotion_redemptions.groupBy({ by: ['promotion_id'], where: { promotion_id: { in: promotionIds }, user_id: request.customer_id }, _count: { _all: true } })
         : Promise.resolve([]),
@@ -319,7 +356,10 @@ export class PromotionsV2Service {
         ? prisma.customer_group_members.findMany({ where: { customer_id: Number(request.customer_id), status: 'active' }, select: { customer_group_id: true } })
         : Promise.resolve([]),
     ]);
-    const usageByPromotion = new Map(usage.map((item) => [item.promotion_id, { count: item._count._all, amount: Number(item._sum.discount_amount ?? 0) }]));
+    const campaignUsageByPromotion = new Map(campaignUsage.map((item) => [item.promotion_id, {
+      count: item._count._all,
+      discountAmount: Number(item._sum.discount_amount ?? 0),
+    }]));
     const customerUsageByPromotion = new Map(customerUsage.map((item) => [item.promotion_id, item._count._all]));
     const customerGroups = new Set(groupMemberships.map((item) => item.customer_group_id));
     const seen = new Set<number>();
@@ -333,6 +373,9 @@ export class PromotionsV2Service {
       if (!isPromotionChannelEligible(promotion.applicable_channel, request.channel === 'nivapp' ? 'mobile' : request.channel)) {
         rejections.push({ promotion_id: promotion.id, reason_code: 'CHANNEL_NOT_ELIGIBLE' }); continue;
       }
+      if (request.preview_only && !request.customer_id && promotion.visibility !== 'public') {
+        rejections.push({ promotion_id: promotion.id, reason_code: 'CUSTOMER_NOT_ELIGIBLE' }); continue;
+      }
       if (promotion.application_mode !== 'automatic' && !selected.has(promotion.id) && (!request.coupon_code || promotion.code?.toUpperCase() !== request.coupon_code.toUpperCase())) continue;
       const assignments = promotion.assignments;
       if (assignments.length) {
@@ -342,21 +385,31 @@ export class PromotionsV2Service {
           || (assignment.customer_group_id !== null && customerGroups.has(assignment.customer_group_id)));
         if (!audienceMatch) { rejections.push({ promotion_id: promotion.id, reason_code: 'CUSTOMER_NOT_ELIGIBLE' }); continue; }
       }
-      const used = usageByPromotion.get(promotion.id) ?? { count: 0, amount: 0 };
-      if (promotion.max_redemptions && used.count >= promotion.max_redemptions) { rejections.push({ promotion_id: promotion.id, reason_code: 'USAGE_LIMIT_REACHED' }); continue; }
+      const usage = campaignUsageByPromotion.get(promotion.id) ?? { count: 0, discountAmount: 0 };
+      if (promotion.max_redemptions && usage.count >= promotion.max_redemptions) { rejections.push({ promotion_id: promotion.id, reason_code: 'USAGE_LIMIT_REACHED' }); continue; }
       if (promotion.per_user_limit && request.customer_id && (customerUsageByPromotion.get(promotion.id) ?? 0) >= promotion.per_user_limit) { rejections.push({ promotion_id: promotion.id, reason_code: 'USAGE_LIMIT_REACHED' }); continue; }
-      const budget = Number(promotion.budget ?? 0);
-      // Existing promotions use 0 to mean "no budget limit". Prisma Decimal(0)
-      // is an object and therefore truthy, so checking the object itself marked
-      // every such promotion as exhausted.
-      if (budget > 0 && used.amount >= budget) { rejections.push({ promotion_id: promotion.id, reason_code: 'BUDGET_EXHAUSTED' }); continue; }
-      result.push({ promotionId: promotion.id, ruleVersion: row.version, name: promotion.name ?? `Promotion ${promotion.id}`, rule: parseCachedRule(row.checksum, row.ruleJson) });
+      const configuredBudget = Number(promotion.budget ?? 0);
+      const remainingBudgetPaise = configuredBudget <= 0
+        ? undefined
+        : Math.max(0, Math.round((configuredBudget - usage.discountAmount) * 100));
+      if (remainingBudgetPaise === 0) { rejections.push({ promotion_id: promotion.id, reason_code: 'BUDGET_EXHAUSTED' }); continue; }
+      result.push({
+        promotionId: promotion.id,
+        ruleVersion: row.version,
+        name: promotion.name ?? `Promotion ${promotion.id}`,
+        rule: parseCachedRule(row.checksum, row.ruleJson),
+        appliesToWholeOrder: isWholeOrderPromotionType(promotion.type),
+        ...(remainingBudgetPaise === undefined ? {} : { remainingBudgetPaise }),
+      });
     }
-    for (const promotion of legacyAutomaticPromotions) {
+    for (const promotion of legacyPromotions) {
       if (seen.has(promotion.id)) continue;
       seen.add(promotion.id);
       if (!isPromotionChannelEligible(promotion.applicable_channel, request.channel === 'nivapp' ? 'mobile' : request.channel)) {
         rejections.push({ promotion_id: promotion.id, reason_code: 'CHANNEL_NOT_ELIGIBLE' }); continue;
+      }
+      if (request.preview_only && !request.customer_id && promotion.visibility !== 'public') {
+        rejections.push({ promotion_id: promotion.id, reason_code: 'CUSTOMER_NOT_ELIGIBLE' }); continue;
       }
       const segmentCondition = Array.isArray(promotion.conditions)
         ? (promotion.conditions as Array<{ attribute?: unknown; value?: unknown }>).find((condition) => condition.attribute === 'user.segment')
@@ -365,7 +418,13 @@ export class PromotionsV2Service {
         const requiredSegments = Array.isArray(segmentCondition.value)
           ? segmentCondition.value.map(String)
           : [String(segmentCondition.value ?? '')];
-        if (!request.customer_id || !requiredSegments.includes('authenticated_user')) {
+        const canPreviewPublicAuthenticatedOffer = Boolean(
+          request.preview_only &&
+          !request.customer_id &&
+          promotion.visibility === 'public' &&
+          requiredSegments.includes('authenticated_user')
+        );
+        if (!canPreviewPublicAuthenticatedOffer && (!request.customer_id || !requiredSegments.includes('authenticated_user'))) {
           rejections.push({ promotion_id: promotion.id, reason_code: 'CUSTOMER_NOT_ELIGIBLE' }); continue;
         }
       }
@@ -377,11 +436,14 @@ export class PromotionsV2Service {
           || (assignment.customer_group_id !== null && customerGroups.has(assignment.customer_group_id)));
         if (!audienceMatch) { rejections.push({ promotion_id: promotion.id, reason_code: 'CUSTOMER_NOT_ELIGIBLE' }); continue; }
       }
-      const used = usageByPromotion.get(promotion.id) ?? { count: 0, amount: 0 };
-      if (promotion.max_redemptions && used.count >= promotion.max_redemptions) { rejections.push({ promotion_id: promotion.id, reason_code: 'USAGE_LIMIT_REACHED' }); continue; }
+      const usage = campaignUsageByPromotion.get(promotion.id) ?? { count: 0, discountAmount: 0 };
+      if (promotion.max_redemptions && usage.count >= promotion.max_redemptions) { rejections.push({ promotion_id: promotion.id, reason_code: 'USAGE_LIMIT_REACHED' }); continue; }
       if (promotion.per_user_limit && request.customer_id && (customerUsageByPromotion.get(promotion.id) ?? 0) >= promotion.per_user_limit) { rejections.push({ promotion_id: promotion.id, reason_code: 'USAGE_LIMIT_REACHED' }); continue; }
-      const budget = Number(promotion.budget ?? 0);
-      if (budget > 0 && used.amount >= budget) { rejections.push({ promotion_id: promotion.id, reason_code: 'BUDGET_EXHAUSTED' }); continue; }
+      const configuredBudget = Number(promotion.budget ?? 0);
+      const remainingBudgetPaise = configuredBudget <= 0
+        ? undefined
+        : Math.max(0, Math.round((configuredBudget - usage.discountAmount) * 100));
+      if (remainingBudgetPaise === 0) { rejections.push({ promotion_id: promotion.id, reason_code: 'BUDGET_EXHAUSTED' }); continue; }
       try {
         result.push({
           promotionId: promotion.id,
@@ -390,9 +452,11 @@ export class PromotionsV2Service {
           ruleVersion: 0,
           name: promotion.name ?? `Promotion ${promotion.id}`,
           rule: convertLegacyPromotionRule(promotion),
+          appliesToWholeOrder: isWholeOrderPromotionType(promotion.type),
+          ...(remainingBudgetPaise === undefined ? {} : { remainingBudgetPaise }),
         });
       } catch (error) {
-        logger.warn({ promotionId: promotion.id, error }, 'Unable to bridge legacy automatic promotion into V2 quote');
+        logger.warn({ promotionId: promotion.id, error }, 'Unable to bridge legacy promotion into V2 quote');
       }
     }
     return { campaigns: result, rejections };
@@ -472,9 +536,20 @@ export class PromotionsV2Service {
     });
   }
 
-  async requoteEvaluation(evaluationId: string, selection?: { promotionId?: number; removePromotionId?: number; giftProductId?: string }, authenticatedCustomerId?: string): Promise<PromotionQuote> {
+  async recalculateEvaluation(evaluationId: string, selection?: { promotionId?: number; removePromotionId?: number; giftProductId?: string }, authenticatedCustomerId?: string): Promise<PromotionQuote> {
     const evaluation = await prisma.promotion_evaluations.findUniqueOrThrow({ where: { evaluation_id: evaluationId } });
-    if (evaluation.status !== 'active' || evaluation.expires_at < seconds()) throw new Error('Promotion evaluation has expired');
+    if (evaluation.status !== 'active') {
+      throw Object.assign(new Error('Promotion evaluation is no longer active'), {
+        statusCode: 409,
+        code: 'PROMOTION_EVALUATION_INACTIVE',
+      });
+    }
+    if (evaluation.expires_at < seconds()) {
+      throw Object.assign(new Error('Promotion evaluation has expired'), {
+        statusCode: 409,
+        code: 'PROMOTION_EVALUATION_EXPIRED',
+      });
+    }
     if (evaluation.user_id && evaluation.user_id !== authenticatedCustomerId) throw Object.assign(new Error('This promotion evaluation belongs to another customer'), { statusCode: 403 });
     const request = PromotionQuoteRequestSchema.parse(evaluation.cart_data);
     const ids = new Set(request.selected_promotion_ids ?? []);
@@ -482,6 +557,6 @@ export class PromotionsV2Service {
     if (selection?.removePromotionId) ids.delete(selection.removePromotionId);
     request.selected_promotion_ids = [...ids];
     if (selection?.promotionId && selection.giftProductId) request.reward_selections = { ...request.reward_selections, [String(selection.promotionId)]: selection.giftProductId };
-    return this.quote(request, authenticatedCustomerId, true);
+    return this.calculate(request, authenticatedCustomerId);
   }
 }

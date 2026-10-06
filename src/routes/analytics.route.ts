@@ -43,6 +43,20 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
                                 outOfStockCount: { type: 'number' },
                                 totalProducts: { type: 'number' },
                                 totalStockItems: { type: 'number' },
+                                soldStockItems: { type: 'number' },
+                                damagedStockItems: { type: 'number' },
+                                platformStockHealth: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            platform: { type: 'string' },
+                                            availableUnits: { type: 'number' },
+                                            lowStockCount: { type: 'number' },
+                                            outOfStockCount: { type: 'number' }
+                                        }
+                                    }
+                                },
                                 distribution: {
                                     type: 'array',
                                     items: {

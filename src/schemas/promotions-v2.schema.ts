@@ -167,6 +167,7 @@ export const PromotionQuoteRequestSchema = z.object({
   channel: z.enum(['web', 'mobile', 'nivapp', 'amazon', 'flipkart', 'instore']).default('web'),
   shipping_amount: z.number().int().nonnegative().default(0),
   customer_id: z.union([z.string(), z.number()]).transform(String).optional(),
+  preview_only: z.boolean().default(false),
   coupon_code: z.string().trim().optional(),
   selected_promotion_ids: z.array(z.number().int().positive()).optional(),
   reward_selections: z.record(z.string()).optional(),

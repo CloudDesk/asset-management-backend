@@ -3,6 +3,7 @@ import { logger } from '../config/logger.js';
 import { env } from '../config/env.js';
 import { ekartAuthService } from './ekart-auth.service.js';
 import { dynamicFindManyWithFilters } from '../utils/dynamicDbOperations.js';
+import { prisma } from '../models/prisma.js';
 
 export interface CreateShipmentPayload {
   seller_name: string;
@@ -66,16 +67,17 @@ export interface CreateShipmentPayload {
     imei_number?: string | undefined;
     product_images?: string[] | undefined;
   } | undefined;
+  // EKART package_item: only product_name is required
   items?: Array<{
     product_name: string;
-    sku: string;
-    taxable_value: number;
+    sku?: string | undefined;
+    taxable_value?: number | undefined;
     description?: string | undefined;
-    quantity: number;
-    length: number;
-    height: number;
-    breadth: number;
-    weight: number;
+    quantity?: number | undefined;
+    length?: number | undefined;
+    height?: number | undefined;
+    breadth?: number | undefined;
+    weight?: number | undefined;
     hsn_code?: string | undefined;
     cgst_tax_value?: number | undefined;
     sgst_tax_value?: number | undefined;
@@ -164,7 +166,6 @@ export interface ShippingRatesResponse {
 export class EkartService {
   private baseURL: string;
   private authService: typeof ekartAuthService;
-  private readonly DEFAULT_EKART_HSN_CODE = '33074100';
   private readonly DEFAULT_EKART_CATEGORY_OF_GOODS = 'premium_incense_sticks';
 
   constructor() {
@@ -496,11 +497,11 @@ export class EkartService {
       '✅ [SHIPMENT CREATE] Step 2 SUCCESS: GST TIN obtained'
     );
 
-    let derivedHsnCode = payload.hsn_code;
+    let derivedHsnCode: string | undefined;
+    let derivedItems: Array<NonNullable<CreateShipmentPayload['items']>[number] & { hsn_code: string }> = [];
     let derivedCategoryOfGoods = payload.category_of_goods;
 
-    if (!derivedHsnCode || !derivedCategoryOfGoods) {
-      try {
+    try {
         const { OrdersService } = await import('./orders.service.js');
         const ordersService = new OrdersService();
         const order = await ordersService.findByOrderIdString(payload.order_number);
@@ -510,17 +511,84 @@ export class EkartService {
             'orderline',
             { orderid: order.id.toString() },
             {
-              take: 1,
+              take: 1000,
               useAllColumns: true,
               orderBy: 'id',
               orderDirection: 'ASC'
             }
           );
 
-          const firstOrderline = orderlines?.[0];
+          const shippableOrderlines = orderlines.filter((line: any) =>
+            !['cancelled', 'returned'].includes(String(line.orderstatus || '').toLowerCase())
+          );
+          if (shippableOrderlines.length === 0) {
+            throw new Error('EKART shipment blocked: order has no shippable orderlines');
+          }
+
+          const firstOrderline = shippableOrderlines[0];
 
           if (firstOrderline) {
-            derivedHsnCode = derivedHsnCode || firstOrderline.hsn_code || this.DEFAULT_EKART_HSN_CODE;
+            const invalidSnapshots = shippableOrderlines.filter((line: any) => {
+              const gstRate = Number(line.gst_rate);
+              return !String(line.hsn_code || '').trim()
+                || line.gst_rate === null
+                || line.gst_rate === undefined
+                || !Number.isFinite(gstRate)
+                || gstRate < 0
+                || gstRate > 100;
+            });
+            if (invalidSnapshots.length > 0) {
+              throw new Error(`EKART shipment blocked: orderlines missing valid HSN/GST snapshots: ${invalidSnapshots.map((line: any) => line.id).join(', ')}`);
+            }
+            // One items[] entry per shippable orderline so each product keeps its own HSN/GST
+            const productIds = [...new Set(
+              shippableOrderlines
+                .map((line: any) => line.productid)
+                .filter((id: any) => id !== null && id !== undefined)
+                .map((id: any) => String(id))
+            )];
+            const products = productIds.length > 0
+              ? await prisma.product.findMany({
+                  where: { id: { in: productIds.map((id) => BigInt(id)) } },
+                  select: { id: true, puc: true }
+                })
+              : [];
+            const pucByProductId = new Map(products.map((product) => [product.id.toString(), product.puc]));
+
+            // Fields per EKART package_item spec: only product_name is required; per-item
+            // dimensions/weight are left out (spec requires > 0) and taxable_value must be >= 1,
+            // so free/zero-value lines are sent without value and tax fields.
+            derivedItems = shippableOrderlines.map((line: any) => {
+              const storedTaxable = line.taxable_amount;
+              const taxableValue = Math.round((storedTaxable !== null && storedTaxable !== undefined
+                ? Number(storedTaxable)
+                : Number(line.orderamount || 0) / (1 + Number(line.gst_rate) / 100)) * 100) / 100;
+              const item: NonNullable<CreateShipmentPayload['items']>[number] & { hsn_code: string } = {
+                product_name: line.productname || line.productshortname || 'Product',
+                sku: pucByProductId.get(String(line.productid)) || String(line.productid ?? line.id),
+                quantity: Number(line.quantity) || 1,
+                hsn_code: String(line.hsn_code).trim()
+              };
+              if (taxableValue >= 1) {
+                item.taxable_value = taxableValue;
+                item.cgst_tax_value = Number(line.cgst_amount || 0);
+                item.sgst_tax_value = Number(line.sgst_amount || 0);
+                item.igst_tax_value = Number(line.igst_amount || 0);
+              }
+              return item;
+            });
+
+            // Top-level hsn_code takes one value: the HSN with the highest taxable value (first wins on a tie)
+            const taxableByHsn = new Map<string, number>();
+            for (const item of derivedItems) {
+              taxableByHsn.set(item.hsn_code, (taxableByHsn.get(item.hsn_code) || 0) + (item.taxable_value || 0));
+            }
+            derivedHsnCode = derivedItems[0]?.hsn_code;
+            for (const [hsnCode, taxable] of taxableByHsn) {
+              if (taxable > (taxableByHsn.get(derivedHsnCode!) || 0)) {
+                derivedHsnCode = hsnCode;
+              }
+            }
             derivedCategoryOfGoods =
               derivedCategoryOfGoods ||
               firstOrderline.productcategory ||
@@ -530,11 +598,10 @@ export class EkartService {
               {
                 orderNumber: payload.order_number,
                 firstOrderlineId: firstOrderline.id,
-                hsnCodeSource: payload.hsn_code
-                  ? 'payload'
-                  : firstOrderline.hsn_code
-                    ? 'first_orderline'
-                    : 'default',
+                hsnCodeSource: 'orderline_snapshot',
+                topLevelHsnCode: derivedHsnCode,
+                itemCount: derivedItems.length,
+                itemHsnCodes: [...new Set(derivedItems.map((item) => item.hsn_code))],
                 categoryOfGoodsSource: payload.category_of_goods
                   ? 'payload'
                   : firstOrderline.productcategory
@@ -546,17 +613,19 @@ export class EkartService {
           }
         }
       } catch (error: any) {
-        logger.warn(
+        logger.error(
           {
             orderNumber: payload.order_number,
             error: error.message
           },
-          '⚠️ [SHIPMENT CREATE] Failed to derive HSN code/category from first orderline, falling back to defaults'
+          '❌ [SHIPMENT CREATE] Failed to derive HSN code from immutable orderline snapshots'
         );
+        throw error;
       }
-    }
 
-    derivedHsnCode = derivedHsnCode || this.DEFAULT_EKART_HSN_CODE;
+    if (!derivedHsnCode) {
+      throw new Error('EKART shipment blocked: order HSN snapshot is unavailable');
+    }
     derivedCategoryOfGoods =
       derivedCategoryOfGoods || this.DEFAULT_EKART_CATEGORY_OF_GOODS;
 
@@ -565,7 +634,8 @@ export class EkartService {
       ...payload,
       seller_gst_tin: sellerGstTin,
       hsn_code: derivedHsnCode,
-      category_of_goods: derivedCategoryOfGoods
+      category_of_goods: derivedCategoryOfGoods,
+      items: derivedItems
     };
 
     logger.info(
@@ -573,7 +643,9 @@ export class EkartService {
         orderNumber: payload.order_number,
         sellerName: finalPayload.seller_name,
         sellerAddress: finalPayload.seller_address,
-        sellerGstTin: finalPayload.seller_gst_tin ? `${finalPayload.seller_gst_tin.substring(0, 4)}****` : 'N/A'
+        sellerGstTin: finalPayload.seller_gst_tin ? `${finalPayload.seller_gst_tin.substring(0, 4)}****` : 'N/A',
+        pickupLocation: finalPayload.pickup_location?.name ?? 'EKART default warehouse',
+        returnLocation: finalPayload.return_location?.name ?? 'same as pickup'
       },
       '✅ [SHIPMENT CREATE] Step 3: Final payload prepared'
     );

@@ -22,17 +22,18 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
     // 2. Product Browsing APIs (only nivapp platform is public, other platforms like amazon are protected)
     'GET /v1/products/platform/nivapp',
     'GET /v1/products/platform/nivapp/counts',
+    'GET /v1/products/platform/nivapp/home', // Storefront Home catalog (read-only)
     'GET /v1/products/:productId/platform/:platform', // Support any platform for dynamic routing
-
+    'GET /v1/products/tax-presets',
 
     // 3. Guest storefront promotions (curated public fields only)
     'GET /v1/promotions/public',
-    'POST /v2/promotions/quote',
-    'POST /v2/promotions/eligibility',
-    'POST /v2/promotions/quote/:evaluationId/select',
-    'DELETE /v2/promotions/quote/:evaluationId/selection/:promotionId',
-    'POST /v2/promotions/quote/:evaluationId/select-gift',
-    'POST /v2/promotions/quote/:evaluationId/validate',
+    'POST /v2/promotions/calculate',
+    'POST /v2/promotions/check-eligibility',
+    'POST /v2/promotions/evaluations/:evaluationId/promotions',
+    'DELETE /v2/promotions/evaluations/:evaluationId/promotions/:promotionId',
+    'POST /v2/promotions/evaluations/:evaluationId/gifts',
+    'POST /v2/promotions/evaluations/:evaluationId/validate',
 
     // 4. Ratings & Reviews APIs
     'GET /v1/ratings',
@@ -80,12 +81,8 @@ export const INVENTORY_PUBLIC_ROUTES = [
     'GET /v1/health',
     'GET /health',
 
-    // 5. Analytics APIs (Public for testing)
-    'GET /v1/analytics/inventory-health',
-    'GET /v1/analytics/fulfillment-summary',
-    'GET /v1/analytics/sales-velocity',
-    'GET /v1/analytics/supply-chain',
-    'GET /v1/analytics/orders',
+    // 5. Taxonomy Tax Presets
+    'GET /v1/products/tax-presets',
 ];
 
 // ============================================================================

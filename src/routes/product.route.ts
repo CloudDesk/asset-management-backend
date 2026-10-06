@@ -2,8 +2,130 @@ import { FastifyInstance } from "fastify";
 import { ProductController } from "../controllers/product.controller.js";
 import { formatProductForAPI } from "../utils/dynamicDbOperations.js";
 
+/**
+ * Storefront product item returned by GET /products/platform/:platform.
+ * Shared with the Home catalog route so both serialize product cards identically.
+ */
+const platformProductItemSchema = {
+  type: "object",
+  properties: {
+    id: { type: "number", description: "Product ID" },
+    name: { type: "string", description: "Product name" },
+    shortname: { type: "string", description: "Required editable product short name" },
+    shortdescription: { type: "string", nullable: true, description: "Short description" },
+    fulldescription: { type: "string", nullable: true, description: "Full description" },
+    price: { type: "number", nullable: true, description: "Product price" },
+    discount: { type: "number", nullable: true, description: "Discount amount" },
+    category: { type: "string", nullable: true, description: "Product category" },
+    subcategory: { type: "string", nullable: true, description: "Product subcategory" },
+    subsubcategory: { type: "string", nullable: true, description: "Product sub-subcategory" },
+    // Image arrays
+    large: { type: "array", items: { type: "string" }, nullable: true, description: "Large size images" },
+    medium: { type: "array", items: { type: "string" }, nullable: true, description: "Medium size images" },
+    small: { type: "array", items: { type: "string" }, nullable: true, description: "Small size images" },
+    // Platform stock quantity
+    availablequantity: { type: "number", nullable: true, description: "Available quantity from platform stock" },
+    // Combo Pack Support
+    iscombo: {
+      type: "boolean",
+      nullable: true,
+      description: "Is this a combo product?",
+    },
+    combotype: {
+      type: "string",
+      nullable: true,
+      description: "Combo type: 'fixed' or 'dynamic'",
+    },
+    components: {
+      type: "array",
+      nullable: true,
+      description: "Component products (only present if iscombo is true)",
+      items: {
+        type: "object",
+        properties: {
+          componentproductid: {
+            oneOf: [
+              { type: "string", pattern: "^\\d+$" },
+              { type: "number" },
+            ],
+            description: "Component product ID",
+          },
+          requiredqty: {
+            type: "integer",
+            description: "Quantity of this component needed per combo",
+          },
+          isactive: {
+            type: "boolean",
+            description: "Is this component active?",
+          },
+          product: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                nullable: true,
+                description: "Component product name",
+              },
+              puc: {
+                type: "string",
+                nullable: true,
+                description: "Component product PUC code",
+              },
+            },
+            required: ["name", "puc"],
+            additionalProperties: false,
+          },
+          platformStock: {
+            type: "object",
+            nullable: true,
+            properties: {
+              availableqty: {
+                type: "number",
+                description: "Available quantity for nivapp platform",
+              },
+              lockqty: {
+                type: "number",
+                description: "Lock quantity for nivapp platform",
+              },
+              orderedqty: {
+                type: "number",
+                description: "Ordered quantity for nivapp platform",
+              },
+              soldqty: {
+                type: "number",
+                description: "Sold quantity for nivapp platform",
+              },
+              platformstatus: {
+                type: "string",
+                nullable: true,
+                description: "Platform stock status for nivapp platform",
+              },
+            },
+            description: "Platform stock data for nivapp platform (fetched by componentproductid and platform=nivapp)",
+          },
+        },
+        required: ["componentproductid", "requiredqty", "isactive", "product"],
+        additionalProperties: false,
+      },
+    },
+  },
+  additionalProperties: true,
+};
+
 export async function productRoutes(fastify: FastifyInstance) {
   const productController = new ProductController();
+
+  // GET /v1/products/tax-presets - Get all active GST/HSN mapping presets for UI auto-fill
+  fastify.get(
+    "/tax-presets",
+    {
+      schema: {
+        description: "Get active GST and HSN mapping presets for product taxonomy",
+        tags: ["Products"],
+      },
+    },
+    productController.getTaxPresets
+  );
 
   // GET /v1/products - Get all products with pagination and filtering
   fastify.get(
@@ -926,6 +1048,29 @@ export async function productRoutes(fastify: FastifyInstance) {
               description: "Filter by platform stock status"
             },
             search: { type: "string", description: "Search in product name/description" },
+            filterMode: {
+              type: "string",
+              enum: ["storefront"],
+              description: "storefront = Ecom listing matching for category, subcategory, subsubcategory, collection and search (normalised keys; search also covers taxonomy, fragrance, brand, pack and PUC)"
+            },
+            excludeCategory: {
+              type: "string",
+              description: "Storefront mode: exclude products in this category (normalised match); products without a category are kept"
+            },
+            subcategoryMatch: {
+              type: "string",
+              enum: ["taxonomy", "loose"],
+              description: "Storefront mode: taxonomy = subcategory/subsubcategory only; loose = also fragrance type (default)"
+            },
+            subsubcategoryMatch: {
+              type: "string",
+              enum: ["taxonomy", "loose"],
+              description: "Storefront mode: taxonomy = subcategory/subsubcategory only; loose = also fragrance type (default)"
+            },
+            collection: {
+              type: "string",
+              description: "Storefront mode: deals (deal of the day or discounted) or gift-sets (pack or combo); other values do not filter"
+            },
             isdealoftheday: {
               type: "string",
               enum: ["true", "false"],
@@ -933,8 +1078,8 @@ export async function productRoutes(fastify: FastifyInstance) {
             },
             sortBy: {
               type: "string",
-              enum: ["price", "createddate", "averagerating", "name"],
-              description: "Field to sort by (default: createddate)"
+              enum: ["price", "createddate", "averagerating", "name", "bestselling"],
+              description: "Field to sort by (default: createddate). bestselling = platform sold quantity"
             },
             sortOrder: {
               type: "string",
@@ -950,111 +1095,7 @@ export async function productRoutes(fastify: FastifyInstance) {
               success: { type: "boolean" },
               data: {
                 type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    id: { type: "number", description: "Product ID" },
-                    name: { type: "string", description: "Product name" },
-                    shortname: { type: "string", description: "Required editable product short name" },
-                    shortdescription: { type: "string", nullable: true, description: "Short description" },
-                    fulldescription: { type: "string", nullable: true, description: "Full description" },
-                    price: { type: "number", nullable: true, description: "Product price" },
-                    discount: { type: "number", nullable: true, description: "Discount amount" },
-                    category: { type: "string", nullable: true, description: "Product category" },
-                    subcategory: { type: "string", nullable: true, description: "Product subcategory" },
-                    subsubcategory: { type: "string", nullable: true, description: "Product sub-subcategory" },
-                    // Image arrays
-                    large: { type: "array", items: { type: "string" }, nullable: true, description: "Large size images" },
-                    medium: { type: "array", items: { type: "string" }, nullable: true, description: "Medium size images" },
-                    small: { type: "array", items: { type: "string" }, nullable: true, description: "Small size images" },
-                    // Platform stock quantity
-                    availablequantity: { type: "number", nullable: true, description: "Available quantity from platform stock" },
-                    // Combo Pack Support
-                    iscombo: {
-                      type: "boolean",
-                      nullable: true,
-                      description: "Is this a combo product?",
-                    },
-                    combotype: {
-                      type: "string",
-                      nullable: true,
-                      description: "Combo type: 'fixed' or 'dynamic'",
-                    },
-                    components: {
-                      type: "array",
-                      nullable: true,
-                      description: "Component products (only present if iscombo is true)",
-                      items: {
-                        type: "object",
-                        properties: {
-                          componentproductid: {
-                            oneOf: [
-                              { type: "string", pattern: "^\\d+$" },
-                              { type: "number" },
-                            ],
-                            description: "Component product ID",
-                          },
-                          requiredqty: {
-                            type: "integer",
-                            description: "Quantity of this component needed per combo",
-                          },
-                          isactive: {
-                            type: "boolean",
-                            description: "Is this component active?",
-                          },
-                          product: {
-                            type: "object",
-                            properties: {
-                              name: {
-                                type: "string",
-                                nullable: true,
-                                description: "Component product name",
-                              },
-                              puc: {
-                                type: "string",
-                                nullable: true,
-                                description: "Component product PUC code",
-                              },
-                            },
-                            required: ["name", "puc"],
-                            additionalProperties: false,
-                          },
-                          platformStock: {
-                            type: "object",
-                            nullable: true,
-                            properties: {
-                              availableqty: {
-                                type: "number",
-                                description: "Available quantity for nivapp platform",
-                              },
-                              lockqty: {
-                                type: "number",
-                                description: "Lock quantity for nivapp platform",
-                              },
-                              orderedqty: {
-                                type: "number",
-                                description: "Ordered quantity for nivapp platform",
-                              },
-                              soldqty: {
-                                type: "number",
-                                description: "Sold quantity for nivapp platform",
-                              },
-                              platformstatus: {
-                                type: "string",
-                                nullable: true,
-                                description: "Platform stock status for nivapp platform",
-                              },
-                            },
-                            description: "Platform stock data for nivapp platform (fetched by componentproductid and platform=nivapp)",
-                          },
-                        },
-                        required: ["componentproductid", "requiredqty", "isactive", "product"],
-                        additionalProperties: false,
-                      },
-                    },
-                  },
-                  additionalProperties: true,
-                },
+                items: platformProductItemSchema,
               },
               pagination: {
                 type: "object",
@@ -1100,6 +1141,66 @@ export async function productRoutes(fastify: FastifyInstance) {
         },
       },
     }, productController.getProductsForPlatform.bind(productController));
+
+  // GET /v1/products/platform/nivapp/home - Storefront Home catalog (read-only, public)
+  fastify.get("/platform/nivapp/home",
+    {
+      schema: {
+        description: "Get storefront Home sections (best sellers, new arrivals, best of Nivaana, flavours, categories) for the nivapp platform",
+        tags: ["Products", "E-Commerce"],
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              message: { type: "string" },
+              data: {
+                type: "object",
+                properties: {
+                  bestSellers: { type: "array", items: platformProductItemSchema },
+                  newArrivals: { type: "array", items: platformProductItemSchema },
+                  bestOfNivaana: { type: "array", items: platformProductItemSchema },
+                  flavours: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        value: { type: "string" },
+                        large: { type: "array", items: { type: "string" } },
+                        medium: { type: "array", items: { type: "string" } },
+                        small: { type: "array", items: { type: "string" } },
+                      },
+                    },
+                  },
+                  categories: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        category: { type: "string", nullable: true },
+                        subcategory: { type: "string", nullable: true },
+                        large: { type: "array", items: { type: "string" } },
+                        medium: { type: "array", items: { type: "string" } },
+                        small: { type: "array", items: { type: "string" } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          500: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              message: { type: "string" },
+              details: { type: "string" },
+              statusCode: { type: "number" },
+            },
+          },
+        },
+      },
+    }, productController.getHomeCatalogForPlatform.bind(productController));
 
   // GET /v1/products/platform/:platform/counts - Get product counts by category for platform
   fastify.get("/platform/:platform/counts",
@@ -1544,6 +1645,17 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "boolean",
               description: "Mark product as deal of the day",
             },
+            hsn_code: {
+              type: "string",
+              maxLength: 50,
+              description: "HSN Code",
+            },
+            gst_rate: {
+              type: "number",
+              minimum: 0,
+              maximum: 100,
+              description: "GST Rate percentage",
+            },
             // Additional Product Information
             material: {
               type: "string",
@@ -1644,7 +1756,7 @@ export async function productRoutes(fastify: FastifyInstance) {
               },
             },
           },
-          required: ["name", "shortname", "remarks"],
+          required: ["name", "shortname", "remarks", "hsn_code", "gst_rate"],
           additionalProperties: false, // Strict validation - only allow specified fields
         },
         response: {
@@ -2093,6 +2205,17 @@ export async function productRoutes(fastify: FastifyInstance) {
             isdealoftheday: {
               type: "boolean",
               description: "Mark product as deal of the day",
+            },
+            hsn_code: {
+              type: "string",
+              maxLength: 50,
+              description: "HSN Code",
+            },
+            gst_rate: {
+              type: "number",
+              minimum: 0,
+              maximum: 100,
+              description: "GST Rate percentage",
             },
             // Size array fields
             large: {
@@ -2776,6 +2899,18 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: "number",
               minimum: 0,
               description: "Product price",
+            },
+            hsn_code: {
+              type: "string",
+              minLength: 1,
+              maxLength: 50,
+              description: "Mandatory product HSN code",
+            },
+            gst_rate: {
+              type: "number",
+              minimum: 0,
+              maximum: 100,
+              description: "Mandatory product GST percentage",
             },
             // Size-related fields
             large: {

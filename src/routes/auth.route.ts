@@ -477,6 +477,15 @@ export async function authRoutes(fastify: FastifyInstance) {
             statusCode: { type: 'number' },
           },
         },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
         429: {
           type: 'object',
           properties: {
@@ -495,24 +504,41 @@ export async function authRoutes(fastify: FastifyInstance) {
             statusCode: { type: 'number' },
           },
         },
+        503: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
       },
     },
   }, asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const { useremail } = request.body as { useremail: string };
 
     try {
-      await inventoryUsersService.initiatePasswordReset(useremail);
+      const result = await inventoryUsersService.initiatePasswordReset(useremail);
+
+      if (result === 'user_not_found') {
+        return reply.code(404).send({
+          success: false,
+          message: 'No account found with this email address. Please check your email and try again.',
+          details: 'Check the email address or contact the administrator.',
+          statusCode: 404,
+        });
+      }
 
       logger.info({
         email: useremail,
         ip: request.ip
       }, 'Password reset initiated');
 
-      // Always return success to prevent email enumeration
       return reply.code(200).send({
         success: true,
-        message: 'Password reset email sent',
-        details: 'If an account with this email exists, you will receive a password reset link shortly',
+        message: 'Password reset email sent successfully.',
+        details: 'Check your inbox for the password reset link.',
       });
     } catch (error) {
       logger.error({ error, email: useremail, ip: request.ip }, 'Error during password reset initiation');
@@ -878,4 +904,4 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   }));
 
-} 
+}

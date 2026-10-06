@@ -10,6 +10,7 @@ export async function couponWalletRoutes(fastify: FastifyInstance) {
   fastify.post('/preview', controller.previewCoupon);
   fastify.post('/claim', controller.claimCoupon);
   fastify.post('/discount/quote', controller.quoteWalletDiscount);
+  fastify.post('/checkout/quote', controller.quoteDirectCoupon);
   fastify.get('/admin/coupons', controller.listAdminCoupons);
   fastify.post('/admin/coupons', controller.createQuickCoupon);
   fastify.patch('/admin/coupons/:assignmentId', controller.updateQuickCoupon);

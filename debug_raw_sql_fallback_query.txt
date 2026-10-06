@@ -2194,3 +2194,21 @@ Fallback query:
         WHERE "id" = $1 
         RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack, isdealoftheday, material, itemlength, manufacturer, netform, netquantity, numberofitems, itemthickness, purpose, burntime, power, usage, longevity, gender, length, width, height, weight, subsubcategory, iscombo, combotype
       
+Fallback query: 
+        UPDATE "product" 
+        SET "name" = $2, "shortname" = $3, "shortdescription" = $4, "fulldescription" = $5, "remarks" = $6, "price" = $7, "discount" = $8, "isdealoftheday" = $9, "brand" = $10, "pack" = $11, "material" = $12, "manufacturer" = $13, "netform" = $14, "netquantity" = $15, "usage" = $16, "length" = $17, "width" = $18, "height" = $19, "weight" = $20, "purpose" = $21, "fragnancetype" = $22, "burntime" = $23, "itemlength" = $24, "itemthickness" = $25, "numberofitems" = $26, "category" = $27, "subcategory" = $28, "subsubcategory" = $29, "benefititems" = $30::jsonb, "modifieddate" = $31 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack, isdealoftheday, material, itemlength, manufacturer, netform, netquantity, numberofitems, itemthickness, purpose, burntime, power, usage, longevity, gender, length, width, height, weight, subsubcategory, iscombo, combotype, remarks, category_leaf_lov_id, damagedquantity, benefititems, shortname
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "name" = $2, "shortname" = $3, "shortdescription" = $4, "fulldescription" = $5, "remarks" = $6, "price" = $7, "discount" = $8, "isdealoftheday" = $9, "brand" = $10, "pack" = $11, "material" = $12, "manufacturer" = $13, "netform" = $14, "netquantity" = $15, "usage" = $16, "length" = $17, "width" = $18, "height" = $19, "weight" = $20, "purpose" = $21, "fragnancetype" = $22, "burntime" = $23, "itemlength" = $24, "itemthickness" = $25, "numberofitems" = $26, "category" = $27, "subcategory" = $28, "subsubcategory" = $29, "benefititems" = $30::jsonb, "modifieddate" = $31 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack, isdealoftheday, material, itemlength, manufacturer, netform, netquantity, numberofitems, itemthickness, purpose, burntime, power, usage, longevity, gender, length, width, height, weight, subsubcategory, iscombo, combotype, remarks, category_leaf_lov_id, damagedquantity, benefititems, shortname
+      
+Fallback query: 
+        UPDATE "product" 
+        SET "name" = $2, "shortname" = $3, "shortdescription" = $4, "fulldescription" = $5, "remarks" = $6, "price" = $7, "discount" = $8, "isdealoftheday" = $9, "brand" = $10, "pack" = $11, "material" = $12, "manufacturer" = $13, "netform" = $14, "netquantity" = $15, "usage" = $16, "length" = $17, "width" = $18, "height" = $19, "weight" = $20, "purpose" = $21, "fragnancetype" = $22, "burntime" = $23, "itemlength" = $24, "itemthickness" = $25, "numberofitems" = $26, "category" = $27, "subcategory" = $28, "subsubcategory" = $29, "benefititems" = $30::jsonb, "modifieddate" = $31 
+        WHERE "id" = $1 
+        RETURNING id, name, shortdescription, fulldescription, fragnancetype, soldquantity, availablequantity, quantity, ecompublishedquantity, productstatus, puc, averagerating, discount, price, orderedquantity, createddate, modifieddate, category, subcategory, large, medium, small, brand, pack, isdealoftheday, material, itemlength, manufacturer, netform, netquantity, numberofitems, itemthickness, purpose, burntime, power, usage, longevity, gender, length, width, height, weight, subsubcategory, iscombo, combotype, remarks, category_leaf_lov_id, damagedquantity, benefititems, shortname
+      
