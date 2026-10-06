@@ -691,6 +691,7 @@ export async function ordersRoutes(fastify: FastifyInstance) {
                       productid: { type: 'number', nullable: true },
                       sku_number: { type: 'string', nullable: true, description: 'Inventory SKU/PUC for carrier integrations' },
                       productname: { type: 'string', nullable: true },
+                      productshortname: { type: 'string', nullable: true },
                       productcategory: { type: 'string', nullable: true },
                       hsn_code: { type: 'string', nullable: true },
                       orderstatus: { type: 'string', nullable: true },
