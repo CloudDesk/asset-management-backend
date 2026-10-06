@@ -1648,12 +1648,14 @@ export async function productRoutes(fastify: FastifyInstance) {
             hsn_code: {
               type: "string",
               maxLength: 50,
+              nullable: true,
               description: "HSN Code",
             },
             gst_rate: {
               type: "number",
               minimum: 0,
               maximum: 100,
+              nullable: true,
               description: "GST Rate percentage",
             },
             // Additional Product Information
@@ -1756,7 +1758,7 @@ export async function productRoutes(fastify: FastifyInstance) {
               },
             },
           },
-          required: ["name", "shortname", "remarks", "hsn_code", "gst_rate"],
+          required: ["name", "shortname", "remarks"],
           additionalProperties: false, // Strict validation - only allow specified fields
         },
         response: {
@@ -2209,12 +2211,14 @@ export async function productRoutes(fastify: FastifyInstance) {
             hsn_code: {
               type: "string",
               maxLength: 50,
+              nullable: true,
               description: "HSN Code",
             },
             gst_rate: {
               type: "number",
               minimum: 0,
               maximum: 100,
+              nullable: true,
               description: "GST Rate percentage",
             },
             // Size array fields
@@ -2902,15 +2906,16 @@ export async function productRoutes(fastify: FastifyInstance) {
             },
             hsn_code: {
               type: "string",
-              minLength: 1,
               maxLength: 50,
-              description: "Mandatory product HSN code",
+              nullable: true,
+              description: "Product HSN code when classified",
             },
             gst_rate: {
               type: "number",
               minimum: 0,
               maximum: 100,
-              description: "Mandatory product GST percentage",
+              nullable: true,
+              description: "Product GST percentage when classified",
             },
             // Size-related fields
             large: {

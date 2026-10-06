@@ -1133,15 +1133,18 @@ export class ProductService {
 
       const effectiveHsn = updateData.hsn_code ?? existingProduct.hsn_code;
       const effectiveGstRate = updateData.gst_rate ?? existingProduct.gst_rate;
-      const numericGstRate = Number(effectiveGstRate);
-      if (
-        typeof effectiveHsn !== 'string'
-        || effectiveHsn.trim().length === 0
-        || !Number.isFinite(numericGstRate)
-        || numericGstRate < 0
-        || numericGstRate > 100
-      ) {
-        throw new Error('A valid HSN code and GST rate between 0 and 100 are required before this product can be updated');
+      const numericGstRate = effectiveGstRate === null || effectiveGstRate === undefined
+        ? null
+        : Number(effectiveGstRate);
+      if (effectiveHsn !== null && effectiveHsn !== undefined && (
+        typeof effectiveHsn !== 'string' || effectiveHsn.trim().length === 0
+      )) {
+        throw new Error('HSN code must be non-empty when provided');
+      }
+      if (numericGstRate !== null && (
+        !Number.isFinite(numericGstRate) || numericGstRate < 0 || numericGstRate > 100
+      )) {
+        throw new Error('GST rate must be between 0 and 100 when provided');
       }
 
       if (components || iscombo || combotype) {

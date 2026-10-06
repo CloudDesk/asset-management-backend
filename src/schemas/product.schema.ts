@@ -52,9 +52,9 @@ export const createProductSchema = z.object({
   discount: z.number().int().min(0).max(100, 'Discount cannot exceed 100%').optional(),
   averagerating: z.number().min(0).max(5, 'Rating must be between 0 and 5').optional(),
 
-  // Tax / HSN & GST (Mandatory)
-  hsn_code: z.string().trim().min(1, 'HSN code is required').max(50, 'HSN code too long'),
-  gst_rate: z.coerce.number().min(0, 'GST rate cannot be negative').max(100, 'GST rate cannot exceed 100%'),
+  // Tax / HSN & GST. Some approved categories intentionally leave either value blank.
+  hsn_code: z.string().trim().min(1, 'HSN code cannot be empty').max(50, 'HSN code too long').nullable().optional(),
+  gst_rate: z.coerce.number().min(0, 'GST rate cannot be negative').max(100, 'GST rate cannot exceed 100%').nullable().optional(),
 
   // Quantity fields
   quantity: z.number().int().min(0).optional(),
@@ -135,8 +135,8 @@ export const updateProductSchema = z.object({
   averagerating: z.number().min(0).max(5, 'Rating must be between 0 and 5').optional(),
 
   // Tax / HSN & GST
-  hsn_code: z.string().trim().min(1, 'HSN code cannot be empty').max(50, 'HSN code too long').optional(),
-  gst_rate: z.coerce.number().min(0, 'GST rate cannot be negative').max(100, 'GST rate cannot exceed 100%').optional(),
+  hsn_code: z.string().trim().min(1, 'HSN code cannot be empty').max(50, 'HSN code too long').nullable().optional(),
+  gst_rate: z.coerce.number().min(0, 'GST rate cannot be negative').max(100, 'GST rate cannot exceed 100%').nullable().optional(),
 
   // Quantity fields
   quantity: z.number().int().min(0).optional(),
@@ -209,8 +209,8 @@ export const upsertProductSchema = z.object({
   averagerating: z.number().min(0).max(5, 'Rating must be between 0 and 5').optional(),
 
   // Tax / HSN & GST
-  hsn_code: z.string().trim().min(1, 'HSN code cannot be empty').max(50, 'HSN code too long').optional(),
-  gst_rate: z.coerce.number().min(0, 'GST rate cannot be negative').max(100, 'GST rate cannot exceed 100%').optional(),
+  hsn_code: z.string().trim().min(1, 'HSN code cannot be empty').max(50, 'HSN code too long').nullable().optional(),
+  gst_rate: z.coerce.number().min(0, 'GST rate cannot be negative').max(100, 'GST rate cannot exceed 100%').nullable().optional(),
 
   // Quantity fields
   quantity: z.number().int().min(0).optional(),
