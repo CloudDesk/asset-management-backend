@@ -52,6 +52,8 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 | **FIX-2026-10-06-42** | 2026-10-06 | **EKART / Shipmozo Label Product Names** | The EKART label "Product" cell (from `products_desc`) printed full product names. It now uses the orderline `productshortname`, falling back to `productname`. The Inventory order details API response schema dropped `productshortname`, so it is now declared; Shipmozo's form already preferred the short name and now receives it too (intended). | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/components/orders/EkartShipmentForm.tsx` |
 | **FIX-2026-10-06-43** | 2026-10-06 | **Ecom Promotions / Free Shipping Eligibility** | Cart and Checkout could show free shipping (or another offer) as applied for a cart that was not eligible, because totals merged saved selections and legacy backend free-shipping records into the live V2 quote. Totals now use only the live V2 quote; offers V2 rejects for minimum value/quantity are not listed as eligible; rule details are kept for ineligible offers. | 🟡 Implemented / Dev Verification Pending | `Nivaana-Ecom-Web/src/pages/Cart.tsx` |
 | **FIX-2026-10-06-44** | 2026-10-06 | **Ecom PhonePe Iframe Checkout (Meta In-App Browser)** | Customers from Instagram/Facebook could stay on PhonePe's success screen after paying. Web now opens PhonePe's iframe PayPage (flag `VITE_PHONEPE_IFRAME_CHECKOUT`, full-page redirect fallback); `CONCLUDED` is verified on the confirmation page. Closing the window keeps the customer on Checkout: pending payments are re-checked for 2 minutes and checked again before a new payment ("Wait / Pay again"). Order creation stays server-side. | 🟡 Implemented / SIT Verification Pending | [Plan](../Before%20Sep28%20Fix/Nivaana_Meta_InApp_PhonePe_UX_Fix_Report.md) |
+| **FIX-2026-10-06-45** | 2026-10-06 | **Ecom Cart — Block Checkout for Unavailable Items** | Cart showed "out of stock" on an item but still let the customer go to Checkout, where payment was blocked. Cart now uses the same stock rule as Checkout (out of stock, or quantity above available stock): it shows "N item(s) unavailable. Remove or save for later to continue" and disables Checkout / Login to Checkout. Totals and offers unchanged. | 🟡 Implemented / Dev Verified (guest) | `Nivaana-Ecom-Web/src/pages/Cart.tsx` |
+| **FEATURE-2026-10-06-46** | 2026-10-06 | **Inventory Customer 360 Detail Page** | Customers opened a profile-only modal. Clicking a customer now opens `/customers/:id`: header (contact, customer since, business/GST, groups, first/last order), key figures (orders, revenue, average order value, returns, promotion savings, wallet balance) and tabs: Overview (top categories, most bought products, promotions used), Orders (paged, links to order), Wallet & Coupons (each coupon once with its wallet credit; refund credits), Addresses. New read-only `GET /v1/users/:id/overview` (Inventory only). | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/pages/customers/CustomerDetailPage.tsx` |
 
 ---
 
@@ -399,3 +401,32 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Verification:** Iframe success flow tested locally by the developer. Ecom TypeScript, ESLint (no errors) and production build passed. Pending: cancel flow (close without paying; close then pay in UPI app), and SIT tests through real Instagram/Facebook links on Android and iOS per the plan.
 * **Repository Impacted:**
   - `Nivaana-Ecom-Web` (commits `49bb330`, `4d38ee5`)
+
+### 2026-10-06: Ecom Cart — Block Checkout for Unavailable Items
+* **Issue:** When another customer bought the last unit, the Cart showed "This item is out of stock…" on the item, but the Checkout button only waited for offer validation/pricing and still opened Checkout. Checkout then blocked payment (`checkoutStockIssues`). The Order Summary and offers also still counted the unavailable item.
+* **Fix (`Cart.tsx`):**
+  - `cartStockIssueCount`: items that are out of stock (`isOutOfStock`) or above available stock (`getAvailableStock`), the same rule and product data (`getProducts(1, 100)`) Checkout uses, so Cart blocks only where Checkout already blocks.
+  - Above the button: "1 item is unavailable. Remove it or save it for later to continue." (plural for more).
+  - Checkout button and guest "Login to Checkout" are disabled while such items remain.
+* **Not changed (intentional):** Totals, offers and promotion inputs (`promotionRows`, cart signature). Excluding unavailable items there would change the cart signature, clear saved offers (`Cart.tsx` signature effect) and diverge from Checkout's quote; Checkout and the backend already block payment.
+* **Verification:** Guest cart on local dev: out-of-stock product #76 + in-stock #77 → message shown and Login to Checkout disabled; only #77 → no message, enabled. Ecom TypeScript, ESLint (no errors) and production build passed. Pending: logged-in check.
+* **Repository Impacted:**
+  - `Nivaana-Ecom-Web`
+
+### 2026-10-06: Inventory Customer 360 Detail Page
+* **Before:** Customers list → eye icon → modal with profile fields only (name, email, mobile, gender, GST, business user, dates).
+* **Inventory app:**
+  - New route `/customers/:id` (`users: read`, same as the list). Row click and the eye icon open it; the modal was removed.
+  - Header: name, ID, mobile, email, customer since, business/GST badge, customer-group badges, first and last order dates.
+  - Key figures: Orders (with cancelled), Revenue, Average order value, Returns (return/replacement requests), Promotion savings, Wallet balance.
+  - Tabs (each loads on first open): **Overview** (top 5 categories by revenue, top 5 products by quantity, promotions used with codes, times and savings); **Orders** (existing `GET /v1/orders/user/:userid/details`, 10 per page: order, date, status, items, paid incl. wallet, discount, promotions/coupons from line breakdown, payment mode; row opens `/orders/:id`); **Wallet & Coupons** (existing `GET /v1/coupon-wallet/admin/coupons?customer_id=`; a coupon added to the wallet appears once with its credit, so there is a single source; refund credits listed separately); **Addresses** (existing `GET /v1/addresses?userid=`).
+* **Backend:** New `GET /v1/users/:id/overview` (`customer-overview.service.ts`; 401 without token, 403 unless inventory user). Read-only; no schema change.
+  - Order totals reuse `OrdersService.getOrderSummaryByUserId` (FIX-37): revenue = paid (online + wallet) on non-cancelled orders minus completed return refunds; replacement orders excluded. Average order value = revenue / non-cancelled orders.
+  - Top categories/products: orderlines of non-cancelled orders, excluding cancelled/returned lines and free items.
+  - Promotions used: `promotion_redemptions` joined to the customer's non-cancelled orders (`order_id` holds the order number or, for older rows, the numeric id).
+  - Wallet balance: same spendable rule as the customer wallet (active/partially used, not expired, minus live reservations). Matches `getCustomerWallet` for customers 41, 45, 54, 73.
+* **Verification:** Overview for customers 41, 73 and a non-existent ID (empty figures) in 0.1–1.1s; route 401 with no/invalid token; backend tests 333/333; Inventory root TypeScript, ESLint and production build passed. Pending: signed-in visual check in the Inventory app.
+* **Found while building (separate task):** the address API has no ownership check (any signed-in customer can read another customer's addresses).
+* **Repositories Impacted:**
+  - `asset-management-backend`
+  - `asset_management_frontend_aromazen`
