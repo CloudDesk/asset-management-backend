@@ -1,0 +1,40 @@
+steps:
+  # Build and publish the backend image for the isolated UAT service.
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "-t"
+      - "gcr.io/nivaana/nivaana-uat:latest"
+      - "."
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "gcr.io/nivaana/nivaana-uat:latest"
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "gcloud"
+    args:
+      - "run"
+      - "deploy"
+      - "nivaana-uat"
+      - "--project"
+      - "nivaana"
+      - "--image"
+      - "gcr.io/nivaana/nivaana-uat:latest"
+      - "--region"
+      - "asia-south1"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+      - "--service-account"
+      - "nivaana-uat@nivaana.iam.gserviceaccount.com"
+      - "--port"
+      - "5600"
+      - "--memory"
+      - "512Mi"
+      - "--env-vars-file"
+      - ".env.uat"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
