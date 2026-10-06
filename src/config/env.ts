@@ -293,6 +293,7 @@ const envSchema = z.object({
   GMAIL_PORT: z.string().optional().default("465"),
   GMAIL_AUTH_USER: z.string().optional(),
   GMAIL_AUTH_PASSWORD: z.string().optional(),
+  RESET_PASSWORD_URL: z.string().trim().url(),
 
   // PostgreSQL Configuration (alternative to DATABASE_URL)
   POSTGRES_HOST: z.string().optional(),

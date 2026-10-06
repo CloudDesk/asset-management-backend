@@ -1,6 +1,7 @@
 // @ts-ignore - nodemailer types may not be available
 import nodemailer from 'nodemailer';
 import { logger } from '../config/logger.js';
+import { env } from '../config/env.js';
 
 // Email configuration (to be loaded from environment variables)
 const config = {
@@ -97,15 +98,16 @@ export class EmailService {
     try {
       logger.info({ email }, 'Sending password reset email');
 
-      const resetUrl = `${process.env.RESET_PASSWORD_URL || 'https://nivaana-inventory-prod.web.app/reset-password'}?token=${resetToken}`;
+      const resetUrl = new URL(env.RESET_PASSWORD_URL);
+      resetUrl.searchParams.set('token', resetToken);
       const displayName = userName || email.split('@')[0] || 'User';
 
       const mailOptions = {
         from: `"Nivaana" <${config.GMAIL_AUTH_USER}>`,
         to: email,
         subject: 'Password Reset Request - Nivaana',
-        html: this.generatePasswordResetEmailTemplate(displayName, resetUrl),
-        text: this.generatePasswordResetEmailText(displayName, resetUrl),
+        html: this.generatePasswordResetEmailTemplate(displayName, resetUrl.toString()),
+        text: this.generatePasswordResetEmailText(displayName, resetUrl.toString()),
       };
 
       const result = await this.transporter.sendMail(mailOptions);
