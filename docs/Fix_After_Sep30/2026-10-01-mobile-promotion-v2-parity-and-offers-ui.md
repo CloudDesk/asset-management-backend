@@ -19,7 +19,7 @@ The storefront routes use business-action names so their purpose is clear withou
 | Public promotion catalogue | `GET /v1/promotions/public` | Ecom and Mobile |
 | Customer/group-assigned offers and vouchers | `GET /v1/promotions/customer-offers` | Signed-in Ecom and Mobile |
 | Available, eligible, and ineligible cart-offer catalogue | `POST /v1/promotions/available-offers` | Ecom and Mobile |
-| Check candidate promotions individually | `POST /v2/promotions/check-eligibility` | Ecom |
+| Check candidate promotions individually | `POST /v2/promotions/check-eligibility` | Ecom and Mobile (Mobile since FIX-2026-10-06-49) |
 | Calculate the authoritative cart promotion result | `POST /v2/promotions/calculate` | Ecom and Mobile |
 | Add a manual promotion to an existing evaluation | `POST /v2/promotions/evaluations/:evaluationId/promotions` | Supported V2 operation |
 | Remove a manual promotion and recalculate | `DELETE /v2/promotions/evaluations/:evaluationId/promotions/:promotionId` | Ecom |
