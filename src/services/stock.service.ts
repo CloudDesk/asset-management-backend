@@ -1401,10 +1401,87 @@ export class StockService {
     }
   }
 
+  /**
+   * Check whether a stock can be marked as damaged without leaving pending orders short.
+   * Uses the stored platformstock quantities kept by the order/cancel/return flows:
+   * blocked when orders or checkout locks are pending (orderedqty + lockqty > 0)
+   * and nothing is left available (availableqty < 1).
+   */
+  async getDamageCheck(stockOrId: string | Record<string, any>) {
+    const stock = typeof stockOrId === 'string' ? await this.findById(stockOrId) : stockOrId;
+    const currentStatus = String(stock.stockstatus || '').toLowerCase();
+
+    let platformStock: any = null;
+    if (stock.puc && stock.platform) {
+      const products = await dynamicFindMany('product', { where: { puc: stock.puc }, take: 1 });
+      if (products && products.length > 0) {
+        platformStock = await this.platformStockService.getByProductAndPlatform(
+          Number(products[0].id),
+          stock.platform
+        );
+      }
+    }
+
+    const availableqty = Number(platformStock?.availableqty || 0);
+    const orderedqty = Number(platformStock?.orderedqty || 0);
+    const lockqty = Number(platformStock?.lockqty || 0);
+    const damagedqty = Number(platformStock?.damagedqty || 0);
+    const countsAsAvailable = currentStatus === 'available' && stock.ecompublish === true;
+
+    let allowed = true;
+    let message = '';
+    if (currentStatus === 'damaged') {
+      message = 'This stock is already marked as damaged.';
+    } else if (currentStatus === 'sold') {
+      allowed = false;
+      message = 'Sold stock cannot be marked as damaged.';
+    } else if (orderedqty + lockqty > 0 && availableqty < 1) {
+      allowed = false;
+      const pending = [
+        orderedqty > 0 ? `${orderedqty} unit(s) ordered and waiting to be delivered` : '',
+        lockqty > 0 ? `${lockqty} unit(s) held for customers completing payment` : '',
+      ].filter(Boolean).join(' and ');
+      message = `${pending}, and 0 available on ${stock.platform}. Add stock first, then mark this stock as damaged.`;
+    }
+
+    const afterAvailableqty = countsAsAvailable ? Math.max(0, availableqty - 1) : availableqty;
+
+    return {
+      allowed,
+      message,
+      stockid: String(stock.id),
+      puc: stock.puc,
+      platform: stock.platform,
+      stockstatus: stock.stockstatus,
+      ecompublish: stock.ecompublish === true,
+      availableqty,
+      orderedqty,
+      lockqty,
+      damagedqty,
+      afterAvailableqty,
+      afterDamagedqty: currentStatus === 'damaged' ? damagedqty : damagedqty + 1,
+      willGoOutOfStock: availableqty > 0 && afterAvailableqty === 0,
+    };
+  }
+
   async update(id: string, data: UpdateStockInput & Record<string, any>) {
     try {
       // Check if stock exists
       const existingStock = await this.findById(id);
+
+      // Block damage when pending orders/checkouts would be left without available stock.
+      if (
+        String(data.stockstatus || '').toLowerCase() === 'damaged' &&
+        String(existingStock.stockstatus || '').toLowerCase() !== 'damaged'
+      ) {
+        const damageCheck = await this.getDamageCheck(existingStock);
+        if (!damageCheck.allowed) {
+          const error: any = new Error(damageCheck.message);
+          error.code = 'DAMAGE_BLOCKED';
+          error.damageCheck = damageCheck;
+          throw error;
+        }
+      }
 
       logger.debug(
         { originalData: data, stockId: id },

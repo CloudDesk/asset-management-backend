@@ -363,8 +363,8 @@ export class PlatformStockService {
    * Handles multiple business scenarios:
    * 1. Platform transfers (decrease old platform, increase new platform)
    * 2. E-com publish changes (increase/decrease available quantity)
-   * 3. Stock status changes (available/sold)
-   * 4. Stock deletions (decrease quantities)
+   * 3. Stock status changes (available/sold/damaged) - recalculated from stock rows
+   * 4. Stock deletions - recalculated from stock rows
    * 5. New stock additions (increase quantities)
    */
   async updatePlatformStockQuantities(
@@ -413,21 +413,6 @@ export class PlatformStockService {
           }
           break;
 
-        case 'delete':
-          // Stock deleted - decrease quantities
-          const quantityToRemove = stockInfo.quantity || 1; // Use provided quantity or default to 1
-          if (stockInfo.stockstatus === 'available') {
-            totalQtyChange = -quantityToRemove; // Decrease total quantity by provided quantity
-            // Only decrease ecomqty if e-commerce was enabled
-            if (stockInfo.ecompublish === true) {
-              ecomQtyChange = -quantityToRemove; // Decrease e-commerce quantity if e-commerce was enabled
-            }
-          } else if (stockInfo.stockstatus === 'sold') {
-            soldQtyChange = -quantityToRemove;
-            totalQtyChange = -quantityToRemove;
-          }
-          break;
-
         case 'transfer':
           // Platform transfer - handled separately in transferStockBetweenPlatforms
           return await this.transferStockBetweenPlatforms(
@@ -438,39 +423,13 @@ export class PlatformStockService {
           );
 
         case 'update':
+        case 'delete':
         default:
-          // Handle status changes
-          // IMPORTANT: Track ecomqty changes (only for available + ecompublish=true stocks)
-          if (stockInfo.oldStockstatus !== stockInfo.stockstatus) {
-            if (stockInfo.oldStockstatus === 'available' && stockInfo.stockstatus === 'sold') {
-              // Stock moved from available to sold
-              // Only decrease ecomqty if it was e-commerce published
-              if (stockInfo.oldEcompublish === true || stockInfo.ecompublish === true) {
-                ecomQtyChange = -1;
-              }
-              soldQtyChange = 1;
-            } else if (stockInfo.oldStockstatus === 'sold' && stockInfo.stockstatus === 'available') {
-              // Stock moved from sold to available
-              // Only increase ecomqty if e-commerce published
-              if (stockInfo.ecompublish === true) {
-                ecomQtyChange = 1;
-              }
-              soldQtyChange = -1;
-            }
-          }
-
-          // Handle e-com publish changes
-          // Only applies when stock is in 'available' status
-          if (stockInfo.oldEcompublish !== stockInfo.ecompublish && stockInfo.stockstatus === 'available') {
-            if (stockInfo.ecompublish && !stockInfo.oldEcompublish) {
-              // E-com enabled - increase ecomqty
-              ecomQtyChange += 1;
-            } else if (!stockInfo.ecompublish && stockInfo.oldEcompublish) {
-              // E-com disabled - decrease ecomqty
-              ecomQtyChange -= 1;
-            }
-          }
-          break;
+          // Status / e-com changes and deletions are recounted from the stock table.
+          // Stock rows store capitalised statuses ('Available', 'Sold', 'Damaged'), and
+          // damaged stock must also move ecomqty and damagedqty, so per-change deltas here
+          // missed those cases. Recalculation keeps orderedqty and lockqty unchanged.
+          return await this.recalculatePlatformStockQuantities(productId, platform);
       }
 
       // Skip if no changes
