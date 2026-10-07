@@ -143,3 +143,31 @@ The warning should also identify the affected product/PUC, source location, acti
 - Same transfer with quantity 3 → block; shortage 1.
 - Two admins act at the same time → at most one action succeeds if both together would reduce stock below protected demand.
 - Cancelled or already allocated orderlines do not inflate unallocated demand.
+
+---
+
+## PLAN-07: Inventory — Stock Summary Modal: Filter Chip, Totals and Platform Breakdown
+
+**Status:** Parked 2026-10-07, waiting for business decision (item #3 of the UI enhancement list).
+
+**Findings** (`StockSummaryModal.tsx`, `stock.controller.ts` → `stock.service.ts#getSummaryByPuc`):
+
+1. **"Filtered by 1 condition" chip:** counts the stock-list query filters. On the product page the only filter is the product's own `puc`, so it always shows "1 condition". The summary ignores every other filter (Status, Platform…), so with extra filters the chip claims "N conditions" while the numbers are still whole-product. Proposed: remove the chip.
+2. **Platform Quantity counts sold rows:** card Total = non-sold rows; platform row Quantity = `COUNT(*)` (incl. sold). Seen on dev: Total 28, Nivapp 30 (2 sold). Proposed: exclude sold, same as Total.
+3. **Mixed sources:** platform Ordered / Sold / E-com / Damaged come from `platformstock` counters, Quantity from `stock` rows; cards come from `stock` rows + `product.orderedquantity`. Counter drift makes rows disagree with cards. Proposed: derive platform rows from `stock` rows (keep Ordered from counter).
+4. **Total composition:** Total includes damaged / quarantine / on_hold; no cards for quarantine / on_hold; "Available" counts only e-com published rows, so available-but-unpublished stock is in Total but not Available. Decide: (a) Total = sellable only, show Damaged / Quarantine / On hold separately, or (b) keep Total = all non-sold and show a breakdown line.
+5. **E-com published includes Amazon / Flipkart stock (open question):** UAT product 96 (NIV-0096): all 50 stock rows `available` + `ecompublish = true` (Amazon 10, Flipkart 15, Nivapp 25), so E-com Published 50 and Available 48 (50 − 2 ordered on Nivapp). Numbers match the data; confirm whether marketplace stock should be e-com published / count toward website availability.
+
+---
+
+## PLAN-08: Backend — Scheduled Jobs on Cloud Run: Coupon Expiry Job + Reliable Scheduling
+
+**Status:** Parked 2026-10-07 (user: "safest solution needed, do later"). Not needed for correctness today.
+
+**Coupon / wallet expiry:** status is derived on every read from the dates (admin list, customer wallet, customer overview) and checkout only uses credits with `expires_at ≥ now`, so expired coupons are always shown and enforced correctly. The stored columns (`promotion_assignments.status`, `wallet_credits.status`) stay `active` / `partially_used` after expiry — only reports / exports / raw SQL would see stale values.
+
+**Planned job:** protected endpoint `POST /v1/internal/jobs/coupon-expiry` that sets `status = 'expired'` where `end_date` / `expires_at` < now and status is still active / partially_used (idempotent, safe to run twice). Triggered by **GCP Cloud Scheduler** (`5 0 * * *`, Asia/Kolkata) with OIDC service-account auth or a secret header; one job per environment. Do **not** write during GET requests.
+
+**Why not node-cron in the app:** the backend is deployed on Cloud Run with default settings (`gcloud run deploy nivaana … --memory 512Mi`, no `--min-instances`, CPU throttled outside requests). An in-process cron can miss runs when no instance is up, stall when CPU is throttled, and run once per instance when scaled out. Cloud Scheduler gives one call per schedule, retries and run logs.
+
+**Related risk to review at the same time:** existing in-process schedulers use node-cron / timers inside Cloud Run (`utils/shipmozoTrackingScheduler.ts`, `services/amazon-order-scheduler.service.ts`, `amazon-listing-scheduler.service.ts`, `amazon-retry-scheduler.service.ts`, `amazon-return-scheduler.service.ts`, `utils/sessionCleanup.ts`). Confirm whether they actually run in SIT / UAT / PROD (logs), and either move them to Cloud Scheduler endpoints or deploy with `--min-instances=1 --no-cpu-throttling`.

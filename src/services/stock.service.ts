@@ -65,7 +65,7 @@ export class StockService {
 
         if (uniquePucs.length > 0) {
           try {
-            // Fetch products by PUCs in batch with name, category, subcategory, and subsubcategory
+            // Fetch products by PUCs in batch with name, shortname, category, subcategory, and subsubcategory
             const products = await prisma.product.findMany({
               where: {
                 puc: {
@@ -75,6 +75,7 @@ export class StockService {
               select: {
                 puc: true,
                 name: true,
+                shortname: true,
                 category: true,
                 subcategory: true,
                 subsubcategory: true
@@ -84,6 +85,7 @@ export class StockService {
             // Create a map of PUC -> product information
             const productInfoMap = new Map<string, {
               name: string | null;
+              shortname: string | null;
               category: string | null;
               subcategory: string | null;
               subsubcategory: string | null;
@@ -92,6 +94,7 @@ export class StockService {
               if (product.puc) {
                 productInfoMap.set(product.puc, {
                   name: product.name || null,
+                  shortname: product.shortname || null,
                   category: product.category || null,
                   subcategory: product.subcategory || null,
                   subsubcategory: product.subsubcategory || null
@@ -105,6 +108,7 @@ export class StockService {
                 const productInfo = productInfoMap.get(stock.puc);
                 if (productInfo) {
                   stock.productname = productInfo.name;
+                  stock.productshortname = productInfo.shortname;
                   stock.productcategory = productInfo.category;
                   stock.productsubcategory = productInfo.subcategory;
                   stock.productsubsubcategory = productInfo.subsubcategory;

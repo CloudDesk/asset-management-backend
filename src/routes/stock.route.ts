@@ -66,6 +66,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
                   id: { type: 'number', description: 'Stock ID' },
                   puc: { type: 'string', description: 'Product unique code' },
                   productname: { type: 'string', nullable: true, description: 'Product name' },
+                  productshortname: { type: 'string', nullable: true, description: 'Product short name' },
                   productcategory: { type: 'string', nullable: true, description: 'Product category' },
                   productsubcategory: { type: 'string', nullable: true, description: 'Product subcategory' },
                   productsubsubcategory: { type: 'string', nullable: true, description: 'Product subsubcategory' },
