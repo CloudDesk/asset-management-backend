@@ -69,6 +69,8 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 | **FIX-2026-10-07-59** | 2026-10-07 | **Inventory Product — Clear Save Error Messages** | Product create/update already kept the form open on failure, but the messages were unclear: schema errors showed only "Validation failed"; combo and HSN/GST rules came back as 500 ("An unexpected error occurred" in production) with technical wording; any database error on update showed "Failed to update product - no valid fields provided". The toast now lists each problem in plain words (e.g. "Please check: Material must be 255 characters or fewer."), business rules return 400 with a short next step, and database errors on save read "This product already exists." / "Some of the text entered is too long." | 🟡 Implemented / Dev Verification Pending | `src/services/product.service.ts` |
 | **FIX-2026-10-07-60** | 2026-10-07 | **Inventory Bulk Add Stock — Clear Errors, No Double Save** | The modal already stayed open on failure, but: a 207 (records failed) always showed "Bulk import failed" with the reason dropped; above 500 units an earlier batch could save while a later one failed, so retrying added the saved units again; request checks read "body/0/instances must be <= 10000"; a failed product/platform-stock totals update still showed success. Now: plain reason in the toast, "500 of 800 stock items were added…" with the list refreshed and quantity lowered to the remainder, "Quantity can be at most 10,000." / "Batch number must be 255 characters or fewer.", quantity max and batch number length limited in the form, and a warning when totals were not updated. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/components/stocks/StocksList.tsx` |
 | **FIX-2026-10-07-61** | 2026-10-07 | **Inventory Order Detail — Full-Page Loading Skeleton** | Opening an order showed a spinner on an empty page. It now shows a skeleton of the whole page: breadcrumb, action buttons and status badge; Order Summary (order number/date, total, 5 info tiles, price breakdown); Order Items, Invoice, Delivery Address and Payment cards on the left; Order Timeline on the right. Uses the shared `SkeletonBone` and the page's card styles. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/pages/orders/OrderDetailSkeleton.tsx` |
+| **FIX-2026-10-07-62** | 2026-10-07 | **Inventory Purchase Order — Generate PO URL from Config** | `PurchaseOrderDetailPage` called a hardcoded Cloud Run URL (`https://nivfiles-…run.app/generate-document/po`) for Generate PO, so every environment hit the same file service. It now uses `${API_CONFIG.BASE_URL_UPLOADS}${API_CONFIG.ENDPOINTS.PURCHASE_ORDERS.generatePO}` (new `generatePO: "/generate-document/po"`) and `API_METHODS.POST`, the same pattern as Generate PR and Quotes. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/pages/purchaseOrders/PurchaseOrderDetailPage.tsx` |
+| **FIX-2026-10-07-63** | 2026-10-07 | **Inventory Register — User Create URL from Config** | `RegisterPage` built its request from `import.meta.env.VITE_API_BASE_URL` with a `localhost:5600` fallback and a hardcoded `/v1/inventoryusers` path, bypassing the shared config. It now uses `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INVENTORY_USERS.create}` and `API_METHODS.POST`. Same endpoint, no behaviour change. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/pages/auth/RegisterPage.tsx` |
 
 ---
 
@@ -637,5 +639,23 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
   - `OrderDetailPage.tsx`: loading state renders `OrderDetailSkeleton`.
 * **Compatibility:** UI only; no API change. Access-denied and not-found states unchanged.
 * **Verification:** TypeScript (`tsconfig.app.json`) and ESLint clean on changed files. Pending: dev check opening an order from Orders with network throttling (desktop and narrow widths).
+* **Repository Impacted:**
+  - `asset_management_frontend_aromazen`
+
+### 2026-10-07: Inventory Purchase Order — Generate PO URL from Config
+* **Issue:** `PurchaseOrderDetailPage.handleGeneratePO` posted to a hardcoded `https://nivfiles-374914445110.us-central1.run.app/generate-document/po`, ignoring `VITE_API_BASE_URL_UPLOADS`, so dev/SIT/UAT/prod all used the same file service.
+* **Fix (Inventory):**
+  - `config/api.config.ts`: `PURCHASE_ORDERS.generatePO: "/generate-document/po"`.
+  - `PurchaseOrderDetailPage.tsx`: URL is `${API_CONFIG.BASE_URL_UPLOADS}${API_CONFIG.ENDPOINTS.PURCHASE_ORDERS.generatePO}`, method `API_METHODS.POST` (same as `EditPurchaseRequestPage` Generate PR and `CreateQuoteModal`).
+* **Compatibility:** Payload and response handling unchanged. `VITE_API_BASE_URL_UPLOADS` is set in `.env`, `.env.development`, `.env.sit`, `.env.uat` and `.env.prod`; the request now goes to that environment's file service.
+* **Verification:** No `nivfiles-` URLs remain in Inventory `src`. `tsc`: no errors in the changed files. Pending: dev check of Generate PO (request URL in Network tab, PDF opens).
+* **Repository Impacted:**
+  - `asset_management_frontend_aromazen`
+
+### 2026-10-07: Inventory Register — User Create URL from Config
+* **Issue:** A hardcoded-URL check of Inventory `src` (after FIX-2026-10-07-62) found `RegisterPage` was the only API call building its URL outside `API_CONFIG`: `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5600"}/v1/inventoryusers` with method `"POST"`.
+* **Fix (Inventory):** `RegisterPage.tsx` uses `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INVENTORY_USERS.create}` and `API_METHODS.POST`, importing from `config/api.config`.
+* **Compatibility:** Resolves to the same URL (`API_CONFIG.BASE_URL` reads the same env var with the same fallback). Payload and response handling unchanged.
+* **Verification:** No API calls with hardcoded hosts or literal paths remain in Inventory `src`; remaining `http(s)://` strings are config fallbacks, CDN scripts/styles, and form placeholders. `tsc`: no errors in the changed file. Pending: dev check of registration (request URL in Network tab).
 * **Repository Impacted:**
   - `asset_management_frontend_aromazen`
