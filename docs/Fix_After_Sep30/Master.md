@@ -79,6 +79,9 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 | **FIX-2026-10-07-69** | 2026-10-07 | **Inventory Permission Sets — Default Type Hidden from List** | Permission Sets list no longer shows the "Default" column or the "Type" (Default/Custom) filter. The fallback set (no role) now shows "Default (fallback)" in the Role column instead of "N/A". Form, DB column `isdefault` and backend fallback rules unchanged. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/pages/permissionSets/PermissionSetsPage.tsx` |
 | **FIX-2026-10-07-70** | 2026-10-07 | **Inventory Supplier Detail — Full-Page Loading Skeleton** | Opening a supplier showed a spinner on an empty page. It now shows a skeleton of the whole page: breadcrumb, the 3 tabs (Detail, Purchase Requests, Purchase Orders), Edit button, two columns of supplier/address fields and the GST row; opening on the Purchase Requests / Orders tab shows a list-table card. The purchase detail skeleton was made generic (`DetailPageSkeleton`) and is now shared by Supplier, Purchase Request and Purchase Order pages (their output unchanged). | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/components/common/DetailPageSkeleton.tsx` |
 | **FIX-2026-10-07-71** | 2026-10-07 | **Inventory Permission Set Detail — Full-Page Loading Skeleton** | Opening a permission set (`/permission-sets/:id/edit`) showed a spinner on an empty page. It now shows a skeleton of the page: breadcrumb; Basic Information (Name and Role inputs, Active / Default checkboxes, Description); Object Permissions table (Objects column + one checkbox column per permission, 10 rows); Cancel / Save buttons. Uses the shared `SkeletonBone` and the form's card styles. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/components/permissionSets/PermissionSetSkeleton.tsx` |
+| **FIX-2026-10-07-72** | 2026-10-07 | **Inventory Customer Detail — Loading Skeleton** | Opening a customer showed the breadcrumb and a spinner on an empty page; the Addresses tab also used a spinner. The page now shows a skeleton below the breadcrumb: profile header (avatar, name, contact line, last/first order) with the 6-figure stat strip, the 4 tabs, and the Overview cards (Top categories bars, Most bought products, Promotions used, Orders at a glance). The Addresses tab shows 3 address-card skeletons while loading. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/pages/customers/CustomerDetailSkeleton.tsx` |
+| **FIX-2026-10-07-73** | 2026-10-07 | **Inventory Picklists — View-Matching Loading Skeleton** | The Picklists page showed a large spinner with "Loading picklists..." in both views. It now shows a skeleton for the active view: **Grouped** — field-name cards (field name, object badge, edit button) with parent-group headers and Label / Value / Status tables; **Individual** — a grid of 9 picklist cards (title, edit, 4 rows) in the same 1 / 2 / 3-column layout. Switching views or changing filters shows the matching skeleton. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/components/picklists/PicklistsSkeleton.tsx` |
+| **FIX-2026-10-07-74** | 2026-10-07 | **Inventory Category Images — Standard Table Loading** | Category Images replaced the whole page (filters included) with its own grey skeleton while loading, unlike other list modules. It now follows the Products / Orders / Suppliers pattern: the search box and status filter stay visible (counts appear once loaded), and the table card uses the shared `Table` `loading` skeleton (header, rows, pagination). The empty state shows only after loading. Custom skeleton removed. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/pages/categoryImages/CategoryImagesPage.tsx` |
 
 ---
 
@@ -760,5 +763,40 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
   - `PermissionSetEdit.tsx`: loading renders `PermissionSetSkeleton`.
 * **Compatibility:** UI only; no API change. Access-denied / not-found states unchanged.
 * **Verification:** TypeScript (`tsconfig.app.json`) and ESLint clean on changed files. Pending: dev check opening a permission set with network throttling (desktop and narrow widths).
+* **Repository Impacted:**
+  - `asset_management_frontend_aromazen`
+
+### 2026-10-07: Inventory Customer Detail — Loading Skeleton
+* **Issue:** `CustomerDetailPage` (`/customers/:id`) rendered the breadcrumb and a spinner (`py-20`) until the customer and overview loaded, then jumped to the full layout. The Addresses tab showed another spinner while addresses loaded.
+* **Fix (Inventory):**
+  - New `pages/customers/CustomerDetailSkeleton.tsx` (built on `SkeletonBone`):
+    - `CustomerDetailSkeleton`: header card (avatar, name + badge, contact line, Last/First order) with the 6-column stat strip (2 / 3 / 6 columns by width, as the real strip); tab bar with 4 tabs; Overview grid with Top categories (bar rows), Most bought products and Promotions used (list rows), Orders at a glance (4 figures + link).
+    - `CustomerAddressesSkeleton`: 3 address cards in the same `md:grid-cols-2 xl:grid-cols-3` grid.
+  - `CustomerDetailPage.tsx`: loading keeps the real breadcrumb and renders `CustomerDetailSkeleton`; Addresses tab renders `CustomerAddressesSkeleton` while `addresses === null`.
+* **Compatibility:** UI only; no API change. Error / invalid-ID states unchanged; Orders and Wallet tabs keep the Table skeleton.
+* **Verification:** TypeScript (`tsconfig.app.json`) and ESLint clean on changed files. Pending: dev check opening a customer and the Addresses tab with network throttling (desktop and narrow widths).
+* **Repository Impacted:**
+  - `asset_management_frontend_aromazen`
+
+### 2026-10-07: Inventory Picklists — View-Matching Loading Skeleton
+* **Issue:** `PicklistsPage` (`/picklists`) rendered a `py-20` card with a 48px spinner and "Loading picklists..." while loading, in both the Grouped and Individual views, so the content area changed shape when data arrived.
+* **Fix (Inventory):**
+  - New `components/picklists/PicklistsSkeleton.tsx` (built on `SkeletonBone`), prop `viewMode`:
+    - `grouped`: 2 field cards with the real card style (`padding: 24px`, border), header (Field Name label + name, object badge, edit button), parent-group headers (folder icon, label, item count) and Label / Value / Status tables (header row, striped rows, status pill).
+    - `individual`: 9 `PicklistCard`-style cards (title + edit button, 4 label/value rows) in `grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3`.
+  - `PicklistsPage.tsx`: loading renders `<PicklistsSkeleton viewMode={viewMode} />`; header and filters stay visible.
+* **Compatibility:** UI only; no API change. Empty state and pagination unchanged.
+* **Verification:** TypeScript (`tsconfig.app.json`) and ESLint: no new findings on changed files. Pending: dev check of both views, view switching and filter changes, with network throttling.
+* **Repository Impacted:**
+  - `asset_management_frontend_aromazen`
+
+### 2026-10-07: Inventory Category Images — Standard Table Loading
+* **Issue:** `CategoryImagesPage` (`/category-images`) rendered a custom `CategoryImagesSkeleton` (grey `bg-slate-200` bars) in place of both the filters and the table while loading. Other list modules (Products, Orders, Suppliers, Purchase Requests/Orders, Customers, Roles, Permission Sets) keep the real filters visible and pass `loading` to the shared `Table`, which draws its own skeleton rows and pagination.
+* **Fix (Inventory):**
+  - Removed `SkeletonLine` and `CategoryImagesSkeleton`.
+  - Filters section always rendered; the status select shows "All items / Configured / Missing" without counts while loading, then with counts.
+  - Table card: `<Table loading={loading} …>` while loading or when there are rows; the "No category records / No matching category images" empty state only after loading.
+* **Compatibility:** UI only; no API change.
+* **Verification:** TypeScript / ESLint: no new findings (3 pre-existing in this file: unused `getButtonStyles` / `getButtonHoverStyles` imports and unused `refreshing` state). Pending: dev check of first load, search/filter, and empty search result.
 * **Repository Impacted:**
   - `asset_management_frontend_aromazen`
