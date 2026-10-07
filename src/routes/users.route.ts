@@ -92,6 +92,19 @@ export async function usersRoutes(fastify: FastifyInstance) {
   }, usersController.getUsers.bind(usersController));
 
   // GET /v1/users/:id - Get user by ID
+  // GET /v1/users/:id/overview - Customer 360 figures for the Inventory app
+  fastify.get('/:id/overview', {
+    schema: {
+      description: 'Inventory only: customer order totals, top categories/products, promotions used, wallet balance/refund credits and customer groups',
+      tags: ['Users'],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string', description: 'User ID' } },
+        required: ['id'],
+      },
+    },
+  }, usersController.getCustomerOverview);
+
   fastify.get('/:id', {
     schema: {
       description: 'Get user by ID',
