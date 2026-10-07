@@ -77,6 +77,8 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 | **FIX-2026-10-07-67** | 2026-10-07 | **Inventory Roles — Clear Create / Update Errors** | Creating role `system_admin` again returned "Role with code 'system_admin' already exists" as a 500, and the toast showed only "Failed to create role" because Inventory read `error` instead of `message`. The form already stayed open with its values. Role rules now return 400 with plain wording ("Role code 'system_admin' is already in use. Please enter a different role code.", name in use, level 1 or higher, system roles can't be turned off), form-rule messages are reworded, and the toast shows the server message ("Please check: …" for form rules). | 🟡 Implemented / Dev Verification Pending | `src/services/role.service.ts` |
 | **FIX-2026-10-07-68** | 2026-10-07 | **Inventory Roles — System Role Hidden from UI** | `issystem` only blocks delete/deactivate/un-system in the backend; it has no effect on permissions, login or user assignment. Roles list no longer shows the "System" column or the "Type" (System/Custom) filter, and the Role form no longer shows the "System Role" checkbox. DB column and backend rules unchanged. For existing system roles the delete button stays disabled (tooltip "System roles can't be deleted") and the form locks Active with "(System role, always active)". | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/pages/roles/RolesPage.tsx` |
 | **FIX-2026-10-07-69** | 2026-10-07 | **Inventory Permission Sets — Default Type Hidden from List** | Permission Sets list no longer shows the "Default" column or the "Type" (Default/Custom) filter. The fallback set (no role) now shows "Default (fallback)" in the Role column instead of "N/A". Form, DB column `isdefault` and backend fallback rules unchanged. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/pages/permissionSets/PermissionSetsPage.tsx` |
+| **FIX-2026-10-07-70** | 2026-10-07 | **Inventory Supplier Detail — Full-Page Loading Skeleton** | Opening a supplier showed a spinner on an empty page. It now shows a skeleton of the whole page: breadcrumb, the 3 tabs (Detail, Purchase Requests, Purchase Orders), Edit button, two columns of supplier/address fields and the GST row; opening on the Purchase Requests / Orders tab shows a list-table card. The purchase detail skeleton was made generic (`DetailPageSkeleton`) and is now shared by Supplier, Purchase Request and Purchase Order pages (their output unchanged). | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/components/common/DetailPageSkeleton.tsx` |
+| **FIX-2026-10-07-71** | 2026-10-07 | **Inventory Permission Set Detail — Full-Page Loading Skeleton** | Opening a permission set (`/permission-sets/:id/edit`) showed a spinner on an empty page. It now shows a skeleton of the page: breadcrumb; Basic Information (Name and Role inputs, Active / Default checkboxes, Description); Object Permissions table (Objects column + one checkbox column per permission, 10 rows); Cancel / Save buttons. Uses the shared `SkeletonBone` and the form's card styles. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/components/permissionSets/PermissionSetSkeleton.tsx` |
 
 ---
 
@@ -737,5 +739,26 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
   - Role column: the fallback set (no role) shows "Default (fallback)" instead of "N/A", so it can still be found.
 * **Compatibility:** UI only. `PermissionSetForm` ("Default (Null)" option and "Default Permission Set" checkbox), DB column, backend rules, API filter `?isdefault=` and fallback behaviour unchanged.
 * **Verification:** Inventory `tsc` (`tsconfig.app.json`): 99 errors, all existing, none in the changed file; ESLint clean. Pending: dev check on the Permission Sets page (no Default column/Type filter; search, role and status filters and paging still work; fallback set shows "Default (fallback)").
+* **Repository Impacted:**
+  - `asset_management_frontend_aromazen`
+
+### 2026-10-07: Inventory Supplier Detail — Full-Page Loading Skeleton
+* **Issue:** `SupplierDetail` (`/suppliers/:id`) returned a spinner in an `h-64` box while the supplier loaded; the page was blank and then jumped to the full layout.
+* **Fix (Inventory):**
+  - `components/common/PurchaseDetailSkeleton.tsx` renamed to `DetailPageSkeleton.tsx` and made configurable: `tabCount`, `actionButtons`, `fieldsPerColumn`, `tableColumns` (0 hides the items table), `extraSectionFields` / `extraSectionTitle`, `showStatusBadge`, `headerInCard`, `variant` (details / list).
+  - `SupplierDetail.tsx`: loading renders `DetailPageSkeleton` with 3 tabs, 1 action button (Edit), 5 fields per column, no table, 1 untitled field (GST), no status badge; `list` variant when opened on the Purchase Requests / Purchase Orders tab.
+  - `EditPurchaseRequestPage.tsx` / `PurchaseOrderDetailPage.tsx`: switched to `DetailPageSkeleton` with the same layout as FIX-2026-10-07-65 (PO: `extraSectionFields={2}` replaces `showAdditionalInfo`).
+* **Compatibility:** UI only; no API change. Access-denied / not-found states unchanged.
+* **Verification:** TypeScript (`tsconfig.app.json`) and ESLint clean on changed files. Pending: dev check opening a supplier (and with `?tab=requests` / `?tab=orders`) with network throttling; PR/PO skeletons unchanged.
+* **Repository Impacted:**
+  - `asset_management_frontend_aromazen`
+
+### 2026-10-07: Inventory Permission Set Detail — Full-Page Loading Skeleton
+* **Issue:** `PermissionSetEdit` (the permission set detail page) returned a spinner in an `h-64` box while the permission set loaded; the page was blank and then jumped to the full form.
+* **Fix (Inventory):**
+  - New `components/permissionSets/PermissionSetSkeleton.tsx`: breadcrumb; outer card matching `PermissionSetForm` (`p-4`, `gap-6`); Basic Information section (Name / Role inputs, two checkboxes, Description textarea) and Object Permissions section using the form's `sectionCardStyles` padding; table with the Objects column plus one checkbox column per `PERMISSION_COLUMNS` entry (9) and 10 rows, horizontally scrollable on narrow screens; Cancel / Save buttons.
+  - `PermissionSetEdit.tsx`: loading renders `PermissionSetSkeleton`.
+* **Compatibility:** UI only; no API change. Access-denied / not-found states unchanged.
+* **Verification:** TypeScript (`tsconfig.app.json`) and ESLint clean on changed files. Pending: dev check opening a permission set with network throttling (desktop and narrow widths).
 * **Repository Impacted:**
   - `asset_management_frontend_aromazen`
