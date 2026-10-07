@@ -1,6 +1,7 @@
 // src/routes/stock.route.ts
 import { FastifyInstance } from 'fastify';
 import { StockController } from '../controllers/stock.controller.js';
+import { formatBulkStockValidationError } from '../utils/stockBulkErrors.js';
 import { createStockSchema } from '../schemas/stock.schema.js';
 
 export async function stockRoutes(fastify: FastifyInstance) {
@@ -402,6 +403,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/bulk-insert',
     {
+      schemaErrorFormatter: (errors) => formatBulkStockValidationError(errors),
       schema: {
         description: 'Create multiple stock entries in bulk with optimized batch processing and quantity-based expansion',
         tags: ['Stocks'],

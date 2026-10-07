@@ -23,6 +23,7 @@ import {
   dynamicFindManyWithFilters,
 } from "../utils/dynamicDbOperations.js";
 import { logger } from "../config/logger.js";
+import { toFriendlyStockInsertError } from "../utils/stockBulkErrors.js";
 import { ProductService } from "./product.service.js";
 import { PlatformStockService } from "./platformStock.service.js";
 
@@ -712,7 +713,13 @@ export class StockService {
         const batchFailures = bulkInsertResult.failures || [];
 
         inserted.push(...batchInserted);
-        failures.push(...batchFailures);
+        if (batchFailures.length > 0) {
+          logger.error({ batchNumber, failures: batchFailures.slice(0, 5) }, 'Stock bulk insert batch had failures');
+        }
+        failures.push(...batchFailures.map((failure) => ({
+          ...failure,
+          error: toFriendlyStockInsertError(failure.error),
+        })));
         batchesProcessed++;
 
         logger.info({
@@ -733,7 +740,7 @@ export class StockService {
         batch.forEach((_, index) => {
           failures.push({
             index: i + index,
-            error: `Batch database-level bulk insert failed: ${error.message}`
+            error: toFriendlyStockInsertError(error.message)
           });
         });
       }
