@@ -60,6 +60,8 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 | **FIX-2026-10-07-50** | 2026-10-07 | **Mobile Payment Step — Offers Layout and Customer Coupons** | The Payment step showed the same offers three times (swipe cards, "Additional Offers", View All). It now shows the applied summary and a "N more offers available" line, with every offer under the header link "View all offers (N)". Under "Have a coupon code?" it lists the customer's coupons not yet in the wallet ("YOUR COUPONS") with Apply / "Applying…", using the existing coupon-code flow (Ecom FIX-47 parity). Wallet option unchanged (shown when a usable balance exists). | 🟡 Implemented / Device Verification Pending | `Vibrant-Life-mobile-app/src/screens/cart/steps/PaymentStep.tsx` |
 | **FIX-2026-10-07-51** | 2026-10-07 | **Mobile Payment Step — Wallet Row Always Visible** | Customer 74 has ₹100 wallet credit and the backend quote for the cart returns ₹100, yet mobile showed no wallet (web did). Mobile rendered the wallet row only when the per-order wallet quote succeeded with a balance and hid it silently on any error. The row now shows whenever the customer has a wallet balance, with "available for this order", the reason it can't be used, or "Couldn't check…" + Retry; the error is logged ("Wallet quote failed"). | 🟡 Implemented / Device Verification Pending | `Vibrant-Life-mobile-app/src/screens/cart/steps/PaymentStep.tsx` |
 | **FIX-2026-10-07-52** | 2026-10-07 | **Order Price Breakdown — Same on Admin, Ecom, Mobile** | Order 163 (NIVAANA-0000000394): paid ₹1,537 = ₹2,049 − product ₹84 − 149 Off ₹149 − 10 Upto 199 ₹180 − Bonanza coupon ₹99, shipping ₹150 waived. Admin hid the product discount and subtracted free shipping; Ecom counted free shipping in "Total discount"; Mobile hid the coupon (summary didn't add up) and listed no offer names. All three now read `cost_breakdown`: items total, product discount, each offer/coupon with code, Shipping struck → Free (offer name), total paid, "You saved ₹662 (incl. ₹150 free shipping)". | 🟡 Implemented / Verification Pending | `Vibrant-Life-mobile-app/src/components/orders/GroupedOrderCard.tsx` |
+| **FIX-2026-10-07-53** | 2026-10-07 | **Ecom Wishlist — Skeleton Until Product Details Load** | Wishlist cards briefly showed "Product #id", the fallback image and Rs. 0 before switching to the real name/image/price. The skeleton waited only for the wishlist rows, not the product list the cards are built from. It now stays until both have loaded (logged-in and guest), sized to the item count; the subtitle reads "Loading saved items…" instead of "0 saved items". Out-of-stock cards: the red banner that replaced the description is gone; Add to Cart is replaced by a non-clickable "Out of Stock" label (red on light red) and the image is dimmed. | 🟡 Implemented / Dev Verification Pending | `Nivaana-Ecom-Web/src/pages/Wishlist.tsx` |
+| **FIX-2026-10-07-54** | 2026-10-07 | **Inventory Dashboard — Loading Skeletons** | After login the three dashboard widgets showed only a title and a small centred spinner, so the cards were short and the area below sat empty, then the page jumped when data arrived. Each widget now shows a skeleton shaped like its loaded content: Orders (Order Metrics row, Status Breakdown bar chart, date line), Category Breakdown (breadcrumb, doughnut with legend on the right, total), Inventory Health (6 KPI tiles, pie + bar chart, Products row). Same card style and colours; no data change. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/components/dashboard/DashboardSkeletons.tsx` |
 
 ---
 
@@ -509,3 +511,24 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
   - `asset_management_frontend_aromazen`
   - `Nivaana-Ecom-Web`
   - `Vibrant-Life-mobile-app`
+
+### 2026-10-07: Ecom Wishlist — Skeleton Until Product Details Load
+* **Issue:** `/wishlist` runs two queries: the wishlist rows (`cartService.getWishlist`) and the product list (`platformProductService.getProducts(1, 100)`) used for each card's name, image and price. The skeleton covered only the wishlist query, so cards rendered while products were still loading and showed the `Product #<id>` name, the fallback image and Rs. 0, then changed to the real data.
+* **Fix (Ecom):** `Wishlist.tsx` shows the skeleton while the wishlist query is loading (logged in) **or** while the product list is loading and there are saved items (logged in and guest). Skeleton count = item count (max 6, default 4). Subtitle shows "Loading saved items…" while the wishlist loads. `Product #<id>` now appears only when the product really is missing from the catalogue.
+* **Follow-up — out-of-stock cards:** the full-width "This item is currently out of stock." banner pushed the description out of the card and sat next to a faded Add to Cart button. Now the description stays; Add to Cart is replaced by a non-clickable "Out of Stock" label (red text on light red, no button styling); the image is dimmed and greyed (`opacity-50 grayscale`); Remove is unchanged.
+* **Compatibility:** UI only; no API change.
+* **Verification:** Ecom TypeScript 0 errors; ESLint clean on `Wishlist.tsx`. Pending: dev check with network throttling, logged in and as guest; out-of-stock card on desktop and mobile widths.
+* **Note:** The page still fetches 100 products to build the cards; fetching only the wishlisted products would cut the wait itself.
+* **Repository Impacted:**
+  - `Nivaana-Ecom-Web`
+
+### 2026-10-07: Inventory Dashboard — Loading Skeletons
+* **Issue:** `DashboardWidget` rendered only a spinner while loading. The widgets were a fraction of their final height, leaving most of the page empty, and the layout jumped when the data loaded.
+* **Fix (Inventory):**
+  - New `components/dashboard/DashboardSkeletons.tsx`: `OrdersWidgetSkeleton`, `CategoryBreakdownSkeleton`, `InventoryHealthSkeleton`, each matching its widget's real layout and heights (`h-80` / `h-72` charts, `min-h-[85px]` KPI tiles), using the brand-blue tints and borders the widgets already use, with `animate-pulse`.
+  - `DashboardWidget.tsx`: optional `skeleton` prop shown while loading; widgets without it keep the spinner.
+  - `OrdersWidget`, `CategoryBreakdownWidget`, `InventoryHealthWidget` pass their skeleton.
+* **Compatibility:** UI only; no API or data change. Error state unchanged.
+* **Verification:** TypeScript (`tsconfig.app.json`) no errors in dashboard files. Pending: dev check after login (desktop and narrow widths, network throttling).
+* **Repository Impacted:**
+  - `asset_management_frontend_aromazen`
