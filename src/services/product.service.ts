@@ -25,6 +25,7 @@ import {
   dynamicFindManyWithFilters
 } from '../utils/dynamicDbOperations.js';
 import { logger } from '../config/logger.js';
+import { ValidationError } from '../utils/errorHandler.js';
 import { buildProductTaxonomyWhere } from '../utils/productTaxonomy.js';
 import { buildStorefrontListingConditions, isStorefrontFilterMode } from '../utils/storefrontListingFilters.js';
 import { buildProductNaming } from '../utils/productNaming.js';
@@ -49,6 +50,34 @@ const getActiveCategoryImageUrls = (
   imageUrl: categoryImage?.isactive ? categoryImage.imageurl : null,
   thumbnailUrl: categoryImage?.isactive ? categoryImage.thumbnailurl : null,
 });
+
+/**
+ * Turn database failures on product create/update into messages a user can act on.
+ * Anything not recognised is returned unchanged for the shared error handler.
+ */
+export function toFriendlyProductSaveError(error: any): unknown {
+  if (error instanceof ValidationError) return error;
+
+  const prismaCode = error?.code;
+  const dbCode = error?.meta?.code;
+  const text = `${error?.meta?.message ?? ''} ${error?.message ?? ''}`;
+
+  if (prismaCode === 'P2002' || dbCode === '23505' || /duplicate key|already exists/i.test(text)) {
+    return new ValidationError(
+      'This product already exists.',
+      'A product with the same details is already saved. Please check the name, brand and remarks.'
+    );
+  }
+
+  if (prismaCode === 'P2000' || dbCode === '22001' || /value too long/i.test(text)) {
+    return new ValidationError(
+      'Some of the text entered is too long.',
+      'Please shorten the longer fields and save again.'
+    );
+  }
+
+  return error;
+}
 
 export class ProductService {
   private async attachStockSummaries(products: any[]): Promise<void> {
@@ -953,13 +982,19 @@ export class ProductService {
 
       // Validate: components should only be provided for combo products
       if (components && !isCombo) {
-        throw new Error('Components can only be provided when iscombo is true. Remove components or set iscombo to true.');
+        throw new ValidationError(
+          'Combo items can only be added to a combo product.',
+          'Mark this product as a combo, or remove the combo items.'
+        );
       }
 
       // Validate combo product requirements
       if (isCombo) {
         if (!components || !Array.isArray(components) || components.length === 0) {
-          throw new Error('Combo products require at least one component. Please provide components array.');
+          throw new ValidationError(
+            'Please add at least one product to this combo.',
+            'A combo needs at least one product in it before it can be saved.'
+          );
         }
 
         // Check for duplicate combo product with same components
@@ -972,10 +1007,9 @@ export class ProductService {
 
         const existingCombo = await this.findExistingComboByComponents(normalizedComponents);
         if (existingCombo) {
-          throw new Error(
-            `A combo product with the same components already exists. ` +
-            `Existing combo product ID: ${existingCombo.id}, Name: "${existingCombo.name}". ` +
-            `Please use the existing combo product or modify the components.`
+          throw new ValidationError(
+            `A combo with the same products already exists: "${existingCombo.name}".`,
+            'Please use the existing combo, or change the products in this one.'
           );
         }
 
@@ -990,11 +1024,17 @@ export class ProductService {
           });
 
           if (!componentProduct) {
-            throw new Error(`Component product with ID ${component.productid} does not exist`);
+            throw new ValidationError(
+              'One of the products in this combo could not be found.',
+              'It may have been deleted. Please remove it from the combo and choose another product.'
+            );
           }
 
           if ((componentProduct as any).iscombo === true) {
-            throw new Error(`Component product ${component.productid} cannot be a combo product. Only single products can be components.`);
+            throw new ValidationError(
+              `"${componentProduct.name}" is already a combo and can't be added to another combo.`,
+              'Please choose single products only.'
+            );
           }
         }
 
@@ -1113,8 +1153,8 @@ export class ProductService {
         originalData: data
       }, 'Error in product create operation');
 
-      // Re-throw the original error to preserve specific error details
-      throw error;
+      // Re-throw the original error, reworded when it is a database error the user can fix
+      throw toFriendlyProductSaveError(error);
     }
   }
 
@@ -1141,7 +1181,10 @@ export class ProductService {
         || numericGstRate < 0
         || numericGstRate > 100
       ) {
-        throw new Error('A valid HSN code and GST rate between 0 and 100 are required before this product can be updated');
+        throw new ValidationError(
+          'HSN code and GST rate are required.',
+          'Please enter an HSN code and a GST rate between 0 and 100, then save again.'
+        );
       }
 
       if (components || iscombo || combotype) {
@@ -1191,7 +1234,8 @@ export class ProductService {
       updateData.modifieddate = updateData.modifieddate || Date.now();
 
 
-      const product = await dynamicUpdate('product', { id }, updateData);
+      // throwOnError: surface the real database error instead of a null result
+      const product = await dynamicUpdate('product', { id }, updateData, undefined, { throwOnError: true });
 
       if (!product) {
         throw new Error('Failed to update product - no valid fields provided');
@@ -1216,7 +1260,7 @@ export class ProductService {
         data,
         productId: id
       }, 'Error in product update operation');
-      throw error;
+      throw toFriendlyProductSaveError(error);
     }
   }
 
