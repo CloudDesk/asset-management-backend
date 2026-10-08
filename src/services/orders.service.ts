@@ -3624,6 +3624,7 @@ export class OrdersService {
       discountamount: number | null;
       ispaymentsucceed: boolean | null;
       mode: string | null;
+      order_type: string | null;
       promotion_discount_total: number | null;
       wallet_discount_total: number;
       wallet_amount_applied: number;
@@ -3971,6 +3972,7 @@ export class OrdersService {
           discountamount: order.discountamount ? Number(order.discountamount) : null,
           ispaymentsucceed: order.ispaymentsucceed,
           mode: order.mode,
+          order_type: order.order_type,
           promotion_discount_total: order.promotion_discount_total ? Number(order.promotion_discount_total) : null,
           wallet_discount_total: Number(order.wallet_discount_total ?? 0),
           wallet_amount_applied: Number(order.wallet_discount_total ?? 0),
