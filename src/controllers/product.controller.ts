@@ -686,7 +686,7 @@ export class ProductController {
         subcategory_value: p.subcategory_value,
         subsubcategory_value: p.subsubcategory_value,
         hsn_code: p.hsn_code,
-        gst_rate: parseFloat(p.gst_rate.toString()),
+        gst_rate: parseFloat(p.gst_rate?.toString()||'5'),
         description: p.description,
       }));
 
