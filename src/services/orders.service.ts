@@ -3172,6 +3172,15 @@ export class OrdersService {
    * - orderlines[]: Array of orderlines with selected fields
    * - address: Address object with selected fields
    */
+  /** Owner (users.id) of an order by database id or order number; null if not found. */
+  async getOrderOwnerId(idOrOrderNumber: string): Promise<number | null> {
+    const where = isNaN(Number(idOrOrderNumber))
+      ? { orderid: idOrOrderNumber }
+      : { id: Number(idOrOrderNumber) };
+    const order = await prisma.orders.findUnique({ where, select: { userid: true } });
+    return order?.userid != null ? Number(order.userid) : null;
+  }
+
   async getOrderDetails(idOrOrderNumber: string): Promise<{
     order: any;
     orderlines: any[];
