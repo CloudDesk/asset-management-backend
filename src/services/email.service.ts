@@ -1,6 +1,7 @@
 // @ts-ignore - nodemailer types may not be available
 import nodemailer from 'nodemailer';
 import { logger } from '../config/logger.js';
+import { escapeEmailHtml, renderNivaanaEmail } from './email-template.js';
 
 // Email configuration (to be loaded from environment variables)
 const config = {
@@ -145,125 +146,29 @@ export class EmailService {
     userName: string,
     resetUrl: string
   ): string {
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Password Reset - Nivaana</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f4f4f4;
-          }
-          .container {
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-          }
-          .header {
-            text-align: center;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-          }
-          .header h1 {
-            color: #007bff;
-            margin: 0;
-          }
-          .content {
-            margin-bottom: 30px;
-          }
-          .reset-button {
-            display: inline-block;
-            background-color: #007bff;
-            color: #ffffff !important;
-            padding: 12px 30px;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            margin: 20px 0;
-            text-align: center;
-          }
-          .reset-button:hover {
-            background-color: #0056b3;
-          }
-          .token-info {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 4px;
-            border-left: 4px solid #007bff;
-            margin: 20px 0;
-          }
-          .warning {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 10px;
-            border-radius: 4px;
-            border-left: 4px solid #ffc107;
-            margin: 20px 0;
-          }
-          .footer {
-            text-align: center;
-            color: #666;
-            font-size: 0.9em;
-            border-top: 1px solid #eee;
-            padding-top: 20px;
-            margin-top: 30px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Nivaana</h1>
-            <p>Password Reset Request</p>
-          </div>
-          
-          <div class="content">
-            <p>Hello <strong>${userName}</strong>,</p>
-            
-            <p>We received a request to reset your password for your Nivaana account. If you made this request, please click the button below to reset your password:</p>
-            
-            <div style="text-align: center;">
-              <a href="${resetUrl}" class="reset-button">Reset Password</a>
-            </div>
-            
-            <div class="token-info">
-              <p><strong>Alternative method:</strong> If the button doesn't work, you can copy and paste this link into your browser:</p>
-              <p style="word-break: break-all; font-family: monospace; background-color: #e9ecef; padding: 8px; border-radius: 3px;">${resetUrl}</p>
-            </div>
-            
-            <div class="warning">
-              <p><strong>Important Security Information:</strong></p>
-              <ul>
-                <li>This reset link will expire in <strong>15 minutes</strong> for security reasons</li>
-                <li>If you didn't request this password reset, please ignore this email and your password will remain unchanged</li>
-                <li>For security, never share this link with anyone</li>
-              </ul>
-            </div>
-            
-            <p>If you're having trouble with the password reset process, please contact our support team.</p>
-            
-            <p>Best regards,<br>
-            Nivaana Team</p>
-          </div>
-          
-          <div class="footer">
-            <p>This is an automated email. Please do not reply to this message.</p>
-            <p>If you have any questions, please contact our support team.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+    const safeResetUrl = escapeEmailHtml(resetUrl);
+    const content = `
+<p style="line-height:1.6">We received a request to reset your password for your Nivaana account. If you made this request, please click the button below to reset your password:</p>
+<div style="text-align:center;margin:20px 0">
+  <a href="${safeResetUrl}" style="display:inline-block;background:#6b4f35;color:#fff;padding:12px 30px;text-decoration:none;border-radius:6px;font-weight:700">Reset Password</a>
+</div>
+<div style="background:#fafaf9;padding:15px;border-radius:6px;border-left:4px solid #6b4f35;margin:20px 0">
+  <p style="line-height:1.6"><strong>Alternative method:</strong> If the button doesn't work, you can copy and paste this link into your browser:</p>
+  <p style="word-break:break-all;font-family:monospace;background:#f5f3ee;padding:8px;border-radius:3px">${safeResetUrl}</p>
+</div>
+<div style="background:#fff7ed;color:#9a3412;padding:10px 15px;border-radius:6px;border-left:4px solid #f59e0b;margin:20px 0">
+  <p><strong>Important Security Information:</strong></p>
+  <ul style="line-height:1.6">
+    <li>This reset link will expire in <strong>15 minutes</strong> for security reasons</li>
+    <li>If you didn't request this password reset, please ignore this email and your password will remain unchanged</li>
+    <li>For security, never share this link with anyone</li>
+  </ul>
+</div>
+<p style="line-height:1.6">If you're having trouble with the password reset process, please contact our support team.</p>
+<p style="line-height:1.6">Best regards,<br>Nivaana Team</p>
+<p style="line-height:1.6;color:#78716c;font-size:12px">If you have any questions, please contact our support team.</p>`;
+
+    return renderNivaanaEmail('Password Reset Request', userName, content);
   }
 
   /**
