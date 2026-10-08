@@ -1326,13 +1326,16 @@ export class OrdersService {
     try {
       logger.debug({ orderNumber }, 'Finding order by order number');
 
-      const order = await dynamicFindUnique('orders', { orderid: orderNumber });
-
-      if (!order) {
+      // dynamicFindUnique only resolves orders by id, so look up the id first
+      const match = await prisma.orders.findUnique({
+        where: { orderid: orderNumber },
+        select: { id: true },
+      });
+      if (!match) {
         return null;
       }
 
-      return order;
+      return await dynamicFindUnique('orders', { id: match.id });
     } catch (error) {
       logger.error({ error, orderNumber }, 'Error finding order by order number');
       throw error;
