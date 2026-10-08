@@ -27,6 +27,7 @@ export async function instoreOrderRoutes(fastify: FastifyInstance) {
         properties: {
           search: { type: 'string', maxLength: 100 },
           limit: { type: 'number', minimum: 1, maximum: 50 },
+          cursor: { type: 'string', pattern: '^\\d+$' },
         },
       },
     },

@@ -1,0 +1,332 @@
+[
+  {
+    "id": 3,
+    "label": "Kasturi",
+    "value": "kasturi",
+    "parent": "incense_sticks",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "premium_incense_sticks",
+    "controlledlabel": "Premium Incense Sticks",
+    "subcategory_label": "Incense Sticks"
+  },
+  {
+    "id": 4,
+    "label": "Kesar Chandan",
+    "value": "kesar_chandan",
+    "parent": "incense_sticks",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "premium_incense_sticks",
+    "controlledlabel": "Premium Incense Sticks",
+    "subcategory_label": "Incense Sticks"
+  },
+  {
+    "id": 5,
+    "label": "Parijat",
+    "value": "parijat",
+    "parent": "incense_sticks",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "premium_incense_sticks",
+    "controlledlabel": "Premium Incense Sticks",
+    "subcategory_label": "Incense Sticks"
+  },
+  {
+    "id": 6,
+    "label": "Spiritual Harmony",
+    "value": "spiritual_harmony",
+    "parent": "incense_sticks",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "premium_incense_sticks",
+    "controlledlabel": "Premium Incense Sticks",
+    "subcategory_label": "Incense Sticks"
+  },
+  {
+    "id": 7,
+    "label": "Paradise Garden",
+    "value": "paradise_garden",
+    "parent": "incense_sticks",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "premium_incense_sticks",
+    "controlledlabel": "Premium Incense Sticks",
+    "subcategory_label": "Incense Sticks"
+  },
+  {
+    "id": 8,
+    "label": "Floral Valley",
+    "value": "floral_valley",
+    "parent": "incense_sticks",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "premium_incense_sticks",
+    "controlledlabel": "Premium Incense Sticks",
+    "subcategory_label": "Incense Sticks"
+  },
+  {
+    "id": 9,
+    "label": "Davana",
+    "value": "davana",
+    "parent": "incense_sticks",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "premium_incense_sticks",
+    "controlledlabel": "Premium Incense Sticks",
+    "subcategory_label": "Incense Sticks"
+  },
+  {
+    "id": 10,
+    "label": "Black Oudh",
+    "value": "black_oudh",
+    "parent": "incense_sticks",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "premium_incense_sticks",
+    "controlledlabel": "Premium Incense Sticks",
+    "subcategory_label": "Incense Sticks"
+  },
+  {
+    "id": 11,
+    "label": "Vanilla",
+    "value": "vanilla",
+    "parent": "incense_sticks",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "premium_incense_sticks",
+    "controlledlabel": "Premium Incense Sticks",
+    "subcategory_label": "Incense Sticks"
+  },
+  {
+    "id": 12,
+    "label": "First Rains",
+    "value": "first_rains",
+    "parent": "incense_sticks",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "premium_incense_sticks",
+    "controlledlabel": "Premium Incense Sticks",
+    "subcategory_label": "Incense Sticks"
+  },
+  {
+    "id": 13,
+    "label": "Himalayan Cedar",
+    "value": "himalayan_cedar",
+    "parent": "incense_sticks",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "premium_incense_sticks",
+    "controlledlabel": "Premium Incense Sticks",
+    "subcategory_label": "Incense Sticks"
+  },
+  {
+    "id": 14,
+    "label": "Wild Canopy",
+    "value": "wild_canopy",
+    "parent": "incense_sticks",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "premium_incense_sticks",
+    "controlledlabel": "Premium Incense Sticks",
+    "subcategory_label": "Incense Sticks"
+  },
+  {
+    "id": 15,
+    "label": "Royal Sandal",
+    "value": "royal_sandal",
+    "parent": "incense_sticks",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "premium_incense_sticks",
+    "controlledlabel": "Premium Incense Sticks",
+    "subcategory_label": "Incense Sticks"
+  },
+  {
+    "id": 64,
+    "label": "Jungle Vibe",
+    "value": "jungle_vibe",
+    "parent": "wardrobe_fragrance",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "fragrance_sachets",
+    "controlledlabel": "Fragrance Sachets",
+    "subcategory_label": "Wardrobe Fragrance"
+  },
+  {
+    "id": 65,
+    "label": "Cool Aqua",
+    "value": "cool_aqua",
+    "parent": "wardrobe_fragrance",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "fragrance_sachets",
+    "controlledlabel": "Fragrance Sachets",
+    "subcategory_label": "Wardrobe Fragrance"
+  },
+  {
+    "id": 66,
+    "label": "Nishigandha",
+    "value": "nishigandha",
+    "parent": "wardrobe_fragrance",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "fragrance_sachets",
+    "controlledlabel": "Fragrance Sachets",
+    "subcategory_label": "Wardrobe Fragrance"
+  },
+  {
+    "id": 67,
+    "label": "Pinacolada",
+    "value": "pinacolada",
+    "parent": "wardrobe_fragrance",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "fragrance_sachets",
+    "controlledlabel": "Fragrance Sachets",
+    "subcategory_label": "Wardrobe Fragrance"
+  },
+  {
+    "id": 68,
+    "label": "Cherry Blossom",
+    "value": "cherry_blossom",
+    "parent": "wardrobe_fragrance",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "fragrance_sachets",
+    "controlledlabel": "Fragrance Sachets",
+    "subcategory_label": "Wardrobe Fragrance"
+  },
+  {
+    "id": 69,
+    "label": "Vanilla",
+    "value": "vanilla",
+    "parent": "wardrobe_fragrance",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "fragrance_sachets",
+    "controlledlabel": "Fragrance Sachets",
+    "subcategory_label": "Wardrobe Fragrance"
+  },
+  {
+    "id": 95,
+    "label": "Opium Vibe",
+    "value": "opium_vibe",
+    "parent": "air_fresheners",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "room_fresheners",
+    "controlledlabel": "Room Fresheners",
+    "subcategory_label": "Air Fresheners"
+  },
+  {
+    "id": 96,
+    "label": "Lemongrass Whiff",
+    "value": "lemongrass_whiff",
+    "parent": "air_fresheners",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "room_fresheners",
+    "controlledlabel": "Room Fresheners",
+    "subcategory_label": "Air Fresheners"
+  },
+  {
+    "id": 97,
+    "label": "Mystique Rose",
+    "value": "mystique_rose",
+    "parent": "air_fresheners",
+    "controlledfieldname": "subsubcategory",
+    "controlledvalue": "room_fresheners",
+    "controlledlabel": "Room Fresheners",
+    "subcategory_label": "Air Fresheners"
+  },
+  {
+    "id": 98,
+    "label": "Lavender",
+    "value": "lavender",
+    "parent": "fragrance_oils",
+    "controlledfieldname": "subcategory",
+    "controlledvalue": "fragrance_oils",
+    "controlledlabel": "Fragrance Oils",
+    "subcategory_label": "Fragrance Oils"
+  },
+  {
+    "id": 99,
+    "label": "Vanilla Oak",
+    "value": "vanilla_oak",
+    "parent": "fragrance_oils",
+    "controlledfieldname": "subcategory",
+    "controlledvalue": "fragrance_oils",
+    "controlledlabel": "Fragrance Oils",
+    "subcategory_label": "Fragrance Oils"
+  },
+  {
+    "id": 100,
+    "label": "Golden Dust",
+    "value": "golden_dust",
+    "parent": "fragrance_oils",
+    "controlledfieldname": "subcategory",
+    "controlledvalue": "fragrance_oils",
+    "controlledlabel": "Fragrance Oils",
+    "subcategory_label": "Fragrance Oils"
+  },
+  {
+    "id": 101,
+    "label": "Black Opium",
+    "value": "black_opium",
+    "parent": "fragrance_oils",
+    "controlledfieldname": "subcategory",
+    "controlledvalue": "fragrance_oils",
+    "controlledlabel": "Fragrance Oils",
+    "subcategory_label": "Fragrance Oils"
+  },
+  {
+    "id": 102,
+    "label": "Teakwood",
+    "value": "teakwood",
+    "parent": "fragrance_oils",
+    "controlledfieldname": "subcategory",
+    "controlledvalue": "fragrance_oils",
+    "controlledlabel": "Fragrance Oils",
+    "subcategory_label": "Fragrance Oils"
+  },
+  {
+    "id": 258,
+    "label": "Evening In Paris",
+    "value": "evening_in_paris",
+    "parent": "fragrance_oils",
+    "controlledfieldname": "subcategory",
+    "controlledvalue": "fragrance_oils",
+    "controlledlabel": "Fragrance Oils",
+    "subcategory_label": "Fragrance Oils"
+  },
+  {
+    "id": 259,
+    "label": "Velvet Bloom",
+    "value": "velvet_bloom",
+    "parent": "fragrance_oils",
+    "controlledfieldname": "subcategory",
+    "controlledvalue": "fragrance_oils",
+    "controlledlabel": "Fragrance Oils",
+    "subcategory_label": "Fragrance Oils"
+  },
+  {
+    "id": 260,
+    "label": "Garden Dew",
+    "value": "garden_dew",
+    "parent": "fragrance_oils",
+    "controlledfieldname": "subcategory",
+    "controlledvalue": "fragrance_oils",
+    "controlledlabel": "Fragrance Oils",
+    "subcategory_label": "Fragrance Oils"
+  },
+  {
+    "id": 261,
+    "label": "Sicilian Lime",
+    "value": "sicilian_lime",
+    "parent": "fragrance_oils",
+    "controlledfieldname": "subcategory",
+    "controlledvalue": "fragrance_oils",
+    "controlledlabel": "Fragrance Oils",
+    "subcategory_label": "Fragrance Oils"
+  },
+  {
+    "id": 262,
+    "label": "Black Ice",
+    "value": "black_ice",
+    "parent": "fragrance_oils",
+    "controlledfieldname": "subcategory",
+    "controlledvalue": "fragrance_oils",
+    "controlledlabel": "Fragrance Oils",
+    "subcategory_label": "Fragrance Oils"
+  },
+  {
+    "id": 263,
+    "label": "Rose Rush",
+    "value": "rose_rush",
+    "parent": "fragrance_oils",
+    "controlledfieldname": "subcategory",
+    "controlledvalue": "fragrance_oils",
+    "controlledlabel": "Fragrance Oils",
+    "subcategory_label": "Fragrance Oils"
+  }
+]

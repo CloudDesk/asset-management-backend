@@ -29,10 +29,10 @@ import crypto from 'crypto';
 export class InventoryUsersService {
   private emailService = new EmailService();
 
-  private async sendPasswordSetLink(user: { id: number; useremail?: string | null; firstname?: string | null }): Promise<void> {
+  private async sendPasswordSetLink(user: { id: number; useremail?: string | null; firstname?: string | null }): Promise<boolean> {
     if (!user.useremail) {
       logger.warn({ userId: user.id }, 'Skipping password set email because useremail is missing');
-      return;
+      return false;
     }
 
     const { token, hashedToken, expiresAt } = generateResetToken();
@@ -67,6 +67,7 @@ export class InventoryUsersService {
       userId: user.id,
       email: user.useremail
     }, 'Password set email sent successfully');
+    return true;
   }
 
   async findMany(
@@ -278,14 +279,15 @@ export class InventoryUsersService {
         throw new Error('Failed to create inventory user - no valid fields provided');
       }
 
+      let welcomeEmailSent = false;
       try {
-        await this.sendPasswordSetLink(inventoryUser);
+        welcomeEmailSent = await this.sendPasswordSetLink(inventoryUser);
       } catch (emailError) {
         logger.error({
           error: emailError,
           userId: inventoryUser.id,
           email: inventoryUser.useremail
-        }, 'Failed to send password set email for newly created inventory user');
+        }, 'Inventory user was created, but the password set email could not be sent');
       }
 
       logger.info({
@@ -295,7 +297,10 @@ export class InventoryUsersService {
         hasRole: !!inventoryUser.rolerelation
       }, 'Dynamic inventoryusers create completed');
 
-      return sanitizeUserData(inventoryUser);
+      return {
+        ...sanitizeUserData(inventoryUser),
+        welcomeEmailSent
+      };
     } catch (error) {
       logger.error({ error, email: data.useremail }, 'Error in inventoryusers create operation');
       throw error;

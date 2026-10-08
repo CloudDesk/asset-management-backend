@@ -4,6 +4,7 @@
  * Plan: docs/SIT_PICKLIST_FROM_UAT_DRY_RUN_2026-10-07.md
  *
  * - Matched picklist rows (object + fieldname + value + parent) keep their SIT id and take UAT attributes.
+ * - Product Fragrance Type dependency metadata is normalized to Subcategory before it is written to SIT.
  * - UAT-only picklist rows are inserted with new SIT ids.
  * - SIT-only picklist rows are deleted after their approved dependants are handled:
  *   product fragrance tokens are replaced, category images are deleted, LOVs are deactivated.
@@ -100,6 +101,40 @@ const splitTokens = (v: string | null) =>
     .filter(Boolean);
 const notApproved = (ids: number[], approved: number[]) => ids.filter((id) => !approved.includes(id));
 
+function normalizeFragranceDependencies(rows: PicklistRow[]): number {
+  const subcategoryLabels = new Map(
+    rows
+      .filter(
+        (row) =>
+          norm(row.object) === 'product' &&
+          norm(row.fieldname) === 'subcategory' &&
+          row.isactive === true &&
+          row.value,
+      )
+      .map((row) => [norm(row.value), String(row.label ?? row.value)]),
+  );
+  let changed = 0;
+  for (const row of rows) {
+    if (norm(row.object) !== 'product' || norm(row.fieldname) !== 'fragnancetype') continue;
+    const parent = norm(row.parent);
+    const label = subcategoryLabels.get(parent);
+    if (!parent || !label) {
+      throw new Error(`UAT Fragrance Type ${row.id}:${row.value} has no active Subcategory parent ${row.parent}`);
+    }
+    if (
+      row.controlledfieldname !== 'subcategory' ||
+      row.controlledvalue !== row.parent ||
+      row.controlledlabel !== label
+    ) {
+      changed++;
+      row.controlledfieldname = 'subcategory';
+      row.controlledvalue = row.parent;
+      row.controlledlabel = label;
+    }
+  }
+  return changed;
+}
+
 function indexByKey(rows: PicklistRow[], label: string) {
   const map = new Map<string, PicklistRow>();
   for (const row of rows) {
@@ -138,12 +173,14 @@ async function main() {
     const uatPicklist = (await source.query<PicklistRow>('select * from picklist order by id')).rows;
     const uatHsnAll = (await source.query<HsnRow>('select * from gst_hsn_mapping order by id')).rows;
     await source.query('COMMIT');
+    const normalizedFragranceDependencies = normalizeFragranceDependencies(uatPicklist);
     // SIT's hsn_code/gst_rate are NOT NULL (as in schema.prisma); UAT has incomplete rows that SIT cannot hold.
     const uatHsn = uatHsnAll.filter((r) => r.hsn_code != null && r.gst_rate != null);
     const uatHsnSkipped = uatHsnAll.filter((r) => !uatHsn.includes(r));
     const uatByKey = indexByKey(uatPicklist, 'UAT');
     const uatById = new Map(uatPicklist.map((r) => [r.id, r]));
     log(`UAT: ${uatPicklist.length} picklist rows, ${uatHsnAll.length} HSN rows (${uatHsn.length} complete)`);
+    log(`UAT Fragrance Type dependencies normalized in memory: ${normalizedFragranceDependencies}`);
     log(
       `UAT HSN skipped, null hsn_code/gst_rate (${uatHsnSkipped.length}): ${
         uatHsnSkipped.map((r) => `${r.subcategory_value} ${r.hsn_code}@${r.gst_rate}`).join('; ') || 'none'

@@ -62,7 +62,10 @@ export class InventoryUsersController {
     // Format the created inventory user data
     const formattedInventoryUser = formatInventoryUsersForAPI(inventoryUser);
     
-    const response = createSuccessResponse('Inventory user created successfully', formattedInventoryUser);
+    const message = inventoryUser.welcomeEmailSent
+      ? 'Inventory user created successfully and welcome email sent'
+      : 'Inventory user created successfully, but the welcome email could not be sent';
+    const response = createSuccessResponse(message, formattedInventoryUser);
     return reply.code(201).send(response);
   });
 
@@ -96,8 +99,12 @@ export class InventoryUsersController {
     // Format the upserted inventory user data
     const formattedInventoryUser = formatInventoryUsersForAPI(inventoryUser);
     
-    const message = data.id ? 'Inventory user updated successfully' : 'Inventory user created successfully';
+    const message = data.id
+      ? 'Inventory user updated successfully'
+      : inventoryUser.welcomeEmailSent
+        ? 'Inventory user created successfully and welcome email sent'
+        : 'Inventory user created successfully, but the welcome email could not be sent';
     const response = createSuccessResponse(message, formattedInventoryUser);
     return reply.code(200).send(response);
   });
-} 
+}
