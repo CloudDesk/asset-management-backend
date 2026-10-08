@@ -2,6 +2,7 @@
 import nodemailer from 'nodemailer';
 import { logger } from '../config/logger.js';
 import { escapeEmailHtml, renderNivaanaEmail } from './email-template.js';
+import { env } from '../config/env.js';
 
 // Email configuration (to be loaded from environment variables)
 const config = {
