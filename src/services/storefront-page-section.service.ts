@@ -67,6 +67,27 @@ const orderNestedItems = (attributes: Prisma.JsonValue): Prisma.JsonValue => {
   return value as Prisma.JsonValue;
 };
 
+/** Public storefront responses exclude explicitly hidden content. A missing flag
+ * remains visible so existing homepage configuration is backwards compatible. */
+const filterInactiveNestedItems = (attributes: Prisma.JsonValue): Prisma.JsonValue => {
+  if (!attributes || typeof attributes !== 'object' || Array.isArray(attributes)) {
+    return attributes;
+  }
+
+  const value = { ...(attributes as Record<string, unknown>) };
+  for (const key of ['slides', 'items']) {
+    const nested = value[key];
+    if (Array.isArray(nested)) {
+      value[key] = nested.filter((item) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return true;
+        return (item as Record<string, unknown>).is_active !== false;
+      });
+    }
+  }
+
+  return value as Prisma.JsonValue;
+};
+
 const validateSchedule = (start?: string | null, end?: string | null) => {
   if (!start || !end) return;
 
@@ -155,7 +176,7 @@ export class StorefrontPageSectionService {
 
     const formatted = sections.map((section) => serializeSection({
       ...(section as StorefrontSectionRecord),
-      attributes: orderNestedItems(section.attributes),
+      attributes: filterInactiveNestedItems(orderNestedItems(section.attributes)),
     }));
 
     return {

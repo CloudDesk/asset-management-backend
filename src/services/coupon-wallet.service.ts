@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto';
 import { Prisma, PrismaClient } from '@prisma/client';
 import type { CouponWalletListInput, CreateQuickCouponInput, UpdateQuickCouponInput } from '../schemas/coupon-wallet.schema.js';
-import { ValidationError } from '../utils/errorHandler.js';
+import { NotFoundError, ValidationError } from '../utils/errorHandler.js';
 import { customerEmailNotificationService } from './customer-email-notification.service.js';
 import {
   buildCouponClaimLockWhere,
@@ -16,6 +16,11 @@ import {
 const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 export const generatePersonalizedCouponCode = () => `NV-${randomBytes(6).toString('hex').toUpperCase()}`;
+
+// Admin-facing coupon status. Fully used wins over expiry (nothing was lost);
+// expired means the date passed with unused value.
+const ADMIN_COUPON_STATUSES = ['not_used', 'added_to_wallet', 'partly_used', 'fully_used', 'expired', 'paused', 'cancelled'] as const;
+type AdminCouponStatus = typeof ADMIN_COUPON_STATUSES[number];
 
 export class CouponWalletService {
   private prisma = new PrismaClient();
@@ -52,6 +57,24 @@ export class CouponWalletService {
     });
   }
 
+  private adminDisplayStatus(
+    assignment: any,
+    status: string,
+    walletCredit: { original_amount: number; remaining_amount: number } | null,
+    redemptionCount: number,
+  ): AdminCouponStatus {
+    if (assignment.status === 'revoked') return 'cancelled';
+    if (!['active', 'expired'].includes(assignment.status)) return 'paused';
+    const fullyUsed = walletCredit
+      ? walletCredit.remaining_amount <= 0
+      : redemptionCount > 0 || Number(assignment.used_count || 0) > 0;
+    if (fullyUsed) return 'fully_used';
+    if (status === 'expired') return 'expired';
+    if (walletCredit) return walletCredit.remaining_amount >= walletCredit.original_amount ? 'added_to_wallet' : 'partly_used';
+    if (status === 'claimed') return 'added_to_wallet';
+    return 'not_used';
+  }
+
   private formatCoupon(assignment: any) {
     const redemptions = assignment.redemptions || [];
     const walletCreditExpired = Boolean(
@@ -75,11 +98,13 @@ export class CouponWalletService {
           expires_at: assignment.wallet_credit.expires_at,
         }
       : null;
+    const status = this.walletStatus(assignment, redemptions.length);
     return {
       id: assignment.id,
       code: assignment.voucher_code,
       ownership_mode: assignment.assignment_type,
-      status: this.walletStatus(assignment, redemptions.length),
+      status,
+      display_status: this.adminDisplayStatus(assignment, status, walletCredit, redemptions.length),
       administrative_status: assignment.status,
       usage_limit: assignment.usage_limit,
       used_count: redemptions.length,
@@ -581,34 +606,279 @@ export class CouponWalletService {
     });
   }
 
+  // Prisma where-clause for an admin status; mirrors adminDisplayStatus
+  private adminStatusWhere(status: AdminCouponStatus, now = Date.now()): any {
+    const nowSeconds = BigInt(Math.floor(now / 1000));
+    const live = { status: { in: ['active', 'expired'] } };
+    const expired = { OR: [{ status: 'expired' }, { end_date: { lt: nowSeconds } }] };
+    // Explicit (not NOT(expired)): NOT (end_date < now) is NULL in SQL when end_date is null
+    const notExpired = { AND: [{ status: 'active' }, { OR: [{ end_date: null }, { end_date: { gte: nowSeconds } }] }] };
+    const claimed = { OR: [
+      { claimed_by_customer_id: { not: null } },
+      { claimed_at: { not: null } },
+      { wallet_credit: { isNot: null } },
+    ] };
+    const fullyUsed = { OR: [
+      { wallet_credit: { is: { remaining_amount: { lte: 0 } } } },
+      { AND: [{ wallet_credit: { is: null } }, { OR: [{ redemptions: { some: {} } }, { used_count: { gt: 0 } }] }] },
+    ] };
+    const fullBalance = { remaining_amount: { gte: this.prisma.wallet_credits.fields.original_amount } };
+
+    switch (status) {
+      case 'cancelled':
+        return { status: 'revoked' };
+      case 'paused':
+        return { status: { notIn: ['active', 'expired', 'revoked'] } };
+      case 'fully_used':
+        return { AND: [live, fullyUsed] };
+      case 'expired':
+        return { AND: [live, { NOT: fullyUsed }, expired] };
+      case 'added_to_wallet':
+        return { AND: [notExpired, { NOT: fullyUsed }, claimed,
+          { OR: [{ wallet_credit: { is: null } }, { wallet_credit: { is: fullBalance } }] }] };
+      case 'partly_used':
+        return { AND: [notExpired, { NOT: fullyUsed },
+          { wallet_credit: { isNot: null } }, { NOT: { wallet_credit: { is: fullBalance } } }] };
+      case 'not_used':
+        return { AND: [notExpired, { NOT: fullyUsed }, { NOT: claimed }] };
+    }
+  }
+
   async listAdminCoupons(input: CouponWalletListInput) {
     const skip = (input.page - 1) * input.limit;
-    const where: any = {};
+    const conditions: any[] = [];
     const standalonePromotionFilter = {
       visibility: 'private',
       description: { startsWith: STANDALONE_COUPON_DESCRIPTION_PREFIX },
     };
-    if (input.scope === 'standalone') where.promotion = { is: standalonePromotionFilter };
-    else if (input.scope === 'promotion') where.NOT = { promotion: { is: standalonePromotionFilter } };
-    if (input.ownership_mode) where.assignment_type = input.ownership_mode;
-    if (input.customer_id) where.OR = [{ customer_id: input.customer_id }, { claimed_by_customer_id: input.customer_id }];
+    if (input.scope === 'standalone') conditions.push({ promotion: { is: standalonePromotionFilter } });
+    else if (input.scope === 'promotion') conditions.push({ NOT: { promotion: { is: standalonePromotionFilter } } });
+    if (input.ownership_mode) conditions.push({ assignment_type: input.ownership_mode });
+    if (input.source === 'coupon_group') conditions.push({ source_coupon_group_id: { not: null } });
+    else if (input.source === 'customer') conditions.push({ source_coupon_group_id: null });
+    if (input.customer_id) conditions.push({ OR: [{ customer_id: input.customer_id }, { claimed_by_customer_id: input.customer_id }] });
     if (input.search) {
-      where.AND = [{ OR: [
+      conditions.push({ OR: [
         { voucher_code: { contains: input.search, mode: 'insensitive' } },
         { promotion: { name: { contains: input.search, mode: 'insensitive' } } },
         { customer: { useremail: { contains: input.search, mode: 'insensitive' } } },
         { claimed_customer: { useremail: { contains: input.search, mode: 'insensitive' } } },
-      ] }];
+      ] });
     }
-    const [rows, total] = await Promise.all([
+    const now = Date.now();
+    const baseWhere = { AND: [...conditions] };
+    const where = input.status
+      ? { AND: [...conditions, this.adminStatusWhere(input.status, now)] }
+      : baseWhere;
+    const [rows, total, statusCountValues] = await Promise.all([
       this.prisma.promotion_assignments.findMany({ where, include: this.include, orderBy: { id: 'desc' }, skip, take: input.limit }),
       this.prisma.promotion_assignments.count({ where }),
+      Promise.all(ADMIN_COUPON_STATUSES.map((status) =>
+        this.prisma.promotion_assignments.count({ where: { AND: [...conditions, this.adminStatusWhere(status, now)] } }))),
     ]);
-    const formatted = rows.map((row) => this.formatCoupon(row));
-    const filtered = input.status ? formatted.filter((coupon) => coupon.status === input.status) : formatted;
+    const statusCounts = Object.fromEntries(
+      ADMIN_COUPON_STATUSES.map((status, index) => [status, statusCountValues[index]]),
+    ) as Record<AdminCouponStatus, number>;
     return {
-      coupons: filtered,
+      coupons: rows.map((row) => this.formatCoupon(row)),
       pagination: { page: input.page, limit: input.limit, total, totalPages: Math.max(1, Math.ceil(total / input.limit)) },
+      status_counts: { all: statusCountValues.reduce((sum, count) => sum + count, 0), ...statusCounts },
+    };
+  }
+
+  // Admin timeline for one coupon: issue, wallet credit, order usage/reversals, expiry, with running balance
+  async getAdminCouponHistory(assignmentId: number) {
+    const assignment = await this.prisma.promotion_assignments.findUnique({
+      where: { id: assignmentId },
+      include: {
+        ...this.include,
+        wallet_credit: {
+          select: {
+            id: true,
+            original_amount: true,
+            remaining_amount: true,
+            minimum_cart_amount: true,
+            status: true,
+            expires_at: true,
+            createddate: true,
+            reservations: {
+              select: { id: true, amount: true, status: true, order_id: true, createddate: true, consumed_at: true, reversed_at: true, expires_at: true },
+              orderBy: { id: 'asc' },
+            },
+          },
+        },
+      },
+    });
+    if (!assignment) throw new NotFoundError('Coupon not found');
+
+    const credit = assignment.wallet_credit;
+    // Refunds (return / cancellation) put value back on the same credit via refund wallet allocations
+    const allocations = credit
+      ? await this.prisma.refundWalletAllocation.findMany({
+          where: { sourceCreditId: credit.id, allocationType: 'coupon_restore', status: { in: ['completed', 'skipped_expired'] } },
+          orderBy: { id: 'asc' },
+        })
+      : [];
+    const operations = allocations.length
+      ? await this.prisma.refundOperation.findMany({
+          where: { id: { in: [...new Set(allocations.map((allocation) => allocation.refundOperationId))] } },
+          select: { id: true, operationNumber: true, triggerType: true, orderId: true },
+        })
+      : [];
+    const operationById = new Map(operations.map((operation) => [operation.id, operation]));
+    const redemptionOrderId = (value: string | null) => (value && /^\d+$/.test(value) ? Number(value) : null);
+    const orderIds = [...new Set([
+      ...(credit?.reservations || []).map((reservation) => reservation.order_id),
+      ...operations.map((operation) => operation.orderId),
+      ...(assignment.redemptions || []).map((redemption) => redemptionOrderId(redemption.order_id)),
+    ].filter((id): id is number => typeof id === 'number'))];
+    const orders = orderIds.length
+      ? await this.prisma.orders.findMany({ where: { id: { in: orderIds } }, select: { id: true, orderid: true, orderstatus: true } })
+      : [];
+    const orderById = new Map(orders.map((order) => [order.id, order]));
+    const orderRef = (id: number | null) => {
+      const order = id ? orderById.get(id) : undefined;
+      return { order_id: id, order_number: order?.orderid || null, order_status: order?.orderstatus || null };
+    };
+    // Timestamps are stored in seconds (coupon dates) or milliseconds (wallet rows); normalise to ms
+    const toMs = (value: bigint | number | null | undefined) => {
+      if (value === null || value === undefined) return null;
+      const numeric = Number(value);
+      return numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
+    };
+    const nowMs = Date.now();
+
+    type HistoryEvent = {
+      id: string;
+      type: 'issued' | 'added_to_wallet' | 'used_in_order' | 'order_reversal' | 'refund_restored' | 'refund_skipped_expired' | 'credit_expired' | 'promotion_redemption';
+      occurred_at: number | null;
+      amount: number | null;
+      balance_after: number | null;
+      order_id: number | null;
+      order_number: string | null;
+      order_status: string | null;
+      reference?: string | null;
+    };
+    const noOrder = { order_id: null, order_number: null, order_status: null };
+    const events: HistoryEvent[] = [{
+      id: `issued-${assignment.id}`,
+      type: 'issued',
+      occurred_at: toMs(assignment.createddate),
+      amount: null,
+      balance_after: null,
+      ...noOrder,
+    }];
+
+    let used = 0;
+    let held = 0;
+    if (credit) {
+      const original = Number(credit.original_amount);
+      const walletEvents: HistoryEvent[] = [{
+        id: `credit-${credit.id}`,
+        type: 'added_to_wallet',
+        occurred_at: toMs(assignment.claimed_at) ?? toMs(credit.createddate),
+        amount: original,
+        balance_after: null,
+        ...noOrder,
+      }];
+      // A completed cancellation refund also marks its reservation reversed; count it once (as the refund)
+      const refundedReservationIds = new Set(allocations
+        .filter((allocation) => allocation.status === 'completed' && allocation.reservationId
+          && operationById.get(allocation.refundOperationId)?.triggerType === 'cancellation')
+        .map((allocation) => allocation.reservationId));
+      for (const reservation of credit.reservations) {
+        const amount = Number(reservation.amount);
+        if (reservation.status === 'reserved' && toMs(reservation.expires_at)! > nowMs) held += amount;
+        if (!['consumed', 'reversed'].includes(reservation.status)) continue;
+        walletEvents.push({
+          id: `used-${reservation.id}`,
+          type: 'used_in_order',
+          occurred_at: toMs(reservation.consumed_at ?? reservation.createddate),
+          amount: -amount,
+          balance_after: null,
+          ...orderRef(reservation.order_id),
+        });
+        if (reservation.status === 'reversed' && !refundedReservationIds.has(reservation.id)) {
+          walletEvents.push({
+            id: `reversal-${reservation.id}`,
+            type: 'order_reversal',
+            occurred_at: toMs(reservation.reversed_at ?? reservation.createddate),
+            amount,
+            balance_after: null,
+            ...orderRef(reservation.order_id),
+          });
+        } else if (reservation.status === 'consumed') {
+          used += amount;
+        }
+      }
+      for (const allocation of allocations) {
+        const operation = operationById.get(allocation.refundOperationId);
+        const completed = allocation.status === 'completed';
+        walletEvents.push({
+          id: `refund-${allocation.id}`,
+          type: completed ? 'refund_restored' : 'refund_skipped_expired',
+          occurred_at: toMs(allocation.modifieddate),
+          amount: completed ? Number(allocation.amount) : null,
+          balance_after: null,
+          ...orderRef(operation?.orderId ?? null),
+          reference: operation ? `${operation.triggerType === 'cancellation' ? 'Cancellation' : 'Return'} refund ${operation.operationNumber}` : null,
+        });
+      }
+      walletEvents.sort((left, right) => (left.occurred_at ?? 0) - (right.occurred_at ?? 0));
+      let balance = 0;
+      for (const event of walletEvents) {
+        if (event.amount === null) continue;
+        balance = Math.max(0, Math.min(original, Math.round((balance + (event.amount ?? 0)) * 100) / 100));
+        event.balance_after = balance;
+      }
+      const expiresAt = toMs(credit.expires_at);
+      if (expiresAt !== null && expiresAt < nowMs && balance > 0) {
+        walletEvents.push({
+          id: `expired-${credit.id}`,
+          type: 'credit_expired',
+          occurred_at: expiresAt,
+          amount: -balance,
+          balance_after: 0,
+          ...noOrder,
+        });
+      }
+      events.push(...walletEvents);
+    }
+
+    for (const redemption of assignment.redemptions || []) {
+      events.push({
+        id: `redemption-${redemption.id}`,
+        type: 'promotion_redemption',
+        occurred_at: toMs(redemption.redeemed_at),
+        amount: redemption.discount_amount === null ? null : -Number(redemption.discount_amount),
+        balance_after: null,
+        ...(redemptionOrderId(redemption.order_id) !== null
+          ? orderRef(redemptionOrderId(redemption.order_id))
+          : { order_id: null, order_number: redemption.order_id || null, order_status: null }),
+      });
+    }
+
+    events.sort((left, right) => (left.occurred_at ?? 0) - (right.occurred_at ?? 0));
+    const refunded = allocations
+      .filter((allocation) => allocation.status === 'completed')
+      .reduce((sum, allocation) => sum + Number(allocation.amount), 0);
+    const creditExpired = Boolean(credit?.expires_at && toMs(credit.expires_at)! < nowMs);
+    return {
+      coupon: this.formatCoupon(assignment),
+      summary: credit
+        ? {
+            credited: Number(credit.original_amount),
+            used: Math.round(used * 100) / 100,
+            refunded: Math.round(refunded * 100) / 100,
+            balance: creditExpired ? 0 : Number(credit.remaining_amount),
+            held: Math.round(held * 100) / 100,
+            expired_amount: creditExpired ? Number(credit.remaining_amount) : 0,
+            credit_status: creditExpired ? 'expired' : credit.status,
+            expires_at: credit.expires_at,
+            minimum_cart_amount: Number(credit.minimum_cart_amount),
+          }
+        : null,
+      events,
     };
   }
 }

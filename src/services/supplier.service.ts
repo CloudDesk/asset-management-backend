@@ -19,7 +19,37 @@ import {
 import { NotFoundError, ValidationError } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
 
+export function buildDuplicateSupplierCodeError(suppliercode: string): ValidationError {
+  return new ValidationError(
+    `Supplier code '${suppliercode}' is already in use.`,
+    'Please enter a different supplier code. Each supplier needs its own code.',
+    ['suppliercode']
+  );
+}
+
+type SupplierCodeLookup = Pick<typeof prisma.supplier, 'findFirst'>;
+
 export class SupplierService {
+  constructor(private readonly supplierLookup: SupplierCodeLookup = prisma.supplier) {}
+
+  /**
+   * Reject a supplier code already used by a different supplier.
+   * Checked up front so create and update both return a friendly message
+   * (dynamicUpdate swallows raw SQL unique violations, which surfaced as a 500).
+   */
+  async assertSupplierCodeAvailable(suppliercode: unknown, excludeId?: string) {
+    if (typeof suppliercode !== 'string' || suppliercode === '') return;
+
+    const duplicate = await this.supplierLookup.findFirst({
+      where: excludeId ? { suppliercode, NOT: { id: Number(excludeId) } } : { suppliercode },
+      select: { id: true },
+    });
+
+    if (duplicate) {
+      throw buildDuplicateSupplierCodeError(suppliercode);
+    }
+  }
+
   /**
    * Find suppliers with dynamic filtering and pagination
    * Supports any field that exists in the database
@@ -105,6 +135,8 @@ export class SupplierService {
         );
       }
 
+      await this.assertSupplierCodeAvailable(data.suppliercode);
+
       const supplierData = {
         ...data,
         suppliertype: normalizedType
@@ -152,6 +184,8 @@ export class SupplierService {
           'Supplier phone number is mandatory for local suppliers'
         );
       }
+
+      await this.assertSupplierCodeAvailable(data.suppliercode, id);
 
       const supplierData = {
         ...data,

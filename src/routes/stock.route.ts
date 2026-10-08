@@ -1,6 +1,7 @@
 // src/routes/stock.route.ts
 import { FastifyInstance } from 'fastify';
 import { StockController } from '../controllers/stock.controller.js';
+import { formatBulkStockValidationError } from '../utils/stockBulkErrors.js';
 import { createStockSchema } from '../schemas/stock.schema.js';
 
 export async function stockRoutes(fastify: FastifyInstance) {
@@ -65,6 +66,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
                   id: { type: 'number', description: 'Stock ID' },
                   puc: { type: 'string', description: 'Product unique code' },
                   productname: { type: 'string', nullable: true, description: 'Product name' },
+                  productshortname: { type: 'string', nullable: true, description: 'Product short name' },
                   productcategory: { type: 'string', nullable: true, description: 'Product category' },
                   productsubcategory: { type: 'string', nullable: true, description: 'Product subcategory' },
                   productsubsubcategory: { type: 'string', nullable: true, description: 'Product subsubcategory' },
@@ -402,6 +404,7 @@ export async function stockRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/bulk-insert',
     {
+      schemaErrorFormatter: (errors) => formatBulkStockValidationError(errors),
       schema: {
         description: 'Create multiple stock entries in bulk with optimized batch processing and quantity-based expansion',
         tags: ['Stocks'],
@@ -577,6 +580,91 @@ export async function stockRoutes(fastify: FastifyInstance) {
 
 
 
+  // GET /v1/stocks/:id/damage-check - Can this stock be marked as damaged?
+  fastify.get('/:id/damage-check', {
+    schema: {
+      description: 'Check whether a stock can be marked as damaged, with current and resulting platform quantities',
+      tags: ['Stocks'],
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Stock ID' },
+        },
+        required: ['id'],
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: { type: 'object', additionalProperties: true },
+            message: { type: 'string' },
+          },
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        404: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+        500: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+          },
+        },
+      },
+    },
+  }, async (request: any, reply: any) => {
+    const { id } = request.params;
+    if (!/^\d+$/.test(id)) {
+      return reply.code(400).send({
+        success: false,
+        message: 'Invalid ID format. ID must be an integer.',
+        details: `The provided ID '${id}' is not a valid integer format.`,
+        statusCode: 400
+      });
+    }
+    try {
+      const damageCheck = await stockController.stockService.getDamageCheck(id);
+      return reply.code(200).send({
+        success: true,
+        message: 'Damage check completed',
+        data: damageCheck
+      });
+    } catch (error: any) {
+      if (error.message?.includes('not found')) {
+        return reply.code(404).send({
+          success: false,
+          message: `Stock with ID ${id} not found`,
+          details: 'The requested resource could not be found',
+          statusCode: 404
+        });
+      }
+      return reply.code(500).send({
+        success: false,
+        message: 'Internal server error',
+        details: 'Something went wrong on the server',
+        statusCode: 500
+      });
+    }
+  });
+
   // PUT /v1/stocks/:id - Update stock
   fastify.put('/:id', {
     schema: {
@@ -652,6 +740,16 @@ export async function stockRoutes(fastify: FastifyInstance) {
             statusCode: { type: 'number' },
           },
         },
+        409: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
+            data: { type: 'object', additionalProperties: true },
+          },
+        },
         500: {
           type: 'object',
           properties: {
@@ -689,6 +787,16 @@ export async function stockRoutes(fastify: FastifyInstance) {
       return reply.code(200).send(response);
     } catch (error: any) {
       console.log('=== STOCK PUT ERROR:', error.message);
+
+      if (error.code === 'DAMAGE_BLOCKED') {
+        return reply.code(409).send({
+          success: false,
+          message: error.message,
+          details: 'Stock cannot be marked as damaged while pending orders need it',
+          statusCode: 409,
+          data: error.damageCheck
+        });
+      }
 
       if (error.message.includes('not found')) {
         const errorResponse = {

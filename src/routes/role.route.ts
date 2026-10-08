@@ -63,6 +63,9 @@ export async function roleRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
             error: { type: 'string' },
           },
         },
@@ -70,6 +73,9 @@ export async function roleRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
             error: { type: 'string' },
           },
         },
@@ -105,6 +111,9 @@ export async function roleRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
             error: { type: 'string' },
           },
         },
@@ -147,6 +156,9 @@ export async function roleRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
             error: { type: 'string' },
           },
         },
@@ -195,6 +207,9 @@ export async function roleRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
             error: { type: 'string' },
           },
         },
@@ -202,6 +217,9 @@ export async function roleRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
             error: { type: 'string' },
           },
         },
@@ -237,6 +255,9 @@ export async function roleRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
             error: { type: 'string' },
           },
         },
@@ -244,6 +265,9 @@ export async function roleRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
+            statusCode: { type: 'number' },
             error: { type: 'string' },
           },
         },
@@ -316,6 +340,8 @@ export async function roleRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
+            message: { type: 'string' },
+            details: { type: 'string' },
             error: { type: 'string' },
             statusCode: { type: 'number' },
           },
