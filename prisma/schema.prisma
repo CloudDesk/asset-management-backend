@@ -296,6 +296,7 @@ model ReturnPolicyReasonRule {
 model ReturnRequest {
   id                              Int      @id @default(autoincrement())
   requestnumber                   String   @unique @db.VarChar(100)
+  groupnumber                     String?  @db.VarChar(100)
   orderid                         Int?
   orderlineid                     Int?
   customerid                      Int?
@@ -364,6 +365,7 @@ model ReturnRequest {
   @@index([reasoncode], map: "idx_return_requests_reasoncode")
   @@index([appliedPolicyId], map: "idx_return_requests_applied_policy_id")
   @@index([policyReasonRuleId], map: "idx_return_requests_policy_reason_rule_id")
+  @@index([groupnumber], map: "idx_return_requests_groupnumber")
   @@map("return_requests")
 }
 

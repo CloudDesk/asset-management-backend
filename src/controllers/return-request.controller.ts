@@ -9,6 +9,7 @@ import {
   createReturnCreditNoteSchema,
   createReturnRequestSchema,
   createRtoRequestSchema,
+  createReturnGroupRequestSchema,
   inspectReturnRequestSchema,
   markRtoReceivedSchema,
   markReturnReceivedSchema,
@@ -169,6 +170,13 @@ export class ReturnRequestController {
     return reply.code(201).send(createSuccessResponse('Return request created successfully', returnRequest));
   });
 
+  createGroupRequest = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const data = createReturnGroupRequestSchema.parse(request.body);
+    const result = await this.returnRequestService.createCustomerGroupRequest(data, request.user);
+
+    return reply.code(201).send(createSuccessResponse(`${result.requests.length} return requests created`, result));
+  });
+
   createRtoRequest = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
     const data = createRtoRequestSchema.parse(request.body);
     const returnRequest = await this.returnRequestService.createRtoRequest(data, request.user);
@@ -198,6 +206,30 @@ export class ReturnRequestController {
     const returnRequest = await this.returnRequestService.markRtoReceived(id, data, request.user);
 
     return reply.code(200).send(createSuccessResponse('RTO marked received at warehouse successfully', returnRequest));
+  });
+
+  approveGroup = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const { groupNumber } = request.params as { groupNumber: string };
+    const data = approveReturnRequestSchema.parse(request.body || {});
+    const requests = await this.returnRequestService.approveGroup(groupNumber, data, request.user);
+
+    return reply.code(200).send(createSuccessResponse('Return group approved successfully', requests));
+  });
+
+  rejectGroup = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const { groupNumber } = request.params as { groupNumber: string };
+    const data = rejectReturnRequestSchema.parse(request.body);
+    const requests = await this.returnRequestService.rejectGroup(groupNumber, data, request.user);
+
+    return reply.code(200).send(createSuccessResponse('Return group rejected successfully', requests));
+  });
+
+  prepareGroupPickup = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    const { groupNumber } = request.params as { groupNumber: string };
+    const data = preparePickupSchema.parse(request.body || {});
+    const requests = await this.returnRequestService.prepareGroupPickup(groupNumber, data, request.user);
+
+    return reply.code(200).send(createSuccessResponse('Group pickup prepared successfully', requests));
   });
 
   approveRequest = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
