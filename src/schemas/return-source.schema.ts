@@ -112,6 +112,21 @@ export const createReturnRequestSchema = z.object({
   'Provide policyreasonruleid, reasoncode, or reason'
 );
 
+// "Return / Replace all items" for one order: one reason, resolution and evidence; per-item quantity.
+export const createReturnGroupRequestSchema = z.object({
+  requesttype: z.enum(['return', 'replacement']),
+  reasoncode: z.string().trim().max(100).optional(),
+  reason: z.string().trim().min(1).max(255).optional(),
+  requestedresolution: requestedResolutionSchema,
+  ispackageopened: z.coerce.boolean().optional(),
+  additionalremarks: z.string().trim().max(3000).optional(),
+  attachments: z.array(returnRequestAttachmentInputSchema).default([]),
+  items: z.array(z.object({
+    orderlineid: z.coerce.number().int().positive(),
+    requestedquantity: z.coerce.number().int().positive().default(1),
+  })).min(2).max(50),
+}).refine((data) => data.reasoncode || data.reason, 'Provide reasoncode or reason');
+
 export const createRtoRequestSchema = z.object({
   orderid: z.coerce.number().int().positive().optional(),
   orderlineid: z.coerce.number().int().positive().optional(),
@@ -324,6 +339,7 @@ export type UpdateReturnReasonRuleInput = z.infer<typeof updateReturnReasonRuleS
 export type ReturnReasonRuleQuery = z.infer<typeof returnReasonRuleQuerySchema>;
 export type ReturnSourceParams = z.infer<typeof returnSourceParamsSchema>;
 export type CreateReturnRequestInput = z.infer<typeof createReturnRequestSchema>;
+export type CreateReturnGroupRequestInput = z.infer<typeof createReturnGroupRequestSchema>;
 export type CreateRtoRequestInput = z.infer<typeof createRtoRequestSchema>;
 export type UpdateRtoStatusInput = z.infer<typeof updateRtoStatusSchema>;
 export type MarkRtoReceivedInput = z.infer<typeof markRtoReceivedSchema>;

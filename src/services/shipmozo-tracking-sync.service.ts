@@ -5,6 +5,7 @@ import { prisma } from '../models/prisma.js';
 import { canApplyShipmozoStatus, normalizeShipmozoTracking } from '../utils/shipmozo-status.js';
 import { buildShipmozoPublicTrackingUrl, shipmozoService } from './shipmozo.service.js';
 import { customerEmailNotificationService } from './customer-email-notification.service.js';
+import { ReturnRequestService } from './return-request.service.js';
 
 const TERMINAL_STATUSES = new Set(['delivered', 'rto_delivered', 'cancelled', 'returned']);
 function parseHistory(value: unknown): any[] {
@@ -211,6 +212,15 @@ export class ShipmozoTrackingSyncService {
         });
       }
     });
+
+    if (statusChanged && (appliedStatus === 'rto_initiated' || appliedStatus === 'rto_delivered')) {
+      try {
+        const rto = await new ReturnRequestService().syncRtoFromCourier(order.id, appliedStatus, order.tracking_id);
+        logger.info({ orderId: order.id, appliedStatus, rto }, 'Courier RTO synced to RTO records');
+      } catch (error) {
+        logger.error({ error, orderId: order.id, appliedStatus }, 'Failed to sync courier RTO to RTO records');
+      }
+    }
 
     if (appliedStatus && statusChanged) {
       const kind = appliedStatus === 'delivered' ? 'delivery_confirmation' : 'shipment_update';

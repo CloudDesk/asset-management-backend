@@ -112,6 +112,23 @@ export class ReturnReplacementPolicyService {
 
     try {
       return await prisma.$transaction(async (tx: any) => {
+        // A deactivated policy still owns its scope key; creating the same scope again reactivates it with the new values.
+        const existing = await policyClientFor(tx).findUnique({ where: { scopekey: payload.scopekey } });
+        if (existing && !existing.isactive) {
+          const { createddate: _createddate, createdby: _createdby, ...reactivation } = payload;
+          const policy = await policyClientFor(tx).update({
+            where: { id: existing.id },
+            data: { ...reactivation, isactive: true, modifieddate: nowSeconds() },
+          });
+          await this.policyReasonRuleService.ensureDefaultMappingsForPolicy(policy.id, {
+            database: tx,
+            createdBy: policy.createdby || null,
+            modifiedBy: policy.modifiedby || policy.createdby || null,
+            timestamp: policy.modifieddate,
+          });
+          return this.findPolicyWithReasonMappings(policy.id, tx);
+        }
+
         const policy = await policyClientFor(tx).create({ data: payload });
         await this.policyReasonRuleService.ensureDefaultMappingsForPolicy(policy.id, {
           database: tx,
