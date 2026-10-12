@@ -8,6 +8,7 @@ import {
 } from '../utils/dynamicDbOperations.js';
 import { EkartService } from './ekart.service.js';
 import { prisma } from '../models/prisma.js';
+import { planOrderLineGstRefresh } from '../utils/orderLineGstRefresh.js';
 
 /**
  * GST/HSN Mapping Service
@@ -627,6 +628,58 @@ export class GstService {
         },
       });
     });
+  }
+
+  /**
+   * Recalculates GST on order lines whose amount changed after GST was first
+   * saved (a direct coupon spread onto the lines by createOrderAfterPayment),
+   * reusing the order's GST type. Unchanged lines and items_total are kept.
+   * Returns the number of lines recalculated.
+   */
+  async refreshOrderLineGst(orderId: number): Promise<number> {
+    const lines = await prisma.orderline.findMany({
+      where: { orderid: orderId },
+      orderBy: { id: 'asc' },
+      select: {
+        id: true, orderamount: true, gst_rate: true, hsn_code: true, taxable_amount: true,
+        cgst_amount: true, sgst_amount: true, igst_amount: true, total_gst_amount: true,
+      },
+    });
+    const value = (amount: unknown): number | null => amount === null || amount === undefined ? null : Number(amount);
+    const plan = planOrderLineGstRefresh(
+      lines.map((line) => ({
+        id: line.id,
+        orderamount: Number(line.orderamount ?? 0),
+        gst_rate: value(line.gst_rate),
+        hsn_code: line.hsn_code ?? null,
+        taxable_amount: value(line.taxable_amount),
+        cgst_amount: value(line.cgst_amount),
+        sgst_amount: value(line.sgst_amount),
+        igst_amount: value(line.igst_amount),
+        total_gst_amount: value(line.total_gst_amount),
+      })),
+      (orderamount, gstRate, gstType) => this.calculateGstAmounts(orderamount, gstRate, gstType),
+    );
+    if (!plan) return 0;
+    const currentTime = Date.now();
+    await prisma.$transaction(async (tx) => {
+      for (const { id, gst } of plan.lines) {
+        await tx.orderline.update({
+          where: { id },
+          data: {
+            taxable_amount: gst.taxable_amount,
+            cgst_amount: gst.cgst_amount,
+            sgst_amount: gst.sgst_amount,
+            igst_amount: gst.igst_amount,
+            total_gst_amount: gst.total_gst_amount,
+            modifieddate: currentTime,
+          },
+        });
+      }
+      await tx.orders.update({ where: { id: orderId }, data: { ...plan.totals, modifieddate: currentTime } });
+    });
+    logger.info({ orderId, linesRecalculated: plan.lines.length, totals: plan.totals }, 'Order line GST recalculated after line amounts changed');
+    return plan.lines.length;
   }
 
   /**

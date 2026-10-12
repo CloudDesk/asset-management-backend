@@ -4576,6 +4576,19 @@ export class PhonePeController {
               accumulatedShippingAmount + lineShippingCost
             );
           }
+
+          // GST was saved during order creation, before a direct coupon was
+          // spread onto the lines above. Recalculate the lines whose amount
+          // changed so taxable + GST equals the final line amount (invoices are
+          // generated later, at dispatch). A failure never blocks the order.
+          try {
+            await gstService.refreshOrderLineGst(order.id);
+          } catch (gstRefreshError: any) {
+            logger.warn(
+              { transactionId, orderId: order.id, error: gstRefreshError?.message },
+              "Order line GST refresh failed; GST stays as first calculated"
+            );
+          }
         } catch (updateError: any) {
           logger.warn(
             {
