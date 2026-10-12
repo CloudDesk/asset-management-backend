@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PromotionRuleV2Schema, type PromotionRuleV2 } from '../src/schemas/promotions-v2.schema.js';
 import { evaluatePromotionQuote, type PromotionCampaign, type PromotionCartLine } from '../src/services/promotion-v2-engine.js';
-import { convertLegacyPromotionRule } from '../src/utils/legacy-promotion-v2.js';
+import { convertLegacyPromotionRule, isWholeOrderPromotionType } from '../src/utils/legacy-promotion-v2.js';
+import { eligibilityCardCampaigns, getPromotionGroup } from '../src/utils/promotionGroup.js';
+import { isPromotionChannelEligible } from '../src/utils/promotionChannel.js';
 
 const line = (id: string, quantity: number, unitPricePaise: number, category = 'incense'): PromotionCartLine => ({
   id, quantity, unitPricePaise, stock: 100, facets: { CATEGORY: [category] },
@@ -759,4 +761,388 @@ test('identifies whole-order promotion types', async () => {
   for (const value of ['PERCENT_OFF_PRODUCTS', 'FIXED_AMOUNT_OFF_PRODUCTS', 'PERCENT_OFF_CATEGORIES', 'PERCENT_OFF_SUBCATEGORIES', 'FREE_PRODUCT', 'ENTIRE_CART']) {
     assert.equal(isWholeOrderPromotionType(value), false, value);
   }
+});
+
+// --- PLAN-2026-10-12-107: product promotions first, then cart promotions ---
+// Test data from the plan (amounts in paise). Campaigns get their group from
+// getPromotionGroup, as promotions-v2.service.ts does.
+const diffuserA = (quantity: number) => line('diffuser-a', quantity, 100_000, 'Diffusers');
+const diffuserB = (quantity: number) => line('diffuser-b', quantity, 80_000, 'Diffusers');
+const candle = (quantity: number) => line('candle', quantity, 50_000, 'Candles');
+const oil = (quantity: number) => line('oil', quantity, 30_000, 'Oils');
+
+const typed = (promotionId: number, type: string, promotionRule: PromotionRuleV2, extra: Partial<PromotionCampaign> = {}): PromotionCampaign => {
+  const group = getPromotionGroup({ type, rule: promotionRule });
+  return { ...campaign(promotionId, promotionRule, `P${promotionId}`), appliesToWholeOrder: isWholeOrderPromotionType(type), ...(group ? { group } : {}), ...extra };
+};
+// Admin templates save product promotions as non-stackable, items not reused.
+const templateStacking = { stackable: false, exclusive_group: 'MERCHANDISE_DISCOUNT', item_reuse: 'DISALLOW' as const, selection_strategy: 'BEST_CUSTOMER_VALUE' as const, priority: 1 };
+const productOffer = (
+  promotionId: number,
+  facet: 'PRODUCT' | 'CATEGORY' | 'SUBCATEGORY',
+  values: string[],
+  benefit: { type: 'PERCENT_OFF' | 'FIXED_AMOUNT_OFF'; value: number },
+  options: { minimumQuantity?: number; maximumDiscount?: number; stackable?: boolean; itemReuse?: 'ALLOW' | 'DISALLOW' } = {},
+): PromotionCampaign => typed(promotionId, 'PERCENT_OFF_ITEM', rule({
+  qualifier: {
+    scope: { include: [{ facet, values }], exclude: [], group_operator: 'OR' },
+    metric: 'ELIGIBLE_QUANTITY', aggregation: 'ACROSS_ELIGIBLE_PRODUCTS', minimum_quantity: options.minimumQuantity ?? 1,
+  },
+  benefit: { ...benefit, target: 'ALL_QUALIFYING_UNITS' },
+  limits: options.maximumDiscount !== undefined ? { maximum_discount_amount: options.maximumDiscount } : {},
+  stacking: { ...templateStacking, stackable: options.stackable ?? false, item_reuse: options.itemReuse ?? 'DISALLOW' },
+}));
+const cartPercent = (promotionId: number, percent: number, options: { maximumDiscountRupees?: number; stackable?: boolean } = {}): PromotionCampaign =>
+  typed(promotionId, 'PERCENT_OFF_CART', convertLegacyPromotionRule({
+    type: 'PERCENT_OFF_CART', conditions: [],
+    action: { type: 'PERCENT_OFF', value: percent, ...(options.maximumDiscountRupees ? { max_discount: options.maximumDiscountRupees } : {}) },
+    stackable: options.stackable ?? false,
+  }));
+const cartFixed = (promotionId: number, rupees: number, options: { minimumCartRupees?: number; stackable?: boolean } = {}): PromotionCampaign =>
+  typed(promotionId, 'FIXED_AMOUNT_OFF_CART', convertLegacyPromotionRule({
+    type: 'FIXED_AMOUNT_OFF_CART',
+    conditions: options.minimumCartRupees ? [{ attribute: 'cart.total_value', operator: 'GTE', value: String(options.minimumCartRupees) }] : [],
+    action: { type: 'FIXED_AMOUNT_OFF', value: rupees },
+    stackable: options.stackable ?? false,
+  }));
+
+const P1 = () => productOffer(1, 'CATEGORY', ['Diffusers'], { type: 'PERCENT_OFF', value: 25 }, { minimumQuantity: 2 });
+const P2 = () => cartPercent(2, 10);
+const P3 = () => cartFixed(3, 100);
+const P4 = () => productOffer(4, 'PRODUCT', ['candle'], { type: 'FIXED_AMOUNT_OFF', value: 5_000 });
+const P5 = () => productOffer(5, 'CATEGORY', ['Oils'], { type: 'PERCENT_OFF', value: 20 });
+const P6 = () => productOffer(6, 'PRODUCT', ['diffuser-a', 'candle'], { type: 'FIXED_AMOUNT_OFF', value: 10_000 });
+const P7 = () => cartFixed(7, 200, { minimumCartRupees: 2_500 });
+const P8 = () => cartPercent(8, 10, { maximumDiscountRupees: 30 });
+const P9 = () => cartPercent(9, 5);
+const P10 = () => cartFixed(10, 50);
+const P11 = () => productOffer(11, 'CATEGORY', ['Diffusers'], { type: 'PERCENT_OFF', value: 25 }, { minimumQuantity: 2, maximumDiscount: 30_000 });
+
+const savings = (quote: ReturnType<typeof evaluatePromotionQuote>): Record<number, number> =>
+  Object.fromEntries(quote.applied_promotions.map((item) => [item.promotion_id, item.saving]));
+const discountByProduct = (quote: ReturnType<typeof evaluatePromotionQuote>, promotionId?: number): Record<string, number> => {
+  const result: Record<string, number> = {};
+  for (const adjustment of quote.adjustments) {
+    if (promotionId !== undefined && adjustment.promotion_id !== promotionId) continue;
+    if (adjustment.type === 'FREE_SHIPPING' || !adjustment.product_id) continue;
+    result[adjustment.product_id] = (result[adjustment.product_id] ?? 0) + adjustment.amount;
+  }
+  return result;
+};
+const itemsHaveOwnOffer = (quote: ReturnType<typeof evaluatePromotionQuote>, promotionId: number): boolean =>
+  quote.rejected_candidates.some((item) => item.promotion_id === promotionId && item.reason_code === 'NO_ELIGIBLE_PRODUCTS' && item.details?.reason === 'ITEMS_HAVE_PRODUCT_PROMOTION');
+const rejectedWith = (quote: ReturnType<typeof evaluatePromotionQuote>, promotionId: number, reason: string): boolean =>
+  quote.rejected_candidates.some((item) => item.promotion_id === promotionId && item.reason_code === reason);
+
+test('getPromotionGroup maps the seven admin types', () => {
+  assert.equal(P1().group, 'PRODUCT');
+  assert.equal(P4().group, 'PRODUCT');
+  assert.equal(productOffer(12, 'SUBCATEGORY', ['reed'], { type: 'PERCENT_OFF', value: 10 }).group, 'PRODUCT');
+  assert.equal(P2().group, 'CART_PERCENT');
+  assert.equal(P3().group, 'CART_FIXED');
+  const freeShipping = convertLegacyPromotionRule({ type: 'FREE_SHIPPING', conditions: [], action: { type: 'FREE_SHIPPING', value: 0 } });
+  assert.equal(getPromotionGroup({ type: 'FREE_SHIPPING', rule: freeShipping }), 'SHIPPING');
+  // Records outside the seven types keep today's behaviour (no group).
+  const bogo = convertLegacyPromotionRule({ type: 'BOGO', conditions: [{ attribute: 'product.id', value: ['diffuser-a'] }], action: { type: 'BOGO', buy_quantity: 1, get_quantity: 1 } });
+  assert.equal(getPromotionGroup({ type: 'BOGO', rule: bogo }), undefined);
+  assert.equal(getPromotionGroup({ type: 'PERCENT_OFF_ITEM', rule: rule({}) }), undefined);
+});
+
+test('TC-P01 cart with only product-promotion items: percent cart offer not applied', () => {
+  const quote = evaluatePromotionQuote([diffuserA(2)], [P1(), P2(), P3()], []);
+  assert.deepEqual(savings(quote), { 1: 50_000, 3: 10_000 });
+  assert.equal(quote.discount_total, 60_000);
+  assert.ok(itemsHaveOwnOffer(quote, 2));
+});
+
+test('TC-P02 confirmed example: Rs. 650 discount, Rs. 1,850 payable', () => {
+  const quote = evaluatePromotionQuote([diffuserA(2), candle(1)], [P1(), P2(), P3()], []);
+  assert.deepEqual(savings(quote), { 1: 50_000, 2: 5_000, 3: 10_000 });
+  assert.deepEqual(quote.applied_promotions.map((item) => item.promotion_id), [1, 2, 3]);
+  assert.equal(quote.discount_total, 65_000);
+  assert.equal(quote.payable_total, 185_000);
+  assert.deepEqual(discountByProduct(quote, 2), { candle: 5_000 });
+});
+
+test('TC-P03 below the minimum quantity, the item gets the percent cart offer', () => {
+  const quote = evaluatePromotionQuote([diffuserA(1), candle(1)], [P1(), P2(), P3()], []);
+  assert.deepEqual(savings(quote), { 2: 15_000, 3: 10_000 });
+  assert.equal(quote.discount_total, 25_000);
+  assert.ok(rejectedWith(quote, 1, 'MINIMUM_QUANTITY_NOT_MET'));
+});
+
+test('TC-P04 minimum quantity is checked per product, not added up', () => {
+  const quote = evaluatePromotionQuote([diffuserA(1), diffuserB(1)], [P1(), P2()], []);
+  assert.deepEqual(savings(quote), { 2: 18_000 });
+  const missed = quote.rejected_candidates.filter((item) => item.promotion_id === 1 && item.reason_code === 'MINIMUM_QUANTITY_NOT_MET');
+  assert.deepEqual(missed.map((item) => item.details?.product_ids), [['diffuser-a'], ['diffuser-b']]);
+  assert.deepEqual(quote.next_tier_progress.filter((item) => item.promotion_id === 1).map((item) => item.remaining), [1, 1]);
+});
+
+test('TC-P05 one product meets the minimum, the other gets the percent cart offer', () => {
+  const quote = evaluatePromotionQuote([diffuserA(2), diffuserB(1)], [P1(), P2()], []);
+  assert.deepEqual(savings(quote), { 1: 50_000, 2: 8_000 });
+  assert.deepEqual(discountByProduct(quote, 1), { 'diffuser-a': 50_000 });
+  assert.deepEqual(discountByProduct(quote, 2), { 'diffuser-b': 8_000 });
+});
+
+test('TC-P06 several product promotions active, no item left for the percent cart offer', () => {
+  const quote = evaluatePromotionQuote([diffuserA(2), candle(1), oil(1)], [P1(), P4(), P5(), P2(), P3()], []);
+  assert.deepEqual(savings(quote), { 1: 50_000, 3: 10_000, 4: 5_000, 5: 6_000 });
+  assert.equal(quote.discount_total, 71_000);
+  assert.ok(itemsHaveOwnOffer(quote, 2));
+});
+
+test('TC-P07 Fixed Amount Off Selected Products with the percent cart offer', () => {
+  const quote = evaluatePromotionQuote([candle(1), oil(1)], [P4(), P2()], []);
+  assert.deepEqual(savings(quote), { 2: 3_000, 4: 5_000 });
+  assert.deepEqual(discountByProduct(quote, 2), { oil: 3_000 });
+});
+
+test('TC-P08 Fixed Amount Off Selected Products shared over two products', () => {
+  const quote = evaluatePromotionQuote([diffuserA(1), candle(1), oil(1)], [P6(), P2()], []);
+  assert.deepEqual(savings(quote), { 2: 3_000, 6: 10_000 });
+  assert.deepEqual(discountByProduct(quote, 6), { 'diffuser-a': 6_667, candle: 3_333 });
+  assert.deepEqual(discountByProduct(quote, 2), { oil: 3_000 });
+  assert.equal(quote.discount_total, 13_000);
+});
+
+test('TC-P09 only cart promotions', () => {
+  const quote = evaluatePromotionQuote([candle(1), oil(1)], [P2(), P3()], []);
+  assert.deepEqual(savings(quote), { 2: 8_000, 3: 10_000 });
+  assert.equal(quote.payable_total, 62_000);
+});
+
+test('TC-P10 minimum cart value is checked on the full cart value', () => {
+  const quote = evaluatePromotionQuote([diffuserA(2), candle(1)], [P1(), P2(), P7()], []);
+  assert.deepEqual(savings(quote), { 1: 50_000, 2: 5_000, 7: 20_000 });
+  assert.equal(quote.discount_total, 75_000);
+});
+
+test('TC-P11 maximum discount on a percent cart offer', () => {
+  const quote = evaluatePromotionQuote([candle(2), oil(1)], [P8()], []);
+  assert.deepEqual(savings(quote), { 8: 3_000 });
+});
+
+test('TC-P12 quantity change moves the item between offers', () => {
+  const one = evaluatePromotionQuote([diffuserA(1), candle(1)], [P1(), P2()], []);
+  assert.deepEqual(savings(one), { 2: 15_000 });
+  const two = evaluatePromotionQuote([diffuserA(2), candle(1)], [P1(), P2()], []);
+  assert.deepEqual(savings(two), { 1: 50_000, 2: 5_000 });
+  assert.equal(two.discount_total, 55_000);
+});
+
+test('TC-P13 shipping is only reduced by Free Shipping', () => {
+  const withoutFreeShipping = evaluatePromotionQuote([candle(1)], [P3()], [], { shippingAmount: 15_000 });
+  assert.equal(withoutFreeShipping.merchandise_payable, 40_000);
+  assert.equal(withoutFreeShipping.shipping_payable, 15_000);
+  const freeShipping = typed(13, 'FREE_SHIPPING', convertLegacyPromotionRule({ type: 'FREE_SHIPPING', conditions: [], action: { type: 'FREE_SHIPPING', value: 0 } }));
+  const withFreeShipping = evaluatePromotionQuote([candle(1)], [P3(), freeShipping], [], { shippingAmount: 15_000 });
+  assert.equal(withFreeShipping.merchandise_payable, 40_000);
+  assert.equal(withFreeShipping.shipping_payable, 0);
+  assert.equal(withFreeShipping.payable_total, 40_000);
+});
+
+test('TC-P14 same cart gives the same totals whatever the line or promotion order (web and mobile share this quote)', () => {
+  const web = evaluatePromotionQuote([diffuserA(2), candle(1)], [P1(), P2(), P3()], []);
+  const mobile = evaluatePromotionQuote([candle(1), diffuserA(2)], [P3(), P2(), P1()], []);
+  assert.equal(web.discount_total, 65_000);
+  assert.equal(mobile.discount_total, web.discount_total);
+  assert.equal(mobile.payable_total, web.payable_total);
+  assert.deepEqual(savings(mobile), savings(web));
+});
+
+test('TC-P15 existing records of the renamed types still load and apply', () => {
+  // Labels are admin-only; the stored types are unchanged.
+  assert.equal(isWholeOrderPromotionType('PERCENT_OFF_CART'), true);
+  assert.equal(isWholeOrderPromotionType('FIXED_AMOUNT_OFF_CART'), true);
+  const legacyPercent = cartPercent(15, 10);
+  const legacyFixed = cartFixed(16, 100);
+  const quote = evaluatePromotionQuote([candle(1), oil(1)], [legacyPercent, legacyFixed], []);
+  assert.deepEqual(savings(quote), { 15: 8_000, 16: 10_000 });
+});
+
+test('TC-P16 two percent cart offers both apply on items without a product promotion', () => {
+  const quote = evaluatePromotionQuote([diffuserA(2), candle(1)], [P1(), P2(), P9()], []);
+  assert.deepEqual(savings(quote), { 1: 50_000, 2: 5_000, 9: 2_500 });
+  assert.deepEqual(discountByProduct(quote, 9), { candle: 2_500 });
+  assert.equal(quote.discount_total, 57_500);
+});
+
+test('TC-P17 two fixed cart offers both apply on the full cart value', () => {
+  const quote = evaluatePromotionQuote([candle(1), oil(1)], [P3(), P10()], []);
+  assert.deepEqual(savings(quote), { 3: 10_000, 10: 5_000 });
+  assert.equal(quote.payable_total, 65_000);
+});
+
+test('TC-P18 click-to-apply and Use code promotions follow the same rules once selected', () => {
+  // The service only decides whether a manual promotion is included
+  // (selected id or matching code); the calculation is the same.
+  const clickToApply = productOffer(1, 'CATEGORY', ['Diffusers'], { type: 'PERCENT_OFF', value: 25 }, { minimumQuantity: 2 });
+  const useCode = cartPercent(2, 10);
+  const quote = evaluatePromotionQuote([diffuserA(2), candle(1)], [clickToApply, useCode, P3()], []);
+  assert.equal(quote.discount_total, 65_000);
+  assert.deepEqual(savings(quote), { 1: 50_000, 2: 5_000, 3: 10_000 });
+});
+
+test('TC-P19 maximum discount on a product promotion is for its total across items', () => {
+  const quote = evaluatePromotionQuote([diffuserA(2), diffuserB(2)], [P11()], []);
+  assert.deepEqual(savings(quote), { 11: 30_000 });
+  const byProduct = discountByProduct(quote, 11);
+  assert.deepEqual(Object.keys(byProduct).sort(), ['diffuser-a', 'diffuser-b']);
+  assert.equal(byProduct['diffuser-a']! + byProduct['diffuser-b']!, 30_000);
+});
+
+test('TC-N01 inactive or expired product promotion: item gets the percent cart offer', () => {
+  // activeCampaigns drops inactive / expired promotions before the engine.
+  const quote = evaluatePromotionQuote([diffuserA(2)], [P2(), P3()], []);
+  assert.deepEqual(savings(quote), { 2: 20_000, 3: 10_000 });
+  assert.equal(quote.discount_total, 30_000);
+});
+
+test('TC-N02 product promotion not on this channel: item gets the percent cart offer', () => {
+  assert.equal(isPromotionChannelEligible('web', 'mobile'), false);
+  const quote = evaluatePromotionQuote([diffuserA(2)], [P2(), P3()], []);
+  assert.equal(quote.discount_total, 30_000);
+});
+
+test('TC-N03 product promotion budget used up: item gets the percent cart offer', () => {
+  const exhausted = { ...P1(), remainingBudgetPaise: 100 };
+  const quote = evaluatePromotionQuote([diffuserA(2)], [exhausted, P2(), P3()], []);
+  assert.ok(rejectedWith(quote, 1, 'BUDGET_EXHAUSTED'));
+  assert.deepEqual(savings(quote), { 2: 20_000, 3: 10_000 });
+});
+
+test('TC-N04 customer not in the product promotion audience: item gets the percent cart offer', () => {
+  // activeCampaigns rejects the promotion as CUSTOMER_NOT_ELIGIBLE before the engine.
+  const quote = evaluatePromotionQuote([diffuserA(2)], [P2(), P3()], []);
+  assert.equal(quote.discount_total, 30_000);
+});
+
+test('TC-N05 product promotion with value 0 does not block the percent cart offer', () => {
+  // A Rs. 0 rule is refused by the V2 schema; a legacy Rs. 0 record fails the
+  // bridge and activeCampaigns skips it. Either way it never reaches the engine.
+  assert.throws(() => productOffer(20, 'PRODUCT', ['candle'], { type: 'FIXED_AMOUNT_OFF', value: 0 }));
+  assert.throws(() => convertLegacyPromotionRule({ type: 'FIXED_AMOUNT_OFF_ITEM', conditions: [{ attribute: 'product.id', value: ['candle'] }], action: { type: 'FIXED_AMOUNT_OFF', value: 0 } }));
+  const quote = evaluatePromotionQuote([candle(1)], [P2()], []);
+  assert.deepEqual(savings(quote), { 2: 5_000 });
+});
+
+test('TC-N06 product removed from cart', () => {
+  const quote = evaluatePromotionQuote([candle(1)], [P1(), P2()], []);
+  assert.deepEqual(savings(quote), { 2: 5_000 });
+  assert.ok(rejectedWith(quote, 1, 'NO_ELIGIBLE_PRODUCTS'));
+});
+
+test('TC-N07 minimum cart value not met', () => {
+  const quote = evaluatePromotionQuote([diffuserA(2)], [P1(), P7()], []);
+  assert.deepEqual(savings(quote), { 1: 50_000 });
+  assert.ok(rejectedWith(quote, 7, 'MINIMUM_VALUE_NOT_MET'));
+});
+
+test('TC-N08 Stackable off does not stop cart promotions applying with product promotions', () => {
+  const quote = evaluatePromotionQuote(
+    [diffuserA(2), candle(1)],
+    [P1(), cartPercent(2, 10, { stackable: false }), cartFixed(3, 100, { stackable: false })],
+    [],
+  );
+  assert.deepEqual(savings(quote), { 1: 50_000, 2: 5_000, 3: 10_000 });
+  assert.equal(quote.discount_total, 65_000);
+});
+
+test('TC-N09 every item has a product promotion', () => {
+  const quote = evaluatePromotionQuote([diffuserA(2), oil(1)], [P1(), P5(), P2()], []);
+  assert.deepEqual(savings(quote), { 1: 50_000, 5: 6_000 });
+  assert.ok(itemsHaveOwnOffer(quote, 2));
+});
+
+test('TC-N10 discounts larger than the cart stop at the cart value; shipping unchanged', () => {
+  const big = productOffer(21, 'PRODUCT', ['oil'], { type: 'FIXED_AMOUNT_OFF', value: 25_000 });
+  const quote = evaluatePromotionQuote([oil(1)], [big, P3()], [], { shippingAmount: 15_000 });
+  assert.deepEqual(savings(quote), { 3: 5_000, 21: 25_000 });
+  assert.equal(quote.merchandise_discount_total, 30_000);
+  assert.equal(quote.merchandise_payable, 0);
+  assert.equal(quote.shipping_payable, 15_000);
+  assert.ok(quote.adjustments.every((adjustment) => adjustment.payable_amount >= 0));
+});
+
+test('TC-N11 fixed cart share on an item already at Rs. 0 moves to other items', () => {
+  const full = productOffer(22, 'PRODUCT', ['oil'], { type: 'FIXED_AMOUNT_OFF', value: 30_000 });
+  const quote = evaluatePromotionQuote([oil(1), candle(1)], [full, P3()], []);
+  assert.deepEqual(savings(quote), { 3: 10_000, 22: 30_000 });
+  assert.deepEqual(discountByProduct(quote, 3), { candle: 10_000 });
+  assert.equal(quote.discount_total, 40_000);
+});
+
+test('TC-N12 odd prices round down to the paise and totals match exactly', () => {
+  const lines = [line('diffuser-a', 2, 33_333, 'Diffusers'), line('candle', 1, 33_333, 'Candles')];
+  const quote = evaluatePromotionQuote(lines, [P1(), P2(), P3()], []);
+  assert.deepEqual(savings(quote), { 1: 16_666, 2: 3_333, 3: 10_000 });
+  assert.equal(quote.discount_total, 29_999);
+  assert.equal(quote.payable_total, 70_000);
+  assert.ok(quote.adjustments.every((adjustment) => Number.isInteger(adjustment.amount)));
+  assert.equal(quote.adjustments.reduce((sum, adjustment) => sum + adjustment.amount, 0), quote.discount_total);
+  assert.equal(quote.merchandise_payable + quote.merchandise_discount_total, quote.merchandise_subtotal);
+});
+
+test('TC-N13 two product promotions on the same product: only the bigger saving applies', () => {
+  const category = productOffer(30, 'CATEGORY', ['Diffusers'], { type: 'PERCENT_OFF', value: 25 }, { stackable: true, itemReuse: 'ALLOW' });
+  const selected = productOffer(31, 'PRODUCT', ['diffuser-a'], { type: 'PERCENT_OFF', value: 10 }, { stackable: true, itemReuse: 'ALLOW' });
+  const quote = evaluatePromotionQuote([diffuserA(2)], [category, selected], []);
+  assert.deepEqual(savings(quote), { 30: 50_000 });
+  assert.ok(rejectedWith(quote, 31, 'CONFLICTED_WITH_BETTER_OFFER'));
+});
+
+test('TC-N14 a changed cart is priced again with new totals', () => {
+  // Payment refusal on a changed cart is enforced by checkout (SIT); the
+  // engine side is that a new quote reflects the new cart.
+  const before = evaluatePromotionQuote([diffuserA(2), candle(1)], [P1(), P2(), P3()], []);
+  const after = evaluatePromotionQuote([diffuserA(1), candle(1)], [P1(), P2(), P3()], []);
+  assert.notEqual(before.evaluation_id, after.evaluation_id);
+  assert.equal(before.payable_total, 185_000);
+  assert.equal(after.payable_total, 125_000);
+});
+
+test('TC-N15 percent cart card shows the saving the final price will give', () => {
+  const active = [P1(), P2(), P3()];
+  const percentCard = active.find((item) => item.promotionId === 2)!;
+  const cart = [diffuserA(2), candle(1)];
+  const alone = evaluatePromotionQuote(cart, [percentCard], []);
+  assert.equal(savings(alone)[2], 25_000);
+  const card = evaluatePromotionQuote(cart, eligibilityCardCampaigns(percentCard, active), []);
+  assert.equal(savings(card)[2], 5_000);
+  assert.deepEqual(eligibilityCardCampaigns(active[2]!, active).map((item) => item.promotionId), [3]);
+});
+
+test('TC-N16 item-wise amounts for the saved order', () => {
+  const quote = evaluatePromotionQuote([diffuserA(2), candle(1)], [P1(), P2(), P3()], []);
+  assert.deepEqual(discountByProduct(quote), { 'diffuser-a': 58_000, candle: 7_000 });
+  assert.deepEqual(discountByProduct(quote, 3), { 'diffuser-a': 8_000, candle: 2_000 });
+  assert.deepEqual(discountByProduct(quote, 2), { candle: 5_000 });
+  assert.equal(200_000 - 58_000, 142_000);
+  assert.equal(50_000 - 7_000, 43_000);
+  assert.equal(quote.payable_total, 185_000);
+});
+
+test('TC-N17 per-unit refund values from the item-wise amounts', () => {
+  // The return service refunds from the saved line amounts; here we check
+  // the line amounts it reads give Rs. 430 per Candle and Rs. 710 per Diffuser.
+  const quote = evaluatePromotionQuote([diffuserA(2), candle(1)], [P1(), P2(), P3()], []);
+  const discounts = discountByProduct(quote);
+  assert.equal((50_000 - discounts.candle!) / 1, 43_000);
+  assert.equal((200_000 - discounts['diffuser-a']!) / 2, 71_000);
+});
+
+test('TC-N18 percent cart offer reports why it was not applied (storefront message)', () => {
+  const quote = evaluatePromotionQuote([diffuserA(2)], [P1(), P2(), P3()], []);
+  const rejection = quote.rejected_candidates.find((item) => item.promotion_id === 2);
+  assert.deepEqual(rejection, { promotion_id: 2, reason_code: 'NO_ELIGIBLE_PRODUCTS', details: { reason: 'ITEMS_HAVE_PRODUCT_PROMOTION' } });
+});
+
+test('TC-N19 promotion amounts are unchanged before a wallet coupon is applied', () => {
+  // Wallet and direct coupons apply after promotions, on the remaining
+  // amount (checkout, SIT). The promotion quote gives Rs. 1,850.
+  const quote = evaluatePromotionQuote([diffuserA(2), candle(1)], [P1(), P2(), P3()], []);
+  assert.equal(quote.payable_total, 185_000);
+  assert.equal(quote.payable_total - 10_000, 175_000);
 });

@@ -13,8 +13,8 @@ const strings = (value: unknown): string[] => {
 };
 
 /**
- * Whole-order (cart-level) promotion types: Inventory Admin's "Fixed Amount
- * Off Entire Cart" and "Percent Off Entire Cart". Product/category/subcategory
+ * Whole-order (cart-level) promotion types: Inventory Admin's "Fixed amount
+ * of entire cart value" and "Percent of entire cart value". Product/category/subcategory
  * templates are saved as *_ITEM and BOGO/free product/free shipping keep their
  * own handling. The V2 rule format does not record this, so the V2 engine
  * receives it as a campaign flag (appliesToWholeOrder). Explicit list on

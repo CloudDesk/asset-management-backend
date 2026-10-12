@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { PromotionBenefit, PromotionRuleV2 } from '../schemas/promotions-v2.schema.js';
+import type { PromotionGroup } from '../utils/promotionGroup.js';
 
 export type PromotionChannel = 'web' | 'mobile' | 'nivapp' | 'amazon' | 'flipkart' | 'instore';
 
@@ -35,6 +36,14 @@ export interface PromotionCampaign {
    * keep only the shares on items no other offer discounted (a partial amount).
    */
   appliesToWholeOrder?: boolean;
+  /**
+   * Calculation group (PLAN-2026-10-12-107, see getPromotionGroup). PRODUCT
+   * promotions are worked out first with a per-item minimum quantity; the
+   * CART_PERCENT promotion then applies only to items without one, and
+   * CART_FIXED to the full cart. Cart promotions never block product
+   * promotions or each other. Omitted keeps the earlier behaviour.
+   */
+  group?: PromotionGroup;
 }
 
 export interface PromotionAdjustment {
@@ -142,6 +151,12 @@ function thresholdFor(rule: PromotionRuleV2): number {
   return rule.qualifier.minimum_quantity ?? 1;
 }
 
+function hasPerItemMinimumQuantity(campaign: PromotionCampaign): boolean {
+  return campaign.group === 'PRODUCT' &&
+    !campaign.rule.tiers.length &&
+    (campaign.rule.qualifier.metric === 'ELIGIBLE_QUANTITY' || campaign.rule.qualifier.metric === 'PER_PRODUCT_QUANTITY');
+}
+
 function matchingBenefit(rule: PromotionRuleV2, metric: number): { benefit?: PromotionBenefit | undefined; minimum: number; next?: number | undefined } {
   if (rule.tiers.length) {
     const matched = [...rule.tiers].reverse().find((tier) => metric >= tier.minimum);
@@ -161,10 +176,14 @@ function unitKeys(lines: PromotionCartLine[], maximum?: number): Set<string> {
   return result;
 }
 
+const isCartGroup = (campaign: PromotionCampaign): boolean =>
+  campaign.group === 'CART_FIXED' || campaign.group === 'CART_PERCENT';
+
 function atomicCandidates(candidate: Candidate): Candidate[] {
   if (
     candidate.globalExclusive ||
     candidate.campaign.appliesToWholeOrder === true ||
+    isCartGroup(candidate.campaign) ||
     candidate.adjustments.some((adjustment) => adjustment.type === 'FREE_ITEM' || adjustment.type === 'FREE_SHIPPING')
   ) return [candidate];
   const result: Candidate[] = [];
@@ -342,6 +361,12 @@ function buildCandidate(
 }
 
 function candidatesConflict(left: Candidate, right: Candidate): boolean {
+  // Product promotions on different items never block each other. On the
+  // same item only the bigger saving applies, whatever the Stackable switch
+  // says, so an item never gets two product promotions.
+  if (left.campaign.group === 'PRODUCT' && right.campaign.group === 'PRODUCT') {
+    return [...left.consumedUnits].some((unit) => right.consumedUnits.has(unit));
+  }
   if (left.campaign.rule.stacking.stackable && right.campaign.rule.stacking.stackable) return false;
   if (left.campaign.rule.stacking.exclusive_group !== right.campaign.rule.stacking.exclusive_group) return false;
   if (left.globalExclusive || right.globalExclusive) return true;
@@ -415,7 +440,12 @@ function capSelectedCandidates(
   const selectedOrder = new Map(
     selected.map((candidate, index) => [candidate.campaign.promotionId, index]),
   );
+  // Cart promotions take what is left after the product promotions: the
+  // percent one next, the fixed one last so it can move shares around.
+  const capOrder = (candidate: Candidate): number =>
+    candidate.campaign.group === 'CART_FIXED' ? 2 : candidate.campaign.group === 'CART_PERCENT' ? 1 : 0;
   const ranked = [...selected].sort((left, right) =>
+    capOrder(left) - capOrder(right) ||
     right.saving - left.saving ||
     right.campaign.rule.stacking.priority - left.campaign.rule.stacking.priority ||
     left.campaign.promotionId - right.campaign.promotionId
@@ -442,6 +472,28 @@ function capSelectedCandidates(
         ? [{ ...adjustment, amount, payable_amount: Math.max(0, adjustment.list_amount - amount) }]
         : [];
     });
+    if (candidate.campaign.group === 'CART_FIXED') {
+      // The fixed cart amount is one amount for the order. A share an item
+      // cannot take (already at Rs. 0) moves to the other items.
+      let shortfall = candidate.saving - adjustments.reduce((sum, adjustment) => sum + adjustment.amount, 0);
+      for (const original of candidate.adjustments) {
+        if (shortfall <= 0) break;
+        const key = adjustmentLineKey(original);
+        if (!key) continue;
+        const remaining = Math.max(0, remainingByLine.get(key) ?? 0);
+        const extra = Math.min(shortfall, remaining);
+        if (extra <= 0) continue;
+        remainingByLine.set(key, remaining - extra);
+        shortfall -= extra;
+        const existing = adjustments.find((adjustment) => adjustmentLineKey(adjustment) === key);
+        if (existing) {
+          existing.amount += extra;
+          existing.payable_amount = Math.max(0, existing.list_amount - existing.amount);
+        } else {
+          adjustments.push({ ...original, amount: extra, payable_amount: Math.max(0, original.list_amount - extra) });
+        }
+      }
+    }
     const saving = adjustments.reduce((sum, adjustment) => sum + adjustment.amount, 0);
     return saving > 0 ? [{ ...candidate, adjustments, saving }] : [];
   });
@@ -467,11 +519,27 @@ export function evaluatePromotionQuote(
   const progress: PromotionNextTierProgress[] = [];
   const giftChoices: Array<{ promotion_id: number; product_ids: string[] }> = [];
 
-  for (const campaign of [...campaigns].sort((a, b) => a.promotionId - b.promotionId)) {
+  const collect = (campaign: PromotionCampaign, scopeLines: PromotionCartLine[]): void => {
     const candidateStart = candidates.length;
-    const eligible = lines.filter((line) => isLineInPromotionScope(line, campaign.rule));
-    if (!eligible.length) { rejected.push({ promotion_id: campaign.promotionId, reason_code: 'NO_ELIGIBLE_PRODUCTS' }); continue; }
-    for (const bucket of qualificationBuckets(campaign.rule, eligible)) {
+    const eligible = scopeLines.filter((line) => isLineInPromotionScope(line, campaign.rule));
+    if (!eligible.length) { rejected.push({ promotion_id: campaign.promotionId, reason_code: 'NO_ELIGIBLE_PRODUCTS' }); return; }
+    let buckets = qualificationBuckets(campaign.rule, eligible);
+    if (hasPerItemMinimumQuantity(campaign)) {
+      // A product promotion's minimum quantity is met by each item on its
+      // own; other items' quantities do not count. The qualifying items then
+      // share one promotion (one fixed amount, one maximum discount).
+      const required = thresholdFor(campaign.rule);
+      const quantities = new Map<string, number>();
+      for (const line of eligible) quantities.set(line.id, (quantities.get(line.id) ?? 0) + line.quantity);
+      for (const [productId, quantity] of [...quantities].sort(([a], [b]) => a.localeCompare(b))) {
+        if (quantity >= required) continue;
+        progress.push({ promotion_id: campaign.promotionId, current: quantity, next_minimum: required, remaining: required - quantity, metric: campaign.rule.qualifier.metric });
+        rejected.push({ promotion_id: campaign.promotionId, reason_code: 'MINIMUM_QUANTITY_NOT_MET', details: { current: quantity, required, remaining: required - quantity, product_ids: [productId] } });
+      }
+      const qualifying = eligible.filter((line) => (quantities.get(line.id) ?? 0) >= required);
+      buckets = qualifying.length ? [qualifying] : [];
+    }
+    for (const bucket of buckets) {
       const metric = metricValue(campaign.rule, bucket, lines, shippingAmount);
       const match = matchingBenefit(campaign.rule, metric);
       if (match.next !== undefined) progress.push({ promotion_id: campaign.promotionId, current: metric, next_minimum: match.next, remaining: match.next - metric, metric: campaign.rule.qualifier.metric });
@@ -505,10 +573,41 @@ export function evaluatePromotionQuote(
         },
       });
     }
-  }
+  };
 
-  const nominalSelected = optimise(candidates);
-  const selected = capSelectedCandidates(nominalSelected, lines, shippingAmount);
+  const ordered = [...campaigns].sort((a, b) => a.promotionId - b.promotionId);
+  // 1. Product, shipping and other promotions (and the fixed cart amount,
+  //    which is worked out on the full cart).
+  for (const campaign of ordered) if (campaign.group !== 'CART_PERCENT') collect(campaign, lines);
+  const nominalSelected = optimise(candidates.filter((candidate) => !isCartGroup(candidate.campaign)));
+  // 2. The percent cart promotion applies only to items that did not get a
+  //    product promotion in step 1.
+  const productLineKeys = new Set(nominalSelected
+    .filter((candidate) => candidate.campaign.group === 'PRODUCT')
+    .flatMap((candidate) => candidate.adjustments.map(adjustmentLineKey))
+    .filter((key): key is string => key !== undefined));
+  const linesWithoutProductPromotion = lines.filter((line) => !productLineKeys.has(lineBalanceKey(line)));
+  for (const campaign of ordered) {
+    if (campaign.group !== 'CART_PERCENT') continue;
+    const inScope = lines.filter((line) => isLineInPromotionScope(line, campaign.rule));
+    if (inScope.length && inScope.every((line) => productLineKeys.has(lineBalanceKey(line)))) {
+      rejected.push({ promotion_id: campaign.promotionId, reason_code: 'NO_ELIGIBLE_PRODUCTS', details: { reason: 'ITEMS_HAVE_PRODUCT_PROMOTION' } });
+      continue;
+    }
+    collect(campaign, linesWithoutProductPromotion);
+  }
+  // 3. All qualifying cart promotions apply together with the product
+  //    promotions; the capping pass keeps the total within the cart value.
+  const selected = capSelectedCandidates(
+    [
+      ...nominalSelected,
+      ...candidates
+        .filter((candidate) => isCartGroup(candidate.campaign))
+        .sort((a, b) => a.campaign.promotionId - b.campaign.promotionId),
+    ],
+    lines,
+    shippingAmount,
+  );
   const selectedIds = new Set(selected.map((candidate) => candidate.campaign.promotionId));
   for (const candidate of candidates) {
     if (!selectedIds.has(candidate.campaign.promotionId) && !rejected.some((item) => item.promotion_id === candidate.campaign.promotionId && item.reason_code === 'CONFLICTED_WITH_BETTER_OFFER')) {
