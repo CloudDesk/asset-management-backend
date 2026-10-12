@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PromotionRuleV2Schema, type PromotionRuleV2 } from '../src/schemas/promotions-v2.schema.js';
 import { evaluatePromotionQuote, type PromotionCampaign, type PromotionCartLine } from '../src/services/promotion-v2-engine.js';
-import { convertLegacyPromotionRule, isWholeOrderPromotionType } from '../src/utils/legacy-promotion-v2.js';
+import { convertLegacyPromotionRule, isWholeOrderPromotionType, retireRuleVersionsForTypeDecidedPromotion } from '../src/utils/legacy-promotion-v2.js';
 import { eligibilityCardCampaigns, getPromotionGroup } from '../src/utils/promotionGroup.js';
 import { isPromotionChannelEligible } from '../src/utils/promotionChannel.js';
 
@@ -1145,4 +1145,30 @@ test('TC-N19 promotion amounts are unchanged before a wallet coupon is applied',
   const quote = evaluatePromotionQuote([diffuserA(2), candle(1)], [P1(), P2(), P3()], []);
   assert.equal(quote.payable_total, 185_000);
   assert.equal(quote.payable_total - 10_000, 175_000);
+});
+
+test('saving a cart or Free Shipping promotion retires its leftover V2 rules', async () => {
+  const calls: Array<{ where: Record<string, unknown>; data: Record<string, unknown> }> = [];
+  const db = { promotionRuleVersion: { updateMany: async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => { calls.push(args); return { count: 2 }; } } };
+  // Promotion 75: saved as Percent of entire cart value, still holding an old category rule.
+  assert.equal(await retireRuleVersionsForTypeDecidedPromotion(db, 75, 'PERCENT_OFF_CART'), 2);
+  assert.deepEqual(calls[0]?.where, { promotionId: 75, status: { in: ['draft', 'published'] } });
+  assert.equal(calls[0]?.data.status, 'retired');
+  assert.equal(typeof calls[0]?.data.modifiedAt, 'bigint');
+  assert.equal(await retireRuleVersionsForTypeDecidedPromotion(db, 76, 'fixed_amount_off_cart'), 2);
+  assert.equal(await retireRuleVersionsForTypeDecidedPromotion(db, 77, 'FREE_SHIPPING'), 2);
+  // Product / category / subcategory promotions keep their V2 rule.
+  for (const type of ['PERCENT_OFF_ITEM', 'FIXED_AMOUNT_OFF_ITEM', 'BOGO', null, undefined]) {
+    assert.equal(await retireRuleVersionsForTypeDecidedPromotion(db, 78, type), 0);
+  }
+  assert.equal(calls.length, 3);
+});
+
+test('a retired leftover rule hands pricing back to the saved cart fields', () => {
+  // After retiring, activeCampaigns bridges the promotion from its own fields:
+  // Percent of entire cart value with no conditions covers the whole cart.
+  const bridged = convertLegacyPromotionRule({ type: 'PERCENT_OFF_CART', conditions: [], action: { type: 'PERCENT_OFF', value: 10 }, stackable: true });
+  assert.deepEqual(bridged.qualifier.scope.include, [{ facet: 'ENTIRE_CART', values: ['*'] }]);
+  const quote = evaluatePromotionQuote([candle(1), oil(1)], [typed(75, 'PERCENT_OFF_CART', bridged)], []);
+  assert.deepEqual(savings(quote), { 75: 8_000 });
 });

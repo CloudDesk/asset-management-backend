@@ -31,7 +31,7 @@ function parseCachedRule(checksum: string, value: Prisma.JsonValue): PromotionRu
 export class PromotionsV2Service {
   async getLatestRule(promotionId: number): Promise<{ version: number; status: string; rule: PromotionRuleV2 } | null> {
     const version = await prisma.promotionRuleVersion.findFirst({
-      where: { promotionId },
+      where: { promotionId, status: { not: 'retired' } },
       orderBy: { version: 'desc' },
     });
     if (!version) return null;
@@ -176,12 +176,14 @@ export class PromotionsV2Service {
 
   async simulate(promotionId: number, request: unknown): Promise<PromotionQuote> {
     const parsed = PromotionQuoteRequestSchema.parse(request);
-    const version = await prisma.promotionRuleVersion.findFirst({ where: { promotionId }, orderBy: { version: 'desc' }, include: { promotion: true } });
-    if (!version) throw new Error('No rule version exists for this promotion');
+    // Same rule live pricing uses: the latest non-retired version, otherwise
+    // the promotion's own fields through the legacy bridge.
+    const version = await prisma.promotionRuleVersion.findFirst({ where: { promotionId, status: { not: 'retired' } }, orderBy: { version: 'desc' } });
+    const promotion = await prisma.promotions.findUniqueOrThrow({ where: { id: promotionId } });
     const hydrated = await this.hydrateCart(parsed);
-    const rule = PromotionRuleV2Schema.parse(version.ruleJson);
-    const group = getPromotionGroup({ type: version.promotion.type, rule });
-    const campaigns: PromotionCampaign[] = [{ promotionId, ruleVersion: version.version, name: version.promotion.name ?? `Promotion ${promotionId}`, rule, appliesToWholeOrder: isWholeOrderPromotionType(version.promotion.type), ...(group ? { group } : {}) }];
+    const rule = version ? PromotionRuleV2Schema.parse(version.ruleJson) : convertLegacyPromotionRule(promotion);
+    const group = getPromotionGroup({ type: promotion.type, rule });
+    const campaigns: PromotionCampaign[] = [{ promotionId, ruleVersion: version?.version ?? 0, name: promotion.name ?? `Promotion ${promotionId}`, rule, appliesToWholeOrder: isWholeOrderPromotionType(promotion.type), ...(group ? { group } : {}) }];
     const catalog = await this.hydrateRewardCatalog(campaigns, hydrated.catalog, parsed.channel);
     return evaluatePromotionQuote(hydrated.lines, campaigns, catalog, { shippingAmount: parsed.shipping_amount, rewardSelections: parsed.reward_selections });
   }
