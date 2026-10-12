@@ -397,4 +397,4 @@ export async function inventoryUsersRoutes(fastify: FastifyInstance) {
       },
     },
   }, inventoryUsersController.upsertInventoryUser.bind(inventoryUsersController));
-} 
+}

@@ -5,6 +5,7 @@ import {
   CompleteReturnResolutionInput,
   CreateReturnCreditNoteInput,
   CreateReturnRequestInput,
+  CreateReturnGroupRequestInput,
   CreateRtoRequestInput,
   InspectReturnRequestInput,
   MarkReturnReceivedInput,
@@ -103,6 +104,8 @@ const NON_CONSUMING_STATUSES = new Set([
   'evidence_rejected',
   'inspection_rejected',
 ]);
+
+const GROUP_REJECTED_STATUSES = new Set(['rejected', 'evidence_rejected', 'inspection_rejected', 'cancelled']);
 
 const RTO_TRANSITIONS: Record<string, string[]> = {
   delivery_failed: ['rto_initiated'],
@@ -329,6 +332,25 @@ function getEvidenceRules(reasonRule: any): Array<{ type: string; required: bool
 
 function hasRequiredEvidenceRules(reasonRule: any) {
   return getEvidenceRules(reasonRule).some((rule) => rule.required && rule.minimum > 0);
+}
+
+const DEFAULT_RETURN_EVIDENCE_MAX_PHOTOS = 5;
+
+// Photos (every non-video evidence type) allowed per request; override with RETURN_EVIDENCE_MAX_PHOTOS.
+function getReturnEvidenceMaxPhotos() {
+  const configured = Number(process.env.RETURN_EVIDENCE_MAX_PHOTOS);
+  return Number.isInteger(configured) && configured > 0 ? configured : DEFAULT_RETURN_EVIDENCE_MAX_PHOTOS;
+}
+
+function countEvidencePhotos(attachments: Array<{ attachmenttype: string }>) {
+  return attachments.filter((attachment) => normalizeEvidenceAttachmentType(attachment.attachmenttype) !== 'defect_video').length;
+}
+
+function assertEvidencePhotoLimit(photoCount: number) {
+  const maxPhotos = getReturnEvidenceMaxPhotos();
+  if (photoCount > maxPhotos) {
+    throw new ValidationError('Too many photos', `You can upload up to ${maxPhotos} photos per request`);
+  }
 }
 
 function countAttachmentsByType(attachments: Array<{ attachmenttype: string }>) {
@@ -685,8 +707,15 @@ export class ReturnRequestService {
     ];
 
     rows.forEach((row) => {
+      // Raw SQL returns Decimal objects; ExcelJS would write them as quoted text, so Finance could not sum them.
+      const numericRow = Object.fromEntries(Object.entries(row).map(([key, value]) => [
+        key,
+        value && typeof value === 'object' && typeof (value as any).toNumber === 'function'
+          ? (value as any).toNumber()
+          : typeof value === 'bigint' ? Number(value) : value,
+      ]));
       worksheet.addRow({
-        ...row,
+        ...numericRow,
         created_date: formatExcelDate(row.createddate),
         issued_date: row.issueddate ? formatExcelDate(row.issueddate) : '',
         gst_reversal_applicable: row.gst_reversal_applicable ? 'Yes' : 'No',
@@ -727,6 +756,66 @@ export class ReturnRequestService {
   }
 
   async createCustomerRequest(data: CreateReturnRequestInput, authUser?: AuthUser) {
+    const prepared = await this.prepareCustomerRequest(data, authUser);
+    const createdRequest = await prisma.$transaction((tx: any) => this.insertPreparedCustomerRequest(tx, prepared, data, authUser));
+    await this.notifyCustomerReturnStatus(createdRequest, createdRequest.status);
+    return createdRequest;
+  }
+
+  // "Return / Replace all items": one reason, resolution and evidence for several order lines of the same
+  // order. Every item is validated first, then all requests are created in one transaction (all or none)
+  // and share a group number. Refunds, inspection and credit notes stay per item.
+  async createCustomerGroupRequest(data: CreateReturnGroupRequestInput, authUser?: AuthUser) {
+    const orderlineIds = data.items.map((item) => Number(item.orderlineid));
+    if (new Set(orderlineIds).size !== orderlineIds.length) {
+      throw new ValidationError('Duplicate items', 'Each order item can be included only once');
+    }
+
+    const itemInputs: CreateReturnRequestInput[] = data.items.map((item) => ({
+      orderlineid: item.orderlineid,
+      requesttype: data.requesttype,
+      reasoncode: data.reasoncode,
+      reason: data.reason,
+      requestedquantity: item.requestedquantity,
+      requestedresolution: data.requestedresolution,
+      ispackageopened: data.ispackageopened,
+      additionalremarks: data.additionalremarks,
+      attachments: data.attachments,
+    } as CreateReturnRequestInput));
+
+    const preparedItems: Array<Awaited<ReturnType<ReturnRequestService['prepareCustomerRequest']>>> = [];
+    for (const itemInput of itemInputs) {
+      try {
+        preparedItems.push(await this.prepareCustomerRequest(itemInput, authUser));
+      } catch (error: any) {
+        const line = await (prisma as any).orderline.findUnique({ where: { id: itemInput.orderlineid }, select: { productname: true } }).catch(() => null);
+        const label = line?.productname || `item ${itemInput.orderlineid}`;
+        throw new ValidationError(error?.message || 'Item cannot be returned', `${label}: ${error?.details || error?.message || 'not eligible'}`);
+      }
+    }
+
+    const orderIds = new Set(preparedItems.map((item) => Number(item.orderline.orderid)));
+    if (orderIds.size !== 1) {
+      throw new ValidationError('Items from different orders', 'Return all items works for items of one order');
+    }
+
+    const groupNumber = generateRequestNumber(data.requesttype === 'replacement' ? 'REPG' : 'RETG');
+    const createdRequests = await prisma.$transaction(async (tx: any) => {
+      const created: any[] = [];
+      for (let index = 0; index < preparedItems.length; index += 1) {
+        created.push(await this.insertPreparedCustomerRequest(tx, preparedItems[index]!, itemInputs[index]!, authUser, groupNumber));
+      }
+      return created;
+    }, { timeout: 30000 });
+
+    for (const request of createdRequests) {
+      await this.notifyCustomerReturnStatus(request, request.status);
+    }
+
+    return { groupnumber: groupNumber, requests: createdRequests };
+  }
+
+  private async prepareCustomerRequest(data: CreateReturnRequestInput, authUser?: AuthUser) {
     const orderline = await (prisma as any).orderline.findUnique({
       where: { id: data.orderlineid },
       include: { product: true, orders: true },
@@ -777,12 +866,24 @@ export class ReturnRequestService {
 
     await this.validateQuantity(data.orderlineid, data.requestedquantity, orderline.quantity || 1);
 
+    return { orderline, eligibility, mapping, reasonRule };
+  }
+
+  private async insertPreparedCustomerRequest(
+    tx: any,
+    prepared: { orderline: any; eligibility: any; mapping: any; reasonRule: any },
+    data: CreateReturnRequestInput,
+    authUser?: AuthUser,
+    groupNumber: string | null = null
+  ) {
+    const { orderline, eligibility, mapping, reasonRule } = prepared;
     const timestamp = nowSeconds();
     const requestNumber = generateRequestNumber(data.requesttype === 'replacement' ? 'REP' : 'RET');
     const pickupRequired = reasonRule.pickuprequired || data.requestedresolution === 'complete_return';
 
     const requestPayload = {
       requestnumber: requestNumber,
+      groupnumber: groupNumber,
       orderid: orderline.orderid,
       orderlineid: orderline.id,
       customerid: orderline.userid,
@@ -823,7 +924,7 @@ export class ReturnRequestService {
       modifieddate: timestamp,
     };
 
-    const createdRequest = await prisma.$transaction(async (tx: any) => {
+    {
       const created = await tx.returnRequest.create({ data: requestPayload });
       await this.recordStatusTimeline(tx, {
         returnRequestId: created.id,
@@ -836,6 +937,7 @@ export class ReturnRequestService {
           requestType: created.requesttype,
           requestedResolution: created.requestedresolution,
           policyReasonRuleId: mapping.id,
+          groupNumber,
         },
         timestamp,
       });
@@ -868,11 +970,7 @@ export class ReturnRequestService {
         where: { id: created.id },
         include: RETURN_REQUEST_INCLUDE,
       });
-    });
-
-    await this.notifyCustomerReturnStatus(createdRequest, createdRequest.status);
-
-    return createdRequest;
+    }
   }
 
   async createRtoRequest(data: CreateRtoRequestInput, authUser?: AuthUser) {
@@ -929,6 +1027,53 @@ export class ReturnRequestService {
     });
 
     return this.findById(created.id.toString());
+  }
+
+  // Courier reported RTO on the forward shipment: open an RTO record per order line (once) and move it to
+  // rto_received when the courier delivers it back. Stock and refund still wait for manual warehouse verification.
+  async syncRtoFromCourier(orderId: number, courierStatus: 'rto_initiated' | 'rto_delivered', trackingId?: string | null) {
+    const targetStatus = courierStatus === 'rto_delivered' ? 'rto_received' : 'rto_initiated';
+    const orderlines = await (prisma as any).orderline.findMany({ where: { orderid: orderId } });
+    const results: Array<{ orderlineId: number; action: string; requestId?: number }> = [];
+
+    for (const line of orderlines) {
+      if (String(line.orderstatus || '').toLowerCase() === 'cancelled') continue;
+      const existing = await requestClient().findFirst({
+        where: { orderlineid: line.id, requesttype: 'rto' },
+        orderBy: { id: 'desc' },
+      });
+
+      if (!existing) {
+        const created = await this.createRtoRequest({
+          orderid: orderId,
+          orderlineid: line.id,
+          trackingid: trackingId || undefined,
+          reasoncode: 'delivery_failed',
+          reason: 'Delivery failed - returned by courier',
+          requestedquantity: Number(line.quantity || 1),
+          status: targetStatus,
+          additionalremarks: `Created automatically from courier status ${courierStatus}`,
+        } as CreateRtoRequestInput);
+        results.push({ orderlineId: line.id, action: 'created', requestId: created.id });
+        continue;
+      }
+
+      if (targetStatus === 'rto_received' && ['delivery_failed', 'rto_initiated', 'rto_in_transit'].includes(String(existing.status))) {
+        if (existing.status === 'delivery_failed') {
+          await this.updateRtoStatus(String(existing.id), { status: 'rto_initiated' } as UpdateRtoStatusInput);
+        }
+        await this.updateRtoStatus(String(existing.id), {
+          status: 'rto_received',
+          additionalremarks: 'Courier reported RTO delivered to origin',
+        } as UpdateRtoStatusInput);
+        results.push({ orderlineId: line.id, action: 'received', requestId: existing.id });
+        continue;
+      }
+
+      results.push({ orderlineId: line.id, action: 'unchanged', requestId: existing.id });
+    }
+
+    return results;
   }
 
   async updateRtoStatus(id: string, data: UpdateRtoStatusInput, authUser?: AuthUser) {
@@ -1041,6 +1186,113 @@ export class ReturnRequestService {
     );
 
     return this.findById(updated.id.toString());
+  }
+
+  private async findGroupRequests(groupNumber: string) {
+    const requests = await requestClient().findMany({
+      where: { groupnumber: groupNumber },
+      orderBy: { id: 'asc' },
+    });
+    if (!requests.length) {
+      throw new NotFoundError(`Return group ${groupNumber} not found`);
+    }
+    return requests;
+  }
+
+  private async findGroupRequestsWithDetails(groupNumber: string) {
+    return requestClient().findMany({
+      where: { groupnumber: groupNumber },
+      include: RETURN_REQUEST_INCLUDE,
+      orderBy: { id: 'asc' },
+    });
+  }
+
+  // Approve every pending request of a "Return all" group (each goes through the normal approval checks).
+  async approveGroup(groupNumber: string, data: ApproveReturnRequestInput, authUser?: AuthUser) {
+    this.validateInventoryUser(authUser);
+    const requests = await this.findGroupRequests(groupNumber);
+    for (const request of requests) {
+      if (request.requestReviewStatus === 'approved' || GROUP_REJECTED_STATUSES.has(String(request.status))) continue;
+      await this.approveRequest(String(request.id), data, authUser);
+    }
+    return this.findGroupRequestsWithDetails(groupNumber);
+  }
+
+  // Reject every request of a group that is not yet approved or rejected.
+  async rejectGroup(groupNumber: string, data: RejectReturnRequestInput, authUser?: AuthUser) {
+    this.validateInventoryUser(authUser);
+    const requests = await this.findGroupRequests(groupNumber);
+    for (const request of requests) {
+      if (request.requestReviewStatus === 'approved' || GROUP_REJECTED_STATUSES.has(String(request.status))) continue;
+      await this.rejectRequest(String(request.id), data, authUser);
+    }
+    return this.findGroupRequestsWithDetails(groupNumber);
+  }
+
+  // One reverse pickup for all approved items of a group: a single Ekart shipment (or one manual AWB)
+  // whose tracking id is saved on every request.
+  async prepareGroupPickup(groupNumber: string, data: PreparePickupInput, authUser?: AuthUser) {
+    this.validateInventoryUser(authUser);
+    const groupRequests = await this.findGroupRequests(groupNumber);
+    const pending: any[] = [];
+    for (const item of groupRequests) {
+      if (item.requestReviewStatus !== 'approved' || !['approved', 'pickup_prepared'].includes(String(item.status))) continue;
+      if (item.reverseShipmentTrackingId) continue;
+      pending.push(await this.findById(String(item.id)));
+    }
+    if (!pending.length) {
+      throw new ValidationError('No items ready for pickup', 'Approve the group items before preparing one pickup');
+    }
+
+    let trackingId = data.reverse_shipment_tracking_id || null;
+    let provider = data.reverse_shipment_provider || null;
+
+    if (data.create_reverse_shipment && !trackingId) {
+      const payloads: CreateShipmentPayload[] = [];
+      for (const request of pending) {
+        const reasonRule = await this.getReasonRuleForRequest(request);
+        payloads.push(await this.buildEkartReverseShipmentPayload(request, reasonRule, data));
+      }
+      const first = payloads[0]!;
+      const sum = (key: 'total_amount' | 'tax_value' | 'taxable_amount') =>
+        Number(payloads.reduce((total, payload) => total + Number(payload[key] || 0), 0).toFixed(2));
+      const combined: CreateShipmentPayload = {
+        ...first,
+        order_number: groupNumber,
+        products_desc: payloads.map((payload) => `${payload.products_desc} x${payload.quantity}`).join(', ').slice(0, 250),
+        quantity: payloads.reduce((total, payload) => total + Number(payload.quantity || 0), 0),
+        total_amount: sum('total_amount'),
+        tax_value: sum('tax_value'),
+        taxable_amount: sum('taxable_amount'),
+        commodity_value: sum('total_amount').toFixed(2),
+      };
+      try {
+        const response = await ekartService.createReverseShipment(combined);
+        trackingId = response.tracking_id || response.barcodes?.wbn || null;
+        provider = response.vendor || 'EKART';
+      } catch (error: any) {
+        logger.error({ error, groupNumber }, 'Failed to create Ekart reverse shipment for return group');
+        throw new ValidationError('Ekart reverse shipment failed', error?.message || 'Ekart did not create a reverse shipment');
+      }
+      if (!trackingId) {
+        throw new ValidationError('Ekart reverse shipment failed', 'Ekart response did not include a reverse shipment tracking id');
+      }
+    }
+
+    if (!trackingId) {
+      throw new ValidationError('Tracking ID required', 'Create the Ekart reverse shipment or enter the AWB for the group pickup');
+    }
+
+    for (const request of pending) {
+      await this.preparePickup(String(request.id), {
+        ...data,
+        create_reverse_shipment: false,
+        reverse_shipment_tracking_id: trackingId,
+        reverse_shipment_provider: provider || 'EKART',
+        remarks: [data.remarks, `Group pickup ${groupNumber}`].filter(Boolean).join(' | '),
+      }, authUser);
+    }
+    return this.findGroupRequestsWithDetails(groupNumber);
   }
 
   async approveRequest(id: string, data: ApproveReturnRequestInput, authUser?: AuthUser) {
@@ -1493,14 +1745,22 @@ export class ReturnRequestService {
       );
     }
 
-    const amount = positiveNumber(orderline.orderamount, positiveNumber(order.orderamount, 1));
-    const taxValue = Math.max(0, numberFromUnknown(orderline.total_gst_amount) || numberFromUnknown(order.tax_amount) || 0);
-    const taxableAmount = positiveNumber(orderline.taxable_amount, Math.max(amount - taxValue, 1));
     const length = positiveNumber(data.length, 10);
     const width = positiveNumber(data.width, 10);
     const height = positiveNumber(data.height, 10);
     const weight = positiveNumber(data.weight, 0.5);
     const quantity = Math.max(1, Math.trunc(request.requestedquantity || orderline.quantity || order.quantity || 1));
+    // Declared value = what was paid for the units being picked up (not the whole line, and never the
+    // order total / shipping for a fully discounted line); couriers need at least ₹1.
+    const lineQuantity = Math.max(1, Number(orderline.quantity || quantity));
+    const unitShare = Math.min(1, quantity / lineQuantity);
+    const storedLinePaid = numberFromUnknown(orderline.orderamount);
+    const linePaid = storedLinePaid !== null && storedLinePaid >= 0
+      ? storedLinePaid
+      : positiveNumber(orderline.productamount, positiveNumber(order.orderamount, 1));
+    const amount = Math.max(1, Number((linePaid * unitShare).toFixed(2)));
+    const taxValue = Math.max(0, Number(((numberFromUnknown(orderline.total_gst_amount) || 0) * unitShare).toFixed(2)));
+    const taxableAmount = Math.max(1, Number((amount - taxValue).toFixed(2)));
     const productName = firstText(
       data.item_description,
       orderline.productname,
@@ -1907,7 +2167,14 @@ export class ReturnRequestService {
       reverseShippingChargeDeducted: false,
       resolutionPreview,
     };
+    // Nothing was paid for the item (fully discounted): close without a refund operation or credit note.
+    const zeroValueRefund = REFUND_ACTIONS.has(actionType) && refundAmount === 0;
+    if (zeroValueRefund) {
+      actionStatus = 'completed';
+      metadata = { ...metadata, zeroValueRefund: true, zeroValueRefundReason: 'item_fully_discounted' };
+    }
     const sourceAwareRefund = REFUND_ACTIONS.has(actionType)
+      && !zeroValueRefund
       && ['original_payment', 'wallet'].includes(String(data.refund_method || ''));
     const refundDestination = data.refund_method === 'wallet' ? 'wallet' : 'original_sources';
     if (sourceAwareRefund) {
@@ -2158,7 +2425,7 @@ export class ReturnRequestService {
       `;
       createdResolutionAction = insertedActions?.[0] || null;
 
-      if (createdResolutionAction && actionStatus === 'completed' && REFUND_ACTIONS.has(actionType)) {
+      if (createdResolutionAction && actionStatus === 'completed' && REFUND_ACTIONS.has(actionType) && !zeroValueRefund) {
         createdCreditNote = await this.createCreditNoteRecord(tx, request, {
           id: createdResolutionAction.id,
           actionType,
@@ -2857,6 +3124,8 @@ export class ReturnRequestService {
   async addAttachments(id: string, data: AddReturnRequestAttachmentInput, authUser?: AuthUser) {
     const request = await this.findById(id);
     this.validateRequestAccess(request, authUser);
+    const activeAttachments = (request.attachments || []).filter((attachment: any) => attachment.status === 'active');
+    assertEvidencePhotoLimit(countEvidencePhotos([...activeAttachments, ...data.attachments]));
     const timestamp = nowSeconds();
     const reasonRule = await this.getReasonRuleForRequest(request);
 
@@ -4051,6 +4320,7 @@ export class ReturnRequestService {
   }
 
   private validateEvidence(attachments: ReturnRequestAttachmentInput[], reasonRule: any) {
+    assertEvidencePhotoLimit(countEvidencePhotos(attachments));
     const counts = countAttachmentsByType(attachments);
     const rules = getEvidenceRules(reasonRule);
 
@@ -4355,10 +4625,13 @@ export class ReturnRequestService {
     if (outstandingRequiredGifts.length) {
       throw new ValidationError('Promotional gift return required', 'Receive and mark the linked promotional gift as returned before completing this refund');
     }
-    const linePaidAmount = positiveNumber(
-      request.orderline?.orderamount,
-      positiveNumber(request.orderline?.productamount, positiveNumber(request.order?.orderamount, 0))
-    );
+    // A stored 0 means discounts fully covered the item (customer paid only shipping), so nothing is refundable.
+    // Fall back to list/order amounts only when the paid line amount was never recorded.
+    const storedLinePaidAmount = numberFromUnknown(request.orderline?.orderamount);
+    const linePaidAmountKnown = storedLinePaidAmount !== null && storedLinePaidAmount >= 0;
+    const linePaidAmount = linePaidAmountKnown
+      ? storedLinePaidAmount
+      : positiveNumber(request.orderline?.productamount, positiveNumber(request.order?.orderamount, 0));
     const giftDeduction = (request.orderline?.giftOrderlines ?? []).reduce((sum: number, gift: any) => {
       const metadata = gift.promotionAdjustment?.metadata ?? {};
       if (metadata.return_policy !== 'DEDUCT_GIFT_VALUE') return sum;
@@ -4368,7 +4641,7 @@ export class ReturnRequestService {
 
     if (data.amount !== undefined) {
       const suppliedAmount = Number(data.amount.toFixed(2));
-      if (defaultRefundAmount > 0 && suppliedAmount > defaultRefundAmount) {
+      if ((linePaidAmountKnown || defaultRefundAmount > 0) && suppliedAmount > defaultRefundAmount) {
         throw new ValidationError(
           'Refund amount exceeds paid item value',
           `Maximum refundable amount for this request is ${defaultRefundAmount}`
@@ -4384,7 +4657,7 @@ export class ReturnRequestService {
       );
     }
 
-    if (defaultRefundAmount <= 0) {
+    if (defaultRefundAmount <= 0 && !linePaidAmountKnown) {
       throw new ValidationError(
         'Refund amount unavailable',
         'Paid orderline amount is missing; enter the approved refund amount manually'

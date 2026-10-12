@@ -1,6 +1,7 @@
 import { prisma } from '../models/prisma.js';
 import { logger } from '../config/logger.js';
 import { EmailService } from './email.service.js';
+import { escapeEmailHtml, renderNivaanaEmail } from './email-template.js';
 
 export type CustomerEmailResult =
   | { sent: true; email: string }
@@ -33,12 +34,7 @@ export type PromotionEmailInput = {
   usageLimit?: number | null;
 };
 
-const escapeHtml = (value: unknown) => String(value ?? '')
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#039;');
+const escapeHtml = escapeEmailHtml;
 
 const titleCaseStatus = (value?: string) =>
   String(value || 'updated').replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -96,19 +92,6 @@ export class CustomerEmailNotificationService {
         return this.sendPromotionVoucher({ ...input, customerIds });
       },
     );
-  }
-
-  private layout(title: string, name: string, content: string) {
-    return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(title)}</title></head>
-<body style="margin:0;background:#f5f3ee;font-family:Arial,sans-serif;color:#292524">
-<div style="max-width:620px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e7e5e4">
-<div style="background:#6b4f35;color:#fff;padding:22px 28px"><div style="font-size:24px;font-weight:700">Nivaana</div></div>
-<div style="padding:28px"><h1 style="font-size:22px;margin:0 0 18px">${escapeHtml(title)}</h1>
-<p>Hello ${escapeHtml(name)},</p>${content}</div>
-<div style="padding:18px 28px;background:#fafaf9;color:#78716c;font-size:12px">This is an automated Nivaana email. Please do not reply.</div>
-</div></body></html>`;
   }
 
   private async sendToCustomer(
@@ -208,7 +191,7 @@ export class CustomerEmailNotificationService {
       }
       const htmlContent = paragraphs.map((paragraph) => `<p style="line-height:1.6">${paragraph}</p>`).join('');
       const text = paragraphs.map((paragraph) => paragraph.replace(/<[^>]+>/g, '')).join('\n\n');
-      return { html: this.layout(subjects[kind], name, htmlContent), text: `Hello ${name},\n\n${text}\n\nNivaana` };
+      return { html: renderNivaanaEmail(subjects[kind], name, htmlContent), text: `Hello ${name},\n\n${text}\n\nNivaana` };
     });
   }
 
@@ -235,7 +218,7 @@ export class CustomerEmailNotificationService {
           startDate ? `Valid from: ${startDate}` : '', endDate ? `Expires on: ${endDate}` : '',
           input.usageLimit ? `Usage limit: ${input.usageLimit}` : '', 'Nivaana'
         ].filter(Boolean).join('\n\n');
-        return { html: this.layout('Promotion available', name, details), text };
+        return { html: renderNivaanaEmail('Promotion available', name, details), text };
       });
     }));
   }

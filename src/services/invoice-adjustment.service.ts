@@ -70,10 +70,11 @@ export class InvoiceAdjustmentService {
       (fullCancellation ? orderlines : affectedLines)
         .reduce((sum: number, line: any) => sum + toNumber(line.orderamount || line.productamount), 0)
     );
-    const originalAmount = roundCurrency(toNumber(order.orderamount) || orderlines.reduce(
+    // Invoice value is the sum of line amounts; order.orderamount excludes the wallet-paid part.
+    const originalAmount = roundCurrency(orderlines.reduce(
       (sum: number, line: any) => sum + toNumber(line.orderamount || line.productamount),
       0
-    ));
+    ) || toNumber(order.orderamount));
     const remainingItems = fullCancellation
       ? []
       : orderlines.filter((line: any) => line.orderstatus !== affectedStatus);
@@ -139,18 +140,25 @@ export class InvoiceAdjustmentService {
     const targetLineQuantity = Math.max(1, Math.trunc(Number(targetLine.quantity || 1)));
     const targetLineAmount = toNumber(targetLine.orderamount || targetLine.productamount || action.amount);
     const reversedAmount = roundCurrency(toNumber(action.amount) || Math.min(1, requestedQuantity / targetLineQuantity) * targetLineAmount);
-    const originalAmount = roundCurrency(toNumber(order?.orderamount) || orderlines.reduce(
+    // Invoice value is the sum of line amounts; order.orderamount excludes the wallet-paid part.
+    const originalAmount = roundCurrency(orderlines.reduce(
       (sum: number, line: any) => sum + toNumber(line.orderamount || line.productamount),
       0
-    ));
+    ) || toNumber(order?.orderamount));
+
+    const adjustmentNumberPrefix = `IA-RETURN-%-${request.id}-${action.id}`;
+    const priorReturnedByLine = await this.getPriorReturnedQuantities(database, orderId, adjustmentNumberPrefix);
 
     const remainingItems = orderlines
       .map((line: any) => {
         const isReturnedLine = Number(line.id) === targetOrderlineId;
-        if (!isReturnedLine) return this.mapLine(line);
-
-        const remainingQuantity = Math.max(0, Number(line.quantity || 1) - requestedQuantity);
+        const priorReturned = priorReturnedByLine.get(Number(line.id)) || 0;
+        const remainingQuantity = Math.max(
+          0,
+          Number(line.quantity || 1) - priorReturned - (isReturnedLine ? requestedQuantity : 0)
+        );
         if (remainingQuantity <= 0) return null;
+        if (remainingQuantity === Number(line.quantity || 1)) return this.mapLine(line);
 
         const quantityRatio = remainingQuantity / Math.max(1, Number(line.quantity || 1));
         return {
@@ -161,7 +169,7 @@ export class InvoiceAdjustmentService {
       })
       .filter(Boolean);
     const remainingAmount = roundCurrency(remainingItems.reduce((sum: number, line: any) => sum + toNumber((line as any).amount), 0));
-    const fullReturn = remainingAmount <= 0;
+    const fullReturn = remainingItems.length === 0;
     const creditNoteNumber = data.creditNote?.creditNoteNumber || data.creditNote?.credit_note_number || null;
 
     return this.upsertAdjustment(database, {
@@ -350,6 +358,7 @@ export class InvoiceAdjustmentService {
       ON CONFLICT ("adjustment_number") DO UPDATE SET
         "status" = EXCLUDED."status",
         "original_invoice_url" = COALESCE("invoice_adjustments"."original_invoice_url", EXCLUDED."original_invoice_url"),
+        "original_invoice_amount" = EXCLUDED."original_invoice_amount",
         "remaining_amount" = EXCLUDED."remaining_amount",
         "reversed_amount" = EXCLUDED."reversed_amount",
         "credit_note_id" = COALESCE(EXCLUDED."credit_note_id", "invoice_adjustments"."credit_note_id"),
@@ -553,6 +562,30 @@ export class InvoiceAdjustmentService {
       }
       return null;
     }
+  }
+
+  // Units already reversed by earlier return adjustments on this order (other requests / actions),
+  // so each override invoice reflects every return so far, not just the current one.
+  private async getPriorReturnedQuantities(database: DbClient, orderId: number, currentAdjustmentPattern: string) {
+    const rows: Array<{ metadata: any }> = await database.$queryRaw`
+      SELECT "metadata"
+      FROM "invoice_adjustments"
+      WHERE "order_id" = ${orderId}
+        AND "source_action" IN ('partial_return', 'full_return')
+        AND "return_request_id" IS NOT NULL
+        AND "adjustment_number" NOT LIKE ${currentAdjustmentPattern}
+        AND COALESCE("status", '') <> 'void'
+    `;
+    const returned = new Map<number, number>();
+    for (const row of rows || []) {
+      const metadata = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata;
+      for (const item of metadata?.reversedItems || []) {
+        const orderlineId = Number(item?.orderlineId);
+        if (!orderlineId) continue;
+        returned.set(orderlineId, (returned.get(orderlineId) || 0) + Math.max(0, Number(item?.quantity || 0)));
+      }
+    }
+    return returned;
   }
 
   private mapLine(line: any) {

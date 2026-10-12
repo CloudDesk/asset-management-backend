@@ -1,5 +1,6 @@
 import { prisma } from '../models/prisma.js';
 import { logger } from '../config/logger.js';
+import { ValidationError } from '../utils/errorHandler.js';
 import { CreateRoleInput, UpdateRoleInput } from '../schemas/role.schema.js';
 import { PaginationResult, createPaginationResult, getPrismaSkipTake } from '../utils/pagination.js';
 import { FilterOptions } from '../utils/filterBuilder.js';
@@ -10,6 +11,21 @@ import {
   dynamicUpdate, 
   dynamicDelete
 } from '../utils/dynamicDbOperations.js';
+
+// Plain-language messages for role rules (shown to the user as-is).
+export const roleErrors = {
+  codeInUse: (code: string) =>
+    new ValidationError(`Role code '${code}' is already in use.`, 'Please enter a different role code.', ['code']),
+  nameInUse: (name: string) =>
+    new ValidationError(`Role name '${name}' is already in use.`, 'Please enter a different role name.', ['name']),
+  levelTooLow: () =>
+    new ValidationError('Level must be 1 or higher.', 'Please enter a level of 1 or more.', ['level']),
+  systemRoleLocked: () =>
+    new ValidationError(
+      "System roles can't be turned off.",
+      "You can't deactivate a system role or change it to a regular role."
+    ),
+};
 
 export class RoleService {
   async findMany(
@@ -205,7 +221,7 @@ export class RoleService {
       });
 
       if (existingRole) {
-        throw new Error(`Role with code '${normalizedCode}' already exists`);
+        throw roleErrors.codeInUse(normalizedCode);
       }
 
       // Check if name already exists
@@ -214,7 +230,7 @@ export class RoleService {
       });
 
       if (existingName) {
-        throw new Error(`Role with name '${data.name}' already exists`);
+        throw roleErrors.nameInUse(data.name);
       }
 
       // Handle level uniqueness - find the actual level to use
@@ -222,7 +238,7 @@ export class RoleService {
       let targetLevel = data.level;
       
       if (!targetLevel || targetLevel < 1) {
-        throw new Error('Level must be at least 1');
+        throw roleErrors.levelTooLow();
       }
       
       // Get max level in database (only consider valid levels >= 1)
@@ -343,7 +359,7 @@ export class RoleService {
             where: { code: normalizedCode }
           });
           if (codeExists) {
-            throw new Error(`Role with code '${normalizedCode}' already exists`);
+            throw roleErrors.codeInUse(normalizedCode);
           }
         }
       }
@@ -354,13 +370,13 @@ export class RoleService {
           where: { name: data.name }
         });
         if (nameExists) {
-          throw new Error(`Role with name '${data.name}' already exists`);
+          throw roleErrors.nameInUse(data.name);
         }
       }
 
       // Prevent updating system roles
       if (existingRole.issystem && (data.issystem === false || data.isactive === false)) {
-        throw new Error('Cannot deactivate or modify system roles');
+        throw roleErrors.systemRoleLocked();
       }
 
       // Handle level uniqueness if level is being updated
@@ -368,7 +384,7 @@ export class RoleService {
       
       // Validate level is at least 1
       if (targetLevel < 1) {
-        throw new Error('Level must be at least 1');
+        throw roleErrors.levelTooLow();
       }
       
       // If level is being updated (provided in payload)
@@ -595,7 +611,7 @@ export class RoleService {
 
       // Validate level
       if (level < 1) {
-        throw new Error('Level must be at least 1');
+        throw roleErrors.levelTooLow();
       }
 
       // Get all roles that would be affected

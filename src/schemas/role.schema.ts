@@ -2,14 +2,14 @@ import { z } from 'zod';
 
 // Create role schema
 export const createRoleSchema = z.object({
-  name: z.string().max(100).min(1, 'Name is required'),
+  name: z.string().max(100, 'Role name must be 100 characters or fewer.').min(1, 'Role name is required.'),
   code: z.string()
-    .max(50, 'Code must be 50 characters or less')
-    .min(1, 'Code is required')
-    .regex(/^[a-z0-9_]+$/, 'Code must be lowercase alphanumeric with underscores only (e.g., "admin", "super_admin")')
+    .max(50, 'Role code must be 50 characters or fewer.')
+    .min(1, 'Role code is required.')
+    .regex(/^[a-z0-9_]+$/, 'Role code can only use lowercase letters, numbers and underscores (e.g. super_admin).')
     .transform((val) => val.toLowerCase().trim()), // Normalize to lowercase
-  level: z.number().int().min(1, 'Level must be at least 1'),
-  description: z.string().max(500).optional(),
+  level: z.number().int().min(1, 'Level must be 1 or higher.'),
+  description: z.string().max(500, 'Description must be 500 characters or fewer.').optional(),
   isactive: z.boolean().default(true),
   issystem: z.boolean().default(false),
   parentroleid: z.preprocess(
@@ -34,15 +34,15 @@ export const createRoleSchema = z.object({
 
 // Update role schema
 export const updateRoleSchema = z.object({
-  name: z.string().max(100).optional(),
+  name: z.string().max(100, 'Role name must be 100 characters or fewer.').optional(),
   code: z.string()
-    .max(50, 'Code must be 50 characters or less')
-    .min(1, 'Code cannot be empty')
-    .regex(/^[a-z0-9_]+$/, 'Code must be lowercase alphanumeric with underscores only (e.g., "admin", "super_admin")')
+    .max(50, 'Role code must be 50 characters or fewer.')
+    .min(1, 'Role code is required.')
+    .regex(/^[a-z0-9_]+$/, 'Role code can only use lowercase letters, numbers and underscores (e.g. super_admin).')
     .transform((val) => val.toLowerCase().trim()) // Normalize to lowercase
     .optional(),
-  level: z.number().int().min(1, 'Level must be at least 1').optional(),
-  description: z.string().max(500).optional(),
+  level: z.number().int().min(1, 'Level must be 1 or higher.').optional(),
+  description: z.string().max(500, 'Description must be 500 characters or fewer.').optional(),
   isactive: z.boolean().optional(),
   issystem: z.boolean().optional(),
   parentroleid: z.preprocess(

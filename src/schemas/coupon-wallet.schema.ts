@@ -34,8 +34,9 @@ export const directCouponCheckoutQuoteSchema = z.object({
 export const couponWalletListSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  status: z.enum(['available', 'scheduled', 'reserved', 'claimed', 'redeemed', 'expired', 'inactive', 'revoked']).optional(),
+  status: z.enum(['not_used', 'added_to_wallet', 'partly_used', 'fully_used', 'expired', 'paused', 'cancelled']).optional(),
   ownership_mode: z.enum(['customer', 'customer_group', 'anyone']).optional(),
+  source: z.enum(['customer', 'coupon_group']).optional(),
   customer_id: z.coerce.number().int().positive().optional(),
   search: z.string().trim().max(100).optional(),
   scope: z.enum(['all', 'standalone', 'promotion']).default('all'),

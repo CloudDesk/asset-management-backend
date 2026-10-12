@@ -38,6 +38,18 @@ export class CouponWalletController {
     return reply.send(createSuccessResponse('Issued coupons retrieved', result));
   });
 
+  getAdminCouponHistory = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
+    if (!request.user || request.user.userType !== 'inventory') {
+      return reply.code(403).send({ success: false, message: 'Inventory authentication required' });
+    }
+    const assignmentId = Number((request.params as { assignmentId: string }).assignmentId);
+    if (!Number.isInteger(assignmentId) || assignmentId <= 0) {
+      return reply.code(400).send({ success: false, message: 'Invalid coupon ID' });
+    }
+    const result = await this.service.getAdminCouponHistory(assignmentId);
+    return reply.send(createSuccessResponse('Coupon history retrieved', result));
+  });
+
   getMyWalletActivity = asyncHandler(async (request: AuthenticatedRequest, reply: FastifyReply) => {
     if (!request.user || request.user.userType !== 'ecommerce') {
       return reply.code(403).send({ success: false, message: 'Customer authentication required' });

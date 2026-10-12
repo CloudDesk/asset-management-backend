@@ -1,0 +1,16 @@
+Mode: DRY-RUN (rolled back)  Started: 2026-10-08T08:06:57.369Z
+UAT: 112 picklist rows, 27 HSN rows (21 complete)
+UAT Fragrance Type dependencies normalized in memory: 22
+UAT HSN skipped, null hsn_code/gst_rate (6): peaceful_nights null@null; dusky_evenings null@null; festival_gifts null@18.00; wellness_gifts null@18.00; luxury_gifts null@18.00; decor null@18.00
+SIT before: 124 picklist rows, 78 active LOVs already orphaned
+Picklist matched: 112, attribute updates: 0
+Picklist inserted (0): none
+SIT-only picklist rows (12): 306:qa_ritual_type=calm_ritual; 307:qa_ritual_type=focus_ritual; 308:qa_ritual_type=refresh_ritual; 309:qa_ritual_variant=evening_unwind; 310:qa_ritual_variant=gentle_lavender; 311:qa_ritual_variant=quiet_sandal; 312:qa_ritual_variant=clear_mint; 313:qa_ritual_variant=citrus_focus; 314:qa_ritual_variant=herbal_clarity; 315:qa_ritual_variant=ocean_breeze; 316:qa_ritual_variant=green_energy; 317:qa_ritual_variant=morning_zest
+Category images deleted: [] (storage objects are not deleted)
+LOVs deactivated: []
+Picklist rows deleted: 12
+HSN updated: 21, inserted (0): none
+SIT HSN rows left untouched: 16:peaceful_nights 33074100@5.00
+SIT after: 112 picklist rows, 22 HSN rows, 77 products checked
+Validation passed
+Dry-run complete; ROLLED BACK

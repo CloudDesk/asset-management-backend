@@ -14,6 +14,7 @@ export async function couponWalletRoutes(fastify: FastifyInstance) {
   fastify.get('/admin/coupons', controller.listAdminCoupons);
   fastify.post('/admin/coupons', controller.createQuickCoupon);
   fastify.patch('/admin/coupons/:assignmentId', controller.updateQuickCoupon);
+  fastify.get('/admin/coupons/:assignmentId/history', controller.getAdminCouponHistory);
   fastify.get('/admin/groups', groupController.list);
   fastify.post('/admin/groups', groupController.create);
   fastify.get('/admin/groups/:id/customers', groupController.listCustomerCandidates);

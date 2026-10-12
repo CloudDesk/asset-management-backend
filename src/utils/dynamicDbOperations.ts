@@ -1711,7 +1711,8 @@ export async function dynamicUpdate(
   modelName: string,
   where: any,
   data: Record<string, any>,
-  include?: any
+  include?: any,
+  options: { throwOnError?: boolean } = {}
 ): Promise<any | null> {
   try {
     // Debug logging for platformstock specifically
@@ -1988,6 +1989,9 @@ export async function dynamicUpdate(
       where,
       data
     }, 'Error in dynamic update operation');
+    if (options.throwOnError) {
+      throw error;
+    }
     return null;
   }
 }

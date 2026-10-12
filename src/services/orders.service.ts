@@ -360,6 +360,26 @@ export class OrdersService {
       if (!refundByOrder.has(orderId)) refundByOrder.set(orderId, operation);
     }
 
+    // Units returned (completed return requests) vs units on the order, so a finished return of only some
+    // units shows as partially returned instead of "refund completed" for the whole order.
+    const returnedUnitsByOrder = new Map<number, number>();
+    for (const request of requests) {
+      if (request.requesttype !== 'return' || !['refund_completed', 'completed'].includes(String(request.status))) continue;
+      const orderId = Number(request.orderid);
+      returnedUnitsByOrder.set(orderId, (returnedUnitsByOrder.get(orderId) || 0) + Math.max(1, Number(request.requestedquantity || 1)));
+    }
+    const orderedUnitsByOrder = new Map<number, number>();
+    if (returnedUnitsByOrder.size) {
+      const lines = await prisma.orderline.findMany({
+        where: { orderid: { in: [...returnedUnitsByOrder.keys()] }, NOT: { orderstatus: 'cancelled' } },
+        select: { orderid: true, quantity: true },
+      });
+      for (const line of lines) {
+        const orderId = Number(line.orderid);
+        orderedUnitsByOrder.set(orderId, (orderedUnitsByOrder.get(orderId) || 0) + Number(line.quantity || 0));
+      }
+    }
+
     return orders.map((order) => {
       const request = requestByOrder.get(Number(order.id));
       const operation = refundByOrder.get(Number(order.id));
@@ -368,6 +388,11 @@ export class OrdersService {
       if (request) {
         effectiveStatus = this.resolveReturnWorkflowStatus(request);
         workflowType = String(request.requesttype || 'return');
+        const returnedUnits = returnedUnitsByOrder.get(Number(order.id)) || 0;
+        const orderedUnits = orderedUnitsByOrder.get(Number(order.id)) || 0;
+        if (['refund_completed', 'return_completed'].includes(effectiveStatus) && returnedUnits > 0 && returnedUnits < orderedUnits) {
+          effectiveStatus = 'partially_returned';
+        }
       } else if (operation) {
         const operationStatus = String(operation.status || '').toLowerCase();
         effectiveStatus = operationStatus === 'completed'
@@ -1326,13 +1351,16 @@ export class OrdersService {
     try {
       logger.debug({ orderNumber }, 'Finding order by order number');
 
-      const order = await dynamicFindUnique('orders', { orderid: orderNumber });
-
-      if (!order) {
+      // dynamicFindUnique only resolves orders by id, so look up the id first
+      const match = await prisma.orders.findUnique({
+        where: { orderid: orderNumber },
+        select: { id: true },
+      });
+      if (!match) {
         return null;
       }
 
-      return order;
+      return await dynamicFindUnique('orders', { id: match.id });
     } catch (error) {
       logger.error({ error, orderNumber }, 'Error finding order by order number');
       throw error;
@@ -3169,6 +3197,15 @@ export class OrdersService {
    * - orderlines[]: Array of orderlines with selected fields
    * - address: Address object with selected fields
    */
+  /** Owner (users.id) of an order by database id or order number; null if not found. */
+  async getOrderOwnerId(idOrOrderNumber: string): Promise<number | null> {
+    const where = isNaN(Number(idOrOrderNumber))
+      ? { orderid: idOrOrderNumber }
+      : { id: Number(idOrOrderNumber) };
+    const order = await prisma.orders.findUnique({ where, select: { userid: true } });
+    return order?.userid != null ? Number(order.userid) : null;
+  }
+
   async getOrderDetails(idOrOrderNumber: string): Promise<{
     order: any;
     orderlines: any[];
@@ -3624,6 +3661,7 @@ export class OrdersService {
       discountamount: number | null;
       ispaymentsucceed: boolean | null;
       mode: string | null;
+      order_type: string | null;
       promotion_discount_total: number | null;
       wallet_discount_total: number;
       wallet_amount_applied: number;
@@ -3971,6 +4009,7 @@ export class OrdersService {
           discountamount: order.discountamount ? Number(order.discountamount) : null,
           ispaymentsucceed: order.ispaymentsucceed,
           mode: order.mode,
+          order_type: order.order_type,
           promotion_discount_total: order.promotion_discount_total ? Number(order.promotion_discount_total) : null,
           wallet_discount_total: Number(order.wallet_discount_total ?? 0),
           wallet_amount_applied: Number(order.wallet_discount_total ?? 0),
@@ -4170,12 +4209,13 @@ export class OrdersService {
 
       // TRANSACTION WITH ROW-LEVEL LOCKING
       // Prevents race conditions when multiple cancel requests arrive simultaneously
+      let stockReversalPath: 'after_ready_for_dispatch' | 'before_ready_for_dispatch' | null = null;
       const updatedOrder = await prisma.$transaction(async (tx) => {
         logger.info({ orderId }, 'Starting atomic transaction with row-level lock');
 
-        // STEP 1: Fetch order with row-level lock (SELECT FOR UPDATE)
-        // This creates an exclusive lock on the order row
-        // Other concurrent requests will WAIT here until this transaction completes
+        // STEP 1: Lock the order row (SELECT FOR UPDATE) so concurrent cancel requests run one at a time;
+        // the second one then sees 'cancelled' below and does not reverse stock again.
+        await tx.$queryRaw`SELECT "id" FROM "orders" WHERE "id" = ${orderId} FOR UPDATE`;
         const order = await tx.orders.findUnique({
           where: { id: orderId }
         });
@@ -4212,13 +4252,9 @@ export class OrdersService {
         // STEP 5: Determine cancellation path and reverse stock
         const currentTimestamp = Date.now();
 
-        if (order.orderstatus === 'ready_for_dispatch') {
-          // Path 2: Reverse stock allocations (soldqty → availableqty)
-          await this.cancelOrderAfterReadyForDispatch(orderId, orderlines);
-        } else {
-          // Path 1: Reverse order quantities (orderedqty → availableqty)
-          await this.cancelOrderBeforeReadyForDispatch(orderId, orderlines);
-        }
+        // Stock helpers write outside this transaction, so they run only after the cancel commits
+        // (a failed cancel must not leave stock restored on an active order).
+        stockReversalPath = order.orderstatus === 'ready_for_dispatch' ? 'after_ready_for_dispatch' : 'before_ready_for_dispatch';
 
         // OPTIMIZED: Direct bulk update of orderlines to cancelled (no method calls to avoid triggering recalculateOrderStatus)
         // This prevents transaction timeout by avoiding heavy operations inside the transaction
@@ -4305,15 +4341,31 @@ export class OrdersService {
           database: tx,
         });
 
-        // Fetch and return updated order
-        const finalOrder = await this.findById(orderId);
-
-        logger.info({ orderId }, 'Transaction committed successfully');
-
-        return finalOrder;
+        return order;
       }, {
         timeout: 30000, // 30 second timeout for large orders
         maxWait: 5000,  // Maximum time to wait for transaction to start
+      }).then(async () => {
+        logger.info({ orderId }, 'Transaction committed successfully');
+
+        // STEP 6: Reverse stock now that the cancellation is saved. A failure is logged for manual
+        // correction rather than undoing a committed cancellation.
+        if (stockReversalPath) {
+          try {
+            if (stockReversalPath === 'after_ready_for_dispatch') {
+              // Path 2: Reverse stock allocations (soldqty → availableqty)
+              await this.cancelOrderAfterReadyForDispatch(orderId, orderlines);
+            } else {
+              // Path 1: Reverse order quantities (orderedqty → availableqty)
+              await this.cancelOrderBeforeReadyForDispatch(orderId, orderlines);
+            }
+          } catch (stockError) {
+            logger.error({ error: stockError, orderId, stockReversalPath }, 'Order cancelled but stock reversal failed - manual stock correction required');
+          }
+        }
+
+        // Read the committed order (a read inside the transaction would return the pre-cancel row).
+        return this.findById(orderId);
       });
 
       logger.info({

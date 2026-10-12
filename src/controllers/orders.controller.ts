@@ -690,6 +690,19 @@ export class OrdersController {
   ) => {
     const { id } = request.params;
 
+    // A customer may only read their own orders (404, so other order numbers are not revealed);
+    // inventory users (Inventory order detail page) may read any.
+    const authUser = (request as AuthenticatedRequest).user;
+    if (!authUser) {
+      return reply.code(401).send({ success: false, message: 'Authentication required', statusCode: 401 });
+    }
+    if (authUser.userType !== 'inventory') {
+      const ownerId = await this.ordersService.getOrderOwnerId(id);
+      if (ownerId === null || ownerId !== Number(authUser.id)) {
+        return reply.code(404).send({ success: false, message: 'Order not found', statusCode: 404 });
+      }
+    }
+
     try {
       const orderDetails = await this.ordersService.getOrderDetails(id);
 

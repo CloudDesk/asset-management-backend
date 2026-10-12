@@ -206,6 +206,40 @@ export async function returnRequestRoutes(fastify: FastifyInstance) {
     },
   }, controller.createRequest);
 
+  fastify.post('/group', {
+    schema: {
+      description: 'Return / replace several items of one order together: one reason, resolution and evidence; one request per item sharing a group number (all created or none).',
+      tags: ['Returns'],
+      body: {
+        type: 'object',
+        required: ['requesttype', 'requestedresolution', 'items'],
+        properties: {
+          requesttype: { type: 'string', enum: ['return', 'replacement'] },
+          reasoncode: { type: 'string' },
+          reason: { type: 'string' },
+          requestedresolution: { type: 'string', enum: resolutionEnum },
+          ispackageopened: { type: 'boolean' },
+          additionalremarks: { type: 'string' },
+          attachments: { type: 'array', items: attachmentInputSchema },
+          items: {
+            type: 'array',
+            minItems: 2,
+            items: {
+              type: 'object',
+              required: ['orderlineid'],
+              properties: {
+                orderlineid: { type: 'number' },
+                requestedquantity: { type: 'number' },
+              },
+              additionalProperties: false,
+            },
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+  }, controller.createGroupRequest);
+
   fastify.post('/:id/attachments', {
     schema: {
       description: 'Add attachment URLs to a return request',
@@ -298,6 +332,44 @@ export async function returnRequestRoutes(fastify: FastifyInstance) {
       },
     },
   }, controller.replaceEvidenceAttachment);
+
+  const groupParams = {
+    type: 'object',
+    required: ['groupNumber'],
+    properties: { groupNumber: { type: 'string' } },
+  };
+
+  fastify.patch('/group/:groupNumber/approve', {
+    schema: {
+      description: 'Approve every pending request of a "Return all" group (normal per-request approval checks).',
+      tags: ['Returns'],
+      params: groupParams,
+      body: { type: 'object', properties: { remarks: { type: 'string' } }, additionalProperties: false },
+    },
+  }, controller.approveGroup);
+
+  fastify.patch('/group/:groupNumber/reject', {
+    schema: {
+      description: 'Reject every not-yet-decided request of a "Return all" group.',
+      tags: ['Returns'],
+      params: groupParams,
+      body: {
+        type: 'object',
+        required: ['rejectionreason'],
+        properties: { rejectionreason: { type: 'string' }, remarks: { type: 'string' } },
+        additionalProperties: false,
+      },
+    },
+  }, controller.rejectGroup);
+
+  fastify.patch('/group/:groupNumber/pickup-preparation', {
+    schema: {
+      description: 'One reverse pickup for all approved items of a group: creates a single Ekart reverse shipment (or uses the AWB given) and saves its tracking id on every request.',
+      tags: ['Returns'],
+      params: groupParams,
+      body: { type: 'object', additionalProperties: true },
+    },
+  }, controller.prepareGroupPickup);
 
   fastify.patch('/:id/approve', {
     schema: {

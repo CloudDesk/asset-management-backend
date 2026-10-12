@@ -48,6 +48,10 @@ export class InstoreOrderService {
 
   async searchCustomers({ search, limit }: InstoreSearchInput) {
     const pattern = `%${search}%`;
+    const numericSearch = /^\d+$/.test(search) ? BigInt(search) : null;
+    const idSearch = numericSearch !== null && numericSearch <= BigInt(2_147_483_647)
+      ? Number(numericSearch)
+      : null;
     const customers = await prisma.$queryRaw<Array<{
       id: number;
       firstname: string | null;
@@ -61,10 +65,11 @@ export class InstoreOrderService {
       WHERE isactive IS DISTINCT FROM FALSE
         AND (
           ${search === ''}
-          OR CONCAT_WS(' ', firstname, lastname) ILIKE ${pattern}
+          OR (COALESCE(firstname, '') || ' ' || COALESCE(lastname, '')) ILIKE ${pattern}
           OR COALESCE(useremail, '') ILIKE ${pattern}
           OR COALESCE(usermobilenumber::text, '') ILIKE ${pattern}
-          OR id::text = ${search}
+          OR (${numericSearch}::bigint IS NOT NULL AND usermobilenumber = ${numericSearch}::bigint)
+          OR (${idSearch}::integer IS NOT NULL AND id = ${idSearch}::integer)
         )
       ORDER BY createddate DESC NULLS LAST, id DESC
       LIMIT ${limit}
@@ -77,7 +82,7 @@ export class InstoreOrderService {
     }));
   }
 
-  async searchProducts({ search, limit }: InstoreSearchInput) {
+  async searchProducts({ search, limit, cursor }: InstoreSearchInput) {
     const where = search
       ? {
           OR: [
@@ -89,8 +94,9 @@ export class InstoreOrderService {
 
     const products = await prisma.product.findMany({
       where,
-      take: limit,
-      orderBy: { name: 'asc' },
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: BigInt(cursor) }, skip: 1 } : {}),
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
       select: {
         id: true,
         name: true,
@@ -100,14 +106,18 @@ export class InstoreOrderService {
         category: true,
         subcategory: true,
         iscombo: true,
+        small: true,
+        medium: true,
+        large: true,
       },
     });
 
-    return Promise.all(products.map(async (product) => {
-      const availability = product.iscombo
-        ? await this.getComboAvailability(prisma, product.id)
-        : await this.getAvailability(prisma, product.id, product.puc);
-
+    const hasMore = products.length > limit;
+    const page = products.slice(0, limit);
+    const availabilityByProduct = await this.getAvailabilityBatch(prisma, page);
+    const items = page.map((product) => {
+      const availability = availabilityByProduct.get(product.id.toString())
+        || { nonEcomAvailable: 0, ecomPhysicalAvailable: 0, ecomFallbackAvailable: 0, totalSellable: 0 };
       return {
         id: Number(product.id),
         name: product.name,
@@ -117,11 +127,18 @@ export class InstoreOrderService {
         category: product.category,
         subcategory: product.subcategory,
         iscombo: Boolean(product.iscombo),
+        image_url: product.small[0] || product.medium[0] || product.large[0] || null,
         non_ecom_available: availability.nonEcomAvailable,
         ecom_fallback_available: availability.ecomFallbackAvailable,
         total_sellable: availability.totalSellable,
       };
-    }));
+    });
+
+    return {
+      items,
+      next_cursor: hasMore ? page.at(-1)?.id.toString() ?? null : null,
+      has_more: hasMore,
+    };
   }
 
   async createOrder(input: InstoreOrderInput, inventoryUser: {
@@ -454,54 +471,105 @@ export class InstoreOrderService {
     });
   }
 
-  private async getAvailability(client: DbClient, productId: bigint, puc: string): Promise<Availability> {
-    const [counts, platformStock] = await Promise.all([
-      client.stock.groupBy({
-        by: ['ecompublish'],
-        where: {
-          puc,
-          platform: { equals: 'nivapp', mode: Prisma.QueryMode.insensitive },
-          stockstatus: { equals: 'available', mode: Prisma.QueryMode.insensitive },
-          isdeleted: { not: true },
-          isarchive: { not: true },
-        },
-        _count: { _all: true },
-      }),
-      client.platformStock.findUnique({
-        where: { productid_platform: { productid: productId, platform: 'nivapp' } },
-        select: { orderedqty: true, lockqty: true },
-      }),
-    ]);
-    const nonEcom = counts.find((row) => row.ecompublish !== true)?._count._all || 0;
-    const ecom = counts.find((row) => row.ecompublish === true)?._count._all || 0;
-    const protectedQuantity = Number(platformStock?.orderedqty || 0) + Number(platformStock?.lockqty || 0);
-    const fallback = Math.max(0, ecom - protectedQuantity);
-    return {
-      nonEcomAvailable: nonEcom,
-      ecomPhysicalAvailable: ecom,
-      ecomFallbackAvailable: fallback,
-      totalSellable: nonEcom + fallback,
-    };
-  }
+  private async getAvailabilityBatch(
+    client: DbClient,
+    products: Array<{ id: bigint; puc: string; iscombo: boolean | null }>,
+  ): Promise<Map<string, Availability>> {
+    if (!products.length) return new Map();
 
-  private async getComboAvailability(client: DbClient, comboProductId: bigint): Promise<Availability> {
-    const components = await client.productBundleMap.findMany({
-      where: { bundleproductid: comboProductId, isactive: true },
-      include: { componentproduct: { select: { id: true, puc: true } } },
+    const comboIds = products.filter((product) => product.iscombo).map((product) => product.id);
+    const components = comboIds.length
+      ? await client.productBundleMap.findMany({
+          where: { bundleproductid: { in: comboIds }, isactive: true },
+          select: {
+            bundleproductid: true,
+            requiredqty: true,
+            componentproduct: { select: { id: true, puc: true } },
+          },
+        })
+      : [];
+
+    const stockProducts = new Map<string, { id: bigint; puc: string }>();
+    products.filter((product) => !product.iscombo).forEach((product) => {
+      stockProducts.set(product.id.toString(), { id: product.id, puc: product.puc });
     });
-    if (!components.length) return { nonEcomAvailable: 0, ecomPhysicalAvailable: 0, ecomFallbackAvailable: 0, totalSellable: 0 };
-    const availability = await Promise.all(components.map(async (component) => ({
-      required: component.requiredqty,
-      stock: await this.getAvailability(client, component.componentproduct.id, component.componentproduct.puc),
-    })));
-    const nonEcom = Math.min(...availability.map(({ required, stock }) => Math.floor(stock.nonEcomAvailable / required)));
-    const total = Math.min(...availability.map(({ required, stock }) => Math.floor(stock.totalSellable / required)));
-    return {
-      nonEcomAvailable: nonEcom,
-      ecomPhysicalAvailable: Math.max(0, total - nonEcom),
-      ecomFallbackAvailable: Math.max(0, total - nonEcom),
-      totalSellable: total,
-    };
+    components.forEach((component) => {
+      stockProducts.set(component.componentproduct.id.toString(), component.componentproduct);
+    });
+
+    const productRows = [...stockProducts.values()];
+    const [counts, platformStocks] = productRows.length
+      ? await Promise.all([
+          client.stock.groupBy({
+            by: ['puc', 'ecompublish'],
+            where: {
+              puc: { in: [...new Set(productRows.map((product) => product.puc))] },
+              platform: { equals: 'nivapp', mode: Prisma.QueryMode.insensitive },
+              stockstatus: { equals: 'available', mode: Prisma.QueryMode.insensitive },
+              isdeleted: { not: true },
+              isarchive: { not: true },
+            },
+            _count: { _all: true },
+          }),
+          client.platformStock.findMany({
+            where: {
+              productid: { in: productRows.map((product) => product.id) },
+              platform: { equals: 'nivapp', mode: Prisma.QueryMode.insensitive },
+            },
+            select: { productid: true, orderedqty: true, lockqty: true },
+          }),
+        ])
+      : [[], []];
+
+    const countsByPuc = new Map<string, { nonEcom: number; ecom: number }>();
+    counts.forEach((row) => {
+      const current = countsByPuc.get(row.puc) || { nonEcom: 0, ecom: 0 };
+      if (row.ecompublish === true) current.ecom += row._count._all;
+      else current.nonEcom += row._count._all;
+      countsByPuc.set(row.puc, current);
+    });
+    const platformByProduct = new Map(platformStocks.map((row) => [row.productid.toString(), row]));
+    const directAvailability = new Map<string, Availability>();
+    productRows.forEach((product) => {
+      const count = countsByPuc.get(product.puc) || { nonEcom: 0, ecom: 0 };
+      const platform = platformByProduct.get(product.id.toString());
+      const protectedQuantity = Number(platform?.orderedqty || 0) + Number(platform?.lockqty || 0);
+      const fallback = Math.max(0, count.ecom - protectedQuantity);
+      directAvailability.set(product.id.toString(), {
+        nonEcomAvailable: count.nonEcom,
+        ecomPhysicalAvailable: count.ecom,
+        ecomFallbackAvailable: fallback,
+        totalSellable: count.nonEcom + fallback,
+      });
+    });
+
+    const result = new Map<string, Availability>();
+    products.forEach((product) => {
+      if (!product.iscombo) {
+        result.set(product.id.toString(), directAvailability.get(product.id.toString())!);
+        return;
+      }
+
+      const comboComponents = components.filter((component) => component.bundleproductid === product.id);
+      if (!comboComponents.length) {
+        result.set(product.id.toString(), { nonEcomAvailable: 0, ecomPhysicalAvailable: 0, ecomFallbackAvailable: 0, totalSellable: 0 });
+        return;
+      }
+      const componentAvailability = comboComponents.map((component) => ({
+        required: component.requiredqty,
+        stock: directAvailability.get(component.componentproduct.id.toString())!,
+      }));
+      const nonEcom = Math.min(...componentAvailability.map(({ required, stock }) => Math.floor(stock.nonEcomAvailable / required)));
+      const total = Math.min(...componentAvailability.map(({ required, stock }) => Math.floor(stock.totalSellable / required)));
+      result.set(product.id.toString(), {
+        nonEcomAvailable: nonEcom,
+        ecomPhysicalAvailable: Math.max(0, total - nonEcom),
+        ecomFallbackAvailable: Math.max(0, total - nonEcom),
+        totalSellable: total,
+      });
+    });
+
+    return result;
   }
 
   private async allocateStock(

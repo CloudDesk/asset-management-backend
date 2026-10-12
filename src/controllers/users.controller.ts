@@ -14,9 +14,31 @@ import {
   asyncHandler
 } from '../utils/errorHandler.js';
 import { formatEntitiesForAPI, formatUsersForAPI } from '../utils/dynamicDbOperations.js';
+import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
+import { CustomerOverviewService } from '../services/customer-overview.service.js';
 
 export class UsersController {
   public usersService = new UsersService();
+  private customerOverviewService = new CustomerOverviewService();
+
+  // Inventory-only customer 360 figures (orders, top products, promotions,
+  // wallet, groups). Read-only.
+  getCustomerOverview = asyncHandler(async (request: FastifyRequest<{ Params: UsersParams }>, reply: FastifyReply) => {
+    const authUser = (request as AuthenticatedRequest).user;
+    if (!authUser) {
+      return reply.code(401).send({ success: false, message: 'Authentication required', statusCode: 401 });
+    }
+    if (authUser.userType !== 'inventory') {
+      return reply.code(403).send({ success: false, message: 'Inventory authentication required', statusCode: 403 });
+    }
+    const { id } = usersParamsSchema.parse(request.params);
+    const userId = Number(id);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return reply.code(400).send({ success: false, message: 'Invalid user ID', statusCode: 400 });
+    }
+    const overview = await this.customerOverviewService.getOverview(userId);
+    return reply.code(200).send(createSuccessResponse('Customer overview retrieved successfully', overview));
+  });
 
   getUsers = asyncHandler(async (request: FastifyRequest<{ Querystring: Record<string, any> }>, reply: FastifyReply) => {
     // Get all query parameters as filters (not just schema-validated ones)

@@ -16,6 +16,7 @@ const mediaSchema = z.object({
 }).passthrough();
 
 const heroSlideSchema = z.object({
+  is_active: z.boolean().optional(),
   sort_order: z.number().int().min(0).default(0),
   eyebrow: z.string().max(255).optional(),
   title: z.string().min(1).max(255),
@@ -26,6 +27,7 @@ const heroSlideSchema = z.object({
 }).passthrough();
 
 const showcaseItemSchema = z.object({
+  is_active: z.boolean().optional(),
   sort_order: z.number().int().min(0).default(0),
   eyebrow: z.string().max(255).optional(),
   title: z.string().min(1).max(255),
