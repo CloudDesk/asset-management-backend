@@ -4,6 +4,7 @@ import { PromotionEligibilityRequestSchema, PromotionQuoteRequestSchema, Promoti
 import { evaluatePromotionQuote, isLineInPromotionScope, type PromotionCampaign, type PromotionCatalogProduct, type PromotionCartLine, type PromotionQuote } from './promotion-v2-engine.js';
 import { convertLegacyPromotionRule, isWholeOrderPromotionType } from '../utils/legacy-promotion-v2.js';
 import { isPromotionChannelEligible } from '../utils/promotionChannel.js';
+import { eligibilityCardCampaigns, getPromotionGroup } from '../utils/promotionGroup.js';
 import { logger } from '../config/logger.js';
 
 const prisma = new PrismaClient();
@@ -30,7 +31,7 @@ function parseCachedRule(checksum: string, value: Prisma.JsonValue): PromotionRu
 export class PromotionsV2Service {
   async getLatestRule(promotionId: number): Promise<{ version: number; status: string; rule: PromotionRuleV2 } | null> {
     const version = await prisma.promotionRuleVersion.findFirst({
-      where: { promotionId },
+      where: { promotionId, status: { not: 'retired' } },
       orderBy: { version: 'desc' },
     });
     if (!version) return null;
@@ -175,10 +176,14 @@ export class PromotionsV2Service {
 
   async simulate(promotionId: number, request: unknown): Promise<PromotionQuote> {
     const parsed = PromotionQuoteRequestSchema.parse(request);
-    const version = await prisma.promotionRuleVersion.findFirst({ where: { promotionId }, orderBy: { version: 'desc' }, include: { promotion: true } });
-    if (!version) throw new Error('No rule version exists for this promotion');
+    // Same rule live pricing uses: the latest non-retired version, otherwise
+    // the promotion's own fields through the legacy bridge.
+    const version = await prisma.promotionRuleVersion.findFirst({ where: { promotionId, status: { not: 'retired' } }, orderBy: { version: 'desc' } });
+    const promotion = await prisma.promotions.findUniqueOrThrow({ where: { id: promotionId } });
     const hydrated = await this.hydrateCart(parsed);
-    const campaigns = [{ promotionId, ruleVersion: version.version, name: version.promotion.name ?? `Promotion ${promotionId}`, rule: PromotionRuleV2Schema.parse(version.ruleJson), appliesToWholeOrder: isWholeOrderPromotionType(version.promotion.type) }];
+    const rule = version ? PromotionRuleV2Schema.parse(version.ruleJson) : convertLegacyPromotionRule(promotion);
+    const group = getPromotionGroup({ type: promotion.type, rule });
+    const campaigns: PromotionCampaign[] = [{ promotionId, ruleVersion: version?.version ?? 0, name: promotion.name ?? `Promotion ${promotionId}`, rule, appliesToWholeOrder: isWholeOrderPromotionType(promotion.type), ...(group ? { group } : {}) }];
     const catalog = await this.hydrateRewardCatalog(campaigns, hydrated.catalog, parsed.channel);
     return evaluatePromotionQuote(hydrated.lines, campaigns, catalog, { shippingAmount: parsed.shipping_amount, rewardSelections: parsed.reward_selections });
   }
@@ -216,8 +221,10 @@ export class PromotionsV2Service {
     // Evaluate each campaign independently. A combined quote intentionally
     // resolves conflicts and may allocate only the remaining cart units to an
     // alternative offer; that would understate the saving shown on its card.
+    // "Percent of entire cart value" is the exception: it is evaluated with
+    // the product promotions present (see eligibilityCardCampaigns).
     for (const campaign of active.campaigns) {
-      const candidateQuote = evaluatePromotionQuote(hydrated.lines, [campaign], catalog, {
+      const candidateQuote = evaluatePromotionQuote(hydrated.lines, eligibilityCardCampaigns(campaign, active.campaigns), catalog, {
         shippingAmount: request.shipping_amount,
       });
       const offer = candidateQuote.applied_promotions.find((item) => item.promotion_id === campaign.promotionId);
@@ -393,12 +400,15 @@ export class PromotionsV2Service {
         ? undefined
         : Math.max(0, Math.round((configuredBudget - usage.discountAmount) * 100));
       if (remainingBudgetPaise === 0) { rejections.push({ promotion_id: promotion.id, reason_code: 'BUDGET_EXHAUSTED' }); continue; }
+      const rule = parseCachedRule(row.checksum, row.ruleJson);
+      const group = getPromotionGroup({ type: promotion.type, rule });
       result.push({
         promotionId: promotion.id,
         ruleVersion: row.version,
         name: promotion.name ?? `Promotion ${promotion.id}`,
-        rule: parseCachedRule(row.checksum, row.ruleJson),
+        rule,
         appliesToWholeOrder: isWholeOrderPromotionType(promotion.type),
+        ...(group ? { group } : {}),
         ...(remainingBudgetPaise === undefined ? {} : { remainingBudgetPaise }),
       });
     }
@@ -445,14 +455,17 @@ export class PromotionsV2Service {
         : Math.max(0, Math.round((configuredBudget - usage.discountAmount) * 100));
       if (remainingBudgetPaise === 0) { rejections.push({ promotion_id: promotion.id, reason_code: 'BUDGET_EXHAUSTED' }); continue; }
       try {
+        const rule = convertLegacyPromotionRule(promotion);
+        const group = getPromotionGroup({ type: promotion.type, rule });
         result.push({
           promotionId: promotion.id,
           // Version zero identifies an in-memory legacy bridge. Persisted
           // adjustments intentionally keep a null rule-version FK.
           ruleVersion: 0,
           name: promotion.name ?? `Promotion ${promotion.id}`,
-          rule: convertLegacyPromotionRule(promotion),
+          rule,
           appliesToWholeOrder: isWholeOrderPromotionType(promotion.type),
+          ...(group ? { group } : {}),
           ...(remainingBudgetPaise === undefined ? {} : { remainingBudgetPaise }),
         });
       } catch (error) {

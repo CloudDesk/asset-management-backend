@@ -1,4 +1,5 @@
 import { PromotionRuleV2Schema, type PromotionRuleV2 } from '../schemas/promotions-v2.schema.js';
+import { isTypeDecidedByPromotion } from './promotionListType.js';
 
 type LegacyCondition = { attribute?: string; operator?: string; value?: unknown };
 type LegacyAction = Record<string, unknown>;
@@ -13,8 +14,8 @@ const strings = (value: unknown): string[] => {
 };
 
 /**
- * Whole-order (cart-level) promotion types: Inventory Admin's "Fixed Amount
- * Off Entire Cart" and "Percent Off Entire Cart". Product/category/subcategory
+ * Whole-order (cart-level) promotion types: Inventory Admin's "Fixed amount
+ * of entire cart value" and "Percent of entire cart value". Product/category/subcategory
  * templates are saved as *_ITEM and BOGO/free product/free shipping keep their
  * own handling. The V2 rule format does not record this, so the V2 engine
  * receives it as a campaign flag (appliesToWholeOrder). Explicit list on
@@ -24,6 +25,27 @@ const WHOLE_ORDER_PROMOTION_TYPES = new Set(['FIXED_AMOUNT_OFF_CART', 'PERCENT_O
 
 export const isWholeOrderPromotionType = (type?: string | null): boolean =>
   WHOLE_ORDER_PROMOTION_TYPES.has(String(type ?? '').trim().toUpperCase());
+
+/**
+ * Free Shipping and the two cart types are saved from the promotion's own
+ * fields, and the admin form sends no V2 rule for them. A V2 rule left over
+ * from an earlier type (e.g. an old category rule on a promotion now saved as
+ * "Percent of entire cart value") would otherwise keep pricing the promotion
+ * and make the edit screen show the old type. Retiring it hands pricing to the
+ * legacy bridge, which reads the saved fields. Returns the number retired.
+ */
+export async function retireRuleVersionsForTypeDecidedPromotion(
+  db: { promotionRuleVersion: { updateMany(args: { where: Record<string, unknown>; data: Record<string, unknown> }): Promise<{ count: number }> } },
+  promotionId: number,
+  type: unknown,
+): Promise<number> {
+  if (!isTypeDecidedByPromotion(type)) return 0;
+  const result = await db.promotionRuleVersion.updateMany({
+    where: { promotionId, status: { in: ['draft', 'published'] } },
+    data: { status: 'retired', modifiedAt: BigInt(Math.floor(Date.now() / 1000)) },
+  });
+  return result.count;
+}
 
 export function convertLegacyPromotionRule(input: {
   type?: string | null;

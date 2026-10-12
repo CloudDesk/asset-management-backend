@@ -20,6 +20,7 @@ import { logger } from "../config/logger.js";
 import { WalletRedemptionService } from "../services/wallet-redemption.service.js";
 import { RefundOperationService } from "../services/refund-operation.service.js";
 import { PromotionCheckoutService } from "../services/promotion-checkout.service.js";
+import { allocateV2OrderlinePromotions } from "../utils/orderlinePromotionAllocation.js";
 import { PromotionRedemptionService } from "../services/promotion-redemption.service.js";
 import {
   DirectCouponCheckoutService,
@@ -4185,6 +4186,7 @@ export class PhonePeController {
       // Check if orderlines were created automatically
       const createdOrderlines = await prisma.orderline.findMany({
         where: { orderid: order.id },
+        orderBy: { id: "asc" },
         select: {
           id: true,
           productid: true,
@@ -4195,6 +4197,7 @@ export class PhonePeController {
           product_discount_amount: true,
           promotion_discount_amount: true,
           discountamount: true,
+          is_free_item: true,
         },
       });
 
@@ -4301,6 +4304,13 @@ export class PhonePeController {
             parseFloat(order.shipping_cost?.toString() || "0")
           );
 
+          // Promotional gift lines (Promotions V2 AUTO_ADD) were written by
+          // commitEvaluationToOrder with their own amounts and are not part of
+          // the header promotion total, so they are left as they are.
+          const promotionOrderlines = createdOrderlines.filter(
+            (orderline: any) => orderline.is_free_item !== true
+          );
+
           // Calculate total order amount from all orderlines (for proportional distribution)
           let totalOrderAmount = 0;
           let totalProductAmountFromLines = 0;
@@ -4313,7 +4323,7 @@ export class PhonePeController {
             shipping: number;
           }> = [];
 
-          for (const orderline of createdOrderlines) {
+          for (const orderline of promotionOrderlines) {
             const lineOrderAmount = roundToTwo(
               parseFloat((orderline as any).orderamount?.toString() || "0")
             );
@@ -4350,7 +4360,7 @@ export class PhonePeController {
               orderProductDiscountTotal,
               orderTotalDiscountAmount,
               orderProductAmountTotal,
-              orderlinesCount: createdOrderlines.length,
+              orderlinesCount: promotionOrderlines.length,
             },
             "Orderline promotion data mapping completed with order-level totals"
           );
@@ -4365,8 +4375,32 @@ export class PhonePeController {
                 : totalProductAmountFromLines
               : 0;
 
-          // If there's a promotion discount and we have a basis, distribute it proportionally
-          if (orderPromotionDiscountTotal > 0 && promotionDistributionBasis > 0) {
+          // Promotions V2: keep each line's quote amount and spread only the
+          // direct coupon (PLAN-2026-10-12-107, TC-N16 / TC-N17). Falls back to
+          // the proportional split below when the stored amounts do not match.
+          const v2LineQuote = evaluationData ? getV2EvaluationQuote(evaluationData) : null;
+          const v2LineAllocation = v2LineQuote && Array.isArray(v2LineQuote.adjustments)
+            ? allocateV2OrderlinePromotions(
+                promotionOrderlines.map((orderline: any) => ({
+                  id: Number(orderline.id),
+                  productId: String(orderline.productid ?? ""),
+                  productAmount: parseFloat(orderline.productamount?.toString() || "0"),
+                  productDiscountAmount: parseFloat(orderline.product_discount_amount?.toString() || "0"),
+                  storedPromotionAmount: parseFloat(orderline.promotion_discount_amount?.toString() || "0"),
+                })),
+                v2LineQuote.adjustments,
+                orderPromotionDiscountTotal,
+              )
+            : undefined;
+
+          if (v2LineAllocation) {
+            for (const line of orderlineAmounts) {
+              const lineDiscount = roundToTwo(v2LineAllocation.get(Number(line.id)) ?? 0);
+              allocatedPromoDiscount = roundToTwo(allocatedPromoDiscount + lineDiscount);
+              promoDiscounts.push({ lineId: line.id, discount: lineDiscount });
+            }
+          } else if (orderPromotionDiscountTotal > 0 && promotionDistributionBasis > 0) {
+            // If there's a promotion discount and we have a basis, distribute it proportionally
             for (let i = 0; i < orderlineAmounts.length; i++) {
               const line = orderlineAmounts[i];
 
@@ -4398,6 +4432,7 @@ export class PhonePeController {
               orderPromotionDiscountTotal,
               allocatedPromoDiscount,
               promoDiscounts,
+              allocation: v2LineAllocation ? "v2_quote_lines" : "proportional",
               match: Math.abs(allocatedPromoDiscount - orderPromotionDiscountTotal) < 0.01
             },
             "Promotion discount distribution calculated"
@@ -4411,14 +4446,14 @@ export class PhonePeController {
           let accumulatedProductAmount = 0;
           let accumulatedShippingAmount = 0;
 
-          for (let i = 0; i < createdOrderlines.length; i++) {
-            const orderline = createdOrderlines[i];
+          for (let i = 0; i < promotionOrderlines.length; i++) {
+            const orderline = promotionOrderlines[i];
 
             if (!orderline) continue;
 
             const productId = Number(orderline.productid);
             const lineQuantity = parseFloat((orderline as any).quantity?.toString() || "1");
-            const isLastLine = i === createdOrderlines.length - 1;
+            const isLastLine = i === promotionOrderlines.length - 1;
 
             const originalPricePerItem = roundToTwo(
               originalPriceMap.get(productId) ||
@@ -4539,6 +4574,19 @@ export class PhonePeController {
             );
             accumulatedShippingAmount = roundToTwo(
               accumulatedShippingAmount + lineShippingCost
+            );
+          }
+
+          // GST was saved during order creation, before a direct coupon was
+          // spread onto the lines above. Recalculate the lines whose amount
+          // changed so taxable + GST equals the final line amount (invoices are
+          // generated later, at dispatch). A failure never blocks the order.
+          try {
+            await gstService.refreshOrderLineGst(order.id);
+          } catch (gstRefreshError: any) {
+            logger.warn(
+              { transactionId, orderId: order.id, error: gstRefreshError?.message },
+              "Order line GST refresh failed; GST stays as first calculated"
             );
           }
         } catch (updateError: any) {

@@ -35,6 +35,13 @@ const KNOWN_TEMPLATES = new Set<string>([
   'QUANTITY_TIERED_PERCENT_OFF',
 ]);
 
+/**
+ * Free Shipping and the two cart types are fully described by the promotion's
+ * own type, conditions and action; the admin form saves no V2 rule for them.
+ */
+export const isTypeDecidedByPromotion = (type: unknown): boolean =>
+  TYPE_DECIDED_BY_PROMOTION.has(String(type ?? '').trim().toUpperCase());
+
 export const isPromotionListType = (value: unknown): value is PromotionListType =>
   typeof value === 'string' && (PROMOTION_LIST_TYPES as readonly string[]).includes(value);
 

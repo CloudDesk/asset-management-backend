@@ -20,6 +20,7 @@ import { isPromotionChannelEligible } from '../utils/promotionChannel.js';
 import { normalizePromotionConditionValues } from '../utils/promotionConditions.js';
 import { epochToDate, epochToMilliseconds } from '../utils/epochTimestamp.js';
 import { isPromotionUsageExhausted } from '../utils/promotionPolicy.js';
+import { retireRuleVersionsForTypeDecidedPromotion } from '../utils/legacy-promotion-v2.js';
 
 // Configuration constants for user segments
 const USER_SEGMENT_CONFIG = {
@@ -41,8 +42,10 @@ export class PromotionsService {
       .filter((id) => Number.isInteger(id) && id > 0);
     if (!promotionIds.length) return promotions;
 
+    // Retired versions were replaced (or dropped when the promotion became a
+    // type the V2 rule no longer describes), so they are never "latest".
     const versions = await this.prisma.promotionRuleVersion.findMany({
-      where: { promotionId: { in: promotionIds } },
+      where: { promotionId: { in: promotionIds }, status: { not: 'retired' } },
       orderBy: [{ promotionId: 'asc' }, { version: 'desc' }],
       select: {
         promotionId: true,
@@ -76,7 +79,7 @@ export class PromotionsService {
     const ids = promotionIds.filter((id) => Number.isInteger(id) && id > 0);
     if (!ids.length) return new Map();
     const versions = await this.prisma.promotionRuleVersion.findMany({
-      where: { promotionId: { in: ids } },
+      where: { promotionId: { in: ids }, status: { not: 'retired' } },
       orderBy: [{ promotionId: 'asc' }, { version: 'desc' }],
       select: { promotionId: true, ruleJson: true },
     });
@@ -1306,7 +1309,8 @@ export class PromotionsService {
           application_mode: true,
           status: true,
           start_date: true,
-          end_date: true
+          end_date: true,
+          type: true
         }
       });
       if (!currentPromotion) throw new Error('Promotion not found');
@@ -1362,6 +1366,15 @@ export class PromotionsService {
 
       if (!promotion) {
         throw new Error('Promotion not found or update failed');
+      }
+
+      const retiredRuleVersions = await retireRuleVersionsForTypeDecidedPromotion(
+        this.prisma,
+        currentPromotion.id,
+        transformedData.type ?? currentPromotion.type
+      );
+      if (retiredRuleVersions) {
+        logger.info({ promotionId: id, retiredRuleVersions }, 'Retired V2 rules left over from an earlier promotion type');
       }
 
       logger.info({
