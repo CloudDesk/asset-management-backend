@@ -77,14 +77,14 @@ Last updated: 2026-10-08
 | G11 | Cancel all applicable items as a single transaction | 🟡 Verified: only whole-order cancel exists (item cancel route disabled). Mobile order detail used the disabled item route — fixed in FIX-2026-10-09-94 |
 | G12 | Plan says policy at Category / Subcategory / **Sub-subcategory**; code `scopekey` is only `category|subcategory` | Sub-subcategory level not implemented — confirm if needed |
 | G13 | Partially returned order showed "Refund completed" | 🟡 FIX-2026-10-09-102 — `partially_returned`; web Return button now stays for remaining units |
-| G14 | `orders.cancelleddate` stored +5:30 | ✅ Root cause already fixed by FIX-2026-10-08-87 (trigger live on dev, migration applied); new cancels correct. ⏳ 17 old cancelled orders still +5:30 — backfill SQL `backfill_cancelleddate_utc.sql` ready to run manually |
+| G14 | `orders.cancelleddate` stored +5:30 | ✅ Root cause fixed by FIX-2026-10-08-87; 17 old cancelled orders backfilled 2026-10-12 on assetmanagement_dev (0 still shifted; modifieddate unchanged) |
 | G15 | Ekart reverse pickup declared value | 🟡 FIX-2026-10-09-104 — paid × returned share, min ₹1 |
 | G16 | RTO, invoice cancel / override, credit note, Finance Excel export | 🟡 Checked 2026-10-09: invoice override and export amounts fixed (FIX-2026-10-09-99); credit notes created with HSN/GST; see G19, G20 |
 | G17 | Cancel lock / stock outside transaction | 🟡 FIX-2026-10-09-103 |
 | G18 | Mobile dead code cleanup | 🟡 FIX-2026-10-09-105 |
 | G19 | Order-time GST is on the pre-discount price (order 167 line 252: paid ₹95, taxable ₹114.29 + GST ₹5.71 = ₹120). Invoices and credit notes carry it | **Finance decision** — should GST be on the discounted value? |
 | G20 | RTO was built but unreachable (0 records) | 🟡 FIX-2026-10-09-100 (Shipmozo courier RTO auto-creates records). Menu link (FIX-101) reverted 2026-10-12 — not needed |
-| G21 | Order 167 invoice adjustments still store original 33 / remaining 285 | ⏳ Repair script ready (auto mode blocked the DB write) — run `repair_order167_invoice_adjustments.ts` manually |
+| G21 | Order 167 invoice adjustments stored original 33 / remaining 285 | ✅ Repaired 2026-10-12 on assetmanagement_dev: 3 adjustments now original 380 / remaining 95, credit-note links kept |
 
 
 ### 2.1 Current Code Behaviour for Open Decisions (to confirm with business)
