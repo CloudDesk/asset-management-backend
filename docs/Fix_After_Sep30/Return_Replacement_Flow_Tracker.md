@@ -83,7 +83,7 @@ Last updated: 2026-10-08
 | G17 | Cancel lock / stock outside transaction | 🟡 FIX-2026-10-09-103 |
 | G18 | Mobile dead code cleanup | 🟡 FIX-2026-10-09-105 |
 | G19 | Order-time GST is on the pre-discount price (order 167 line 252: paid ₹95, taxable ₹114.29 + GST ₹5.71 = ₹120). Invoices and credit notes carry it | **Finance decision** — should GST be on the discounted value? |
-| G20 | RTO was built but unreachable (0 records) | 🟡 FIX-2026-10-09-100 (Shipmozo courier RTO auto-creates records) + FIX-2026-10-09-101 ("RTO Operations" menu link restored for manual Create RTO) |
+| G20 | RTO was built but unreachable (0 records) | 🟡 FIX-2026-10-09-100 (Shipmozo courier RTO auto-creates records). Menu link (FIX-101) reverted 2026-10-12 — not needed |
 | G21 | Order 167 invoice adjustments still store original 33 / remaining 285 | ⏳ Repair script ready (auto mode blocked the DB write) — run `repair_order167_invoice_adjustments.ts` manually |
 
 
