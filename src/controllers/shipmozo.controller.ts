@@ -21,9 +21,11 @@ import { OrdersService } from '../services/orders.service.js';
 import { buildShipmozoPublicTrackingUrl, shipmozoService } from '../services/shipmozo.service.js';
 import { shipmozoOperationService } from '../services/shipmozo-operation.service.js';
 import { shipmozoTrackingSyncService } from '../services/shipmozo-tracking-sync.service.js';
+import { shipmentCancellationService } from '../services/shipment-cancellation.service.js';
 import { asyncHandler, createSuccessResponse, ValidationError } from '../utils/errorHandler.js';
 import { dynamicUpdate } from '../utils/dynamicDbOperations.js';
 import { normalizeShipmozoTracking } from '../utils/shipmozo-status.js';
+import { carryShipmentHistory } from '../utils/shipmentCancellation.js';
 import { extractShipmozoWebhookAwb } from '../utils/shipmozo-status.js';
 import {
   asShipmozoWorkflowData,
@@ -159,6 +161,9 @@ export class ShipmozoController {
     void _requestWarehouseId;
     const assignmentMode = courierId ? 'MANUAL' : (requestedAssignmentMode || 'AUTO');
 
+    // A shipment-only cancel leaves this order's operation as `cancelled`;
+    // retire it so the new shipment starts a fresh operation.
+    await shipmozoOperationService.retireCancelled(`forward:${payload.order_id}`);
     const operation = await shipmozoOperationService.begin({
       idempotencyKey: `forward:${payload.order_id}`,
       providerOrderId: payload.order_id,
@@ -258,7 +263,7 @@ export class ShipmozoController {
       tracking_id: awbNumber,
       vendor: 'SHIPMOZO',
       public_tracking_link: publicTrackingLink,
-      barcodes: shipmentMetadata,
+      barcodes: carryShipmentHistory(order.barcodes, shipmentMetadata),
       shipment_created_at: Date.now(),
       modifieddate: Date.now()
       });
@@ -696,55 +701,19 @@ export class ShipmozoController {
 
   cancelShipment = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const payload = shipmozoCancelSchema.parse(request.body);
-    const resolved = await this.resolveShipmozoOrderId(payload.order_id);
-    const data = await shipmozoService.cancelOrder(resolved.orderId, payload.awb_number);
-    const operation = resolved.operation || await shipmozoOperationService.findLatest({
-      awbNumber: payload.awb_number
+    const { providerResponse } = await shipmentCancellationService.cancelShipmentKeepOrder({
+      provider: 'SHIPMOZO',
+      trackingId: payload.awb_number,
+      cancelWithProvider: async () => {
+        const resolved = await this.resolveShipmozoOrderId(payload.order_id);
+        const data = await shipmozoService.cancelOrder(resolved.orderId, payload.awb_number);
+        const operation = resolved.operation || await shipmozoOperationService.findLatest({
+          awbNumber: payload.awb_number
+        });
+        if (operation) await shipmozoOperationService.complete(operation.id, 'shipment_cancelled', 'cancelled');
+        return data;
+      }
     });
-    if (operation) await shipmozoOperationService.complete(operation.id, 'shipment_cancelled', 'cancelled');
-    const order = await prisma.orders.findFirst({
-      where: {
-        tracking_id: payload.awb_number,
-        vendor: { equals: 'SHIPMOZO', mode: 'insensitive' }
-      },
-      include: { orderline: true }
-    });
-    if (order) {
-      const timestamp = Date.now();
-      const existingMetadata = order.barcodes && typeof order.barcodes === 'object' && !Array.isArray(order.barcodes)
-        ? order.barcodes as Record<string, any>
-        : {};
-      await prisma.$transaction([
-        prisma.orders.update({
-          where: { id: order.id },
-          data: {
-            tracking_id: null,
-            vendor: null,
-            public_tracking_link: null,
-            shipment_created_at: null,
-            label_url: null,
-            label_downloaded_at: null,
-            label_printed_at: null,
-            shipment_tracking_status: 'Cancelled',
-            barcodes: {
-              ...existingMetadata,
-              cancellation: {
-                provider: 'SHIPMOZO',
-                status: 'confirmed',
-                tracking_id: payload.awb_number,
-                confirmed_at: timestamp,
-                confirmation_source: 'cancel_api'
-              }
-            },
-            modifieddate: timestamp
-          }
-        }),
-        prisma.orderline.updateMany({
-          where: { orderid: order.id },
-          data: { tracking_id: null, modifieddate: timestamp }
-        })
-      ]);
-    }
-    return reply.code(200).send(createSuccessResponse('Shipmozo shipment cancelled successfully', data));
+    return reply.code(200).send(createSuccessResponse('Shipmozo shipment cancelled successfully', providerResponse));
   });
 }

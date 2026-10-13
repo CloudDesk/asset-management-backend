@@ -290,10 +290,13 @@ test('customer cancellation persists Shipmozo confirmation and failure outcomes'
 });
 
 test('cancelled Shipmozo bookings release the order for a new shipment without cancelling the order', () => {
+  // The cancel endpoint clears the order through the shared shipment-only cancel.
   const controller = readFileSync(resolve('src/controllers/shipmozo.controller.ts'), 'utf8');
+  const shipmentOnlyCancel = readFileSync(resolve('src/utils/shipmentCancellation.ts'), 'utf8');
   const trackingSync = readFileSync(resolve('src/services/shipmozo-tracking-sync.service.ts'), 'utf8');
 
-  for (const source of [controller, trackingSync]) {
+  assert.match(controller, /shipmentCancellationService\.cancelShipmentKeepOrder/);
+  for (const source of [shipmentOnlyCancel, trackingSync]) {
     assert.match(source, /tracking_id: null/);
     assert.match(source, /vendor: null/);
     assert.match(source, /shipment_created_at: null/);

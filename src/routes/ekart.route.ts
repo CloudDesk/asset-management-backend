@@ -424,7 +424,7 @@ export async function ekartRoutes(fastify: FastifyInstance) {
    */
   fastify.delete('/shipments/:trackingId/cancel', {
     schema: {
-      description: 'Cancel a shipment before it is picked up',
+      description: 'Cancel only the shipment of a ready_for_dispatch order (before pickup). Clears the order tracking details so a new shipment can be created; the order is not cancelled.',
       tags: ['Ekart Logistics'],
       params: {
         type: 'object',

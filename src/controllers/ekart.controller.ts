@@ -18,6 +18,8 @@ import {
 } from '../schemas/ekart.schema.js';
 import { createSuccessResponse, createErrorResponse, asyncHandler } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
+import { shipmentCancellationService } from '../services/shipment-cancellation.service.js';
+import { carryShipmentHistory } from '../utils/shipmentCancellation.js';
 import { dynamicUpdate } from '../utils/dynamicDbOperations.js';
 import axios from 'axios';
 import FormData from 'form-data';
@@ -213,7 +215,7 @@ export class EkartController {
           await dynamicUpdate('orders', { id: order.id }, {
             tracking_id: result.tracking_id,
             vendor: result.vendor,
-            barcodes: result.barcodes as any,
+            barcodes: carryShipmentHistory(order.barcodes, result.barcodes) as any,
             public_tracking_link: `https://app.elite.ekartlogistics.in/track/${result.tracking_id}`,
             shipment_created_at: Date.now(),
             modifieddate: Date.now()
@@ -597,7 +599,12 @@ export class EkartController {
 
       logger.info({ trackingId }, 'Cancelling shipment');
 
-      const result = await ekartService.cancelShipment(trackingId);
+      // Cancels only the shipment; the order stays ready_for_dispatch for a new one.
+      const { providerResponse: result } = await shipmentCancellationService.cancelShipmentKeepOrder({
+        provider: 'EKART',
+        trackingId,
+        cancelWithProvider: () => ekartService.cancelShipment(trackingId)
+      });
 
       const response = createSuccessResponse(
         'Shipment cancelled successfully',
