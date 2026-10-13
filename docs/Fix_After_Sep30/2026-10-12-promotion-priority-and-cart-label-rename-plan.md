@@ -1,6 +1,6 @@
 # Promotion Priority & Cart Label Rename – Implementation Plan
 
-**Date:** 2026-10-12 · **Owner:** Suresh · **Status:** Plan approved by Divya, implementation pending
+**Date:** 2026-10-12 · **Owner:** Suresh · **Status:** Implemented and dev-verified on web and mobile (2026-10-12); SIT pending
 **Live doc:** https://claude.ai/code/artifact/cb8b5e58-7ec9-4fb3-9592-21586bbbc3a2
 
 **Source:** Email thread Satish → Divya → Suresh, confirmed by Divya on 2026-10-12. The same rules apply to percentage and fixed-amount promotion types.
@@ -271,3 +271,45 @@ Nothing is blocking the build. The main risk is that carts with product-promotio
 3. Dry run on a copy of production promotions. Share results with Divya and Satish.
 4. UAT sign-off from Satish.
 5. Production release following `docs/SIT_UAT_PROD_DEPLOYMENT_RUNBOOK.md`.
+
+## Implementation status (2026-10-12)
+
+All plan items are implemented and verified on dev (web and mobile). Fix log: `Master.md`, PLAN-2026-10-12-107.
+
+| Area | Status | Where |
+| --- | --- | --- |
+| Calculation rules (product promotions first, per-item minimum quantity, Percent of entire cart value on remaining items, Fixed amount of entire cart value on the full cart, Stackable never blocks cart promotions, fixed share moves off items at ₹0) | Done | backend `promotionGroup.ts`, `promotion-v2-engine.ts`, `promotions-v2.service.ts` |
+| Percent of entire cart value card shows the final saving (TC-N15) | Done | `eligibilityCardCampaigns` |
+| Tests for TC-P01–P19 and TC-N01–N19 | Done (engine level; channel, audience, payment, refund and wallet steps checked in dev) | `tests/promotionV2Engine.test.ts` |
+| Admin labels (list filter, Type column, create / edit) | Done | Inventory `promotionV2Templates.ts`, `PromotionForm.tsx`, `PromotionsPage.tsx` |
+| "Items in your cart already have their own offer." | Done: web Cart / Checkout card and on Apply; mobile on Apply | Ecom `cartPromotions.ts`; mobile `promotionOfferEligibility.ts` |
+| Old labels in the mobile app | None found | — |
+
+**Follow-ups found in dev testing (all done):**
+
+1. Cart / Free Shipping promotions kept a leftover V2 rule from an earlier type (promotion 75 showed "Percentage Off Categories" and priced one category). Saving now retires it; `scripts/retire-stale-cart-rule-versions.ts` for existing records (run per environment).
+2. Order lines lost the quote's item-wise amounts after payment (TC-N16 / TC-N17). Lines now keep them; only the direct coupon is spread on what is left after promotions.
+3. GST on coupon orders was calculated before the coupon. Line GST is now recalculated after the coupon, reusing the order's GST type.
+
+**Dev orders checked:**
+
+| Order | Channel | Case | Result |
+| --- | --- | --- | --- |
+| 175 | web | promotions only (before follow-up 2) | Totals right; lines flattened → follow-up 2 |
+| 176 | web | promotions only | Lines and GST match the quote |
+| 177 | web | ₹100 wallet | Wallet as payment; lines and GST unchanged |
+| 178 | web | ₹50 coupon (before follow-up 3) | Coupon split right; GST on pre-coupon amount → follow-up 3 |
+| 179 | web | ₹60 coupon | Coupon split and GST match the amount paid |
+| 180 | mobile | promotions only | Identical to web 176 (TC-P14) |
+| 181 | mobile | ₹100 wallet | Same as web 177 |
+| 182 | mobile | ₹50 coupon | Coupon split and GST match the amount paid |
+
+**Open before release:**
+
+- Push the mobile commit (`expo_rn_migrations_v2`) and run the SIT / UAT / prod steps in `docs/RELEASE_SCRIPTS_CHECKLIST.md`.
+- Accounts: wallet credits that come from coupons are spent as a payment (GST on full price, restored on return), while the same coupon used directly is a discount (GST after coupon, not restored).
+- Agree the refund rule for COD orders that used the wallet.
+- Repair script for older orders (flattened lines, GST before coupon); skip orders that already have an invoice.
+- MRP discount is counted twice in order line / header fields (amounts paid, refunds and GST are correct); kept as is until the 3 UIs are checked.
+- Mobile shows the own-offer message only on Apply (mobile hides offers that do not qualify).
+
