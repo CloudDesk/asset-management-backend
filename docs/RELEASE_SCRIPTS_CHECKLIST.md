@@ -1,6 +1,6 @@
 # Release Scripts & Migrations Checklist
 
-**Last updated:** 2026-10-12 · **Owner:** Suresh
+**Last updated:** 2026-10-13 · **Owner:** Suresh
 
 One place for every database migration and one-time script that must run when code moves between environments. A branch merge is **not complete** until every row below that applies to the target environment is ticked for that environment.
 
@@ -92,7 +92,7 @@ All default to a dry run. Save both outputs.
 
 | Script | When | Dev / SIT DB | UAT DB | Prod DB |
 | --- | --- | --- | --- | --- |
-| `retire-stale-cart-rule-versions.ts` (PLAN-2026-10-12-107) | After the PLAN-107 backend is deployed. Retires leftover V2 rules on Free Shipping / cart promotions. Apply: `RETIRE_STALE_RULES_APPLY=true` | ✅ 2026-10-12 (0 found; #75 retired on save) | ⬜ | ⬜ |
+| `retire-stale-cart-rule-versions.ts` (PLAN-2026-10-12-107) | After the PLAN-107 backend is deployed. Retires leftover V2 rules on Free Shipping / cart promotions. Apply: `RETIRE_STALE_RULES_APPLY=true` | ✅ 2026-10-12 (0 found; #75 retired on save) | ✅ 2026-10-13 dry run: 0 found, nothing to apply | ⬜ |
 | `normalize-fragrance-type-dependencies.ts` | Fragrance Type picklist dependencies → Subcategory. UAT/Prod: `--target-env=.env.uat --expected-db=assetmanagement_uat` (Prod: `.env.prod`, `railway`); apply adds `--apply --confirm=NIVAANA_NORMALIZE_FRAGRANCE_DEPENDENCIES` | ❓ | ⬜ | ⬜ |
 | `repair-subcategory-parents.ts` | Subcategory parent links per taxonomy. Apply: `--apply --confirm=NIVAANA_REPAIR_SUBCATEGORY_PARENTS` | ❓ | ❓ | ⬜ |
 | `audit-standalone-coupon-policy.ts` | Read-only check after `20260927100000_normalize_standalone_coupon_policy` | ❓ | ⬜ | ⬜ |
@@ -109,12 +109,23 @@ All default to a dry run. Save both outputs.
 | `import-production-product-catalogue.ts`, `migrate-gst-taxonomy.ts`, `migrate-product-names.ts`, `migrate-product-shortnames.ts`, `migrate-product-taxonomy.ts`, `backup-taxonomy-state.ts` | Jul–Aug 2026 migrations, already on the `Prod` branch. Historical. |
 | `load-test-promotions-v2.ts`, `verify-amazon-inventory-handoff.ts`, `update-amazon-secrets.*`, `deploy-cloud-run-dev.sh` | Tools, not data changes. |
 
+### 4e. Environment config changes (`.env.sit` / `.env.uat` / Prod trigger)
+
+Settings that must change in an environment file when code moves there. SIT and UAT read `.env.sit` / `.env.uat` from their own branch at deploy time; Prod reads Cloud Build trigger substitutions (runbook section 3).
+
+| Change | Why | SIT (`.env.sit` on `SIT`) | UAT (`.env.uat` on `UAT`) | Prod (trigger `nivaana-production`) |
+| --- | --- | --- | --- | --- |
+| **Shipmozo on** (FIX-2026-10-13-113): `SHIPMOZO_INTEGRATION_ENABLED: "true"`, `SHIPMOZO_TRACKING_SYNC_ENABLED: "true"` | From Inventory commit `b401efd` the Inventory shows Shipmozo in **every** environment. Where the backend switch is `"false"` the Shipmozo routes are not loaded, so Create Shipment → Shipmozo fails. Shipmozo keys are shared with the live account: shipments created in SIT / UAT book real pickups; use test orders and cancel them. | ✅ 2026-10-13 (committed on `SIT` with the `DEV-NEW` merge) | ⬜ **Set in the same `SIT` → `UAT` merge, before pushing `UAT`** | ✅ already `"true"`; verify `_SHIPMOZO_PUBLIC_KEY`, `_SHIPMOZO_PRIVATE_KEY`, `_SHIPMOZO_WAREHOUSE_ID` are filled in the trigger |
+| Optional: `SHIPMOZO_WEBHOOK_SECRET` (16+ characters) | Shipmozo push status updates. Without it the webhook is refused and only the 15-minute sync updates status. | ➖ not set | ➖ not set | ❓ verify trigger value |
+| Optional: `SHIPMOZO_WAREHOUSE_ID` | Default pickup warehouse. Empty: the shipment form loads the warehouse list from Shipmozo. | ➖ not set | ➖ not set | ❓ verify trigger value |
+
 ## 5. Per-environment run order
 
 ### SIT (merge `DEV-NEW` → `SIT`)
 
 Dev and SIT share a database, so database steps done on dev are already done here.
 
+- [ ] Section 4e: environment config changes for SIT are in `.env.sit` on `SIT`
 - [ ] Compare branches: `git diff --stat origin/SIT origin/DEV-NEW -- prisma/migrations scripts`; every new file has a row in section 4
 - [ ] `npx prisma migrate status` (dev `.env`): only the known Flipkart / empty-folder differences (section 3)
 - [ ] Run any section 4 row marked ⬜ or ❓ for Dev / SIT DB; save logs
@@ -123,6 +134,7 @@ Dev and SIT share a database, so database steps done on dev are already done her
 
 ### UAT (merge `SIT` → `UAT`)
 
+- [ ] **Section 4e: in this merge set `.env.uat` `SHIPMOZO_INTEGRATION_ENABLED: "true"` and `SHIPMOZO_TRACKING_SYNC_ENABLED: "true"` before pushing `UAT`** (the UAT Inventory shows Shipmozo from this release; with the switch off it fails)
 - [ ] Compare branches: `git diff --stat origin/UAT origin/SIT -- prisma/migrations scripts`; every new file has a row
 - [ ] Backup / snapshot `assetmanagement_uat`
 - [ ] `DATABASE_URL="$TARGET_DB_URL" npx prisma migrate status` with `.env.uat`; confirm DB name `assetmanagement_uat`; record which section 4a rows are applied
@@ -136,11 +148,13 @@ Dev and SIT share a database, so database steps done on dev are already done her
 
 - [ ] Compare branches: `git diff --stat origin/Prod origin/UAT -- prisma/migrations scripts` (today: 6 migrations + scripts, section 3)
 - [ ] Restorable backup of the Prod database; record current Cloud Run revisions
+- [ ] Section 4e: Prod trigger substitutions for each config row (Shipmozo keys, warehouse, webhook secret)
 - [ ] Confirm the target DB from the deployed service (runbook section 2); `migrate status` shows `railway`
 - [ ] Review row-impact of data migrations: `20260922090000`, `20260924110000`, `20260927100000`, `20261008195500`
 - [ ] `npx prisma migrate deploy`; re-run `migrate status`
 - [ ] `20261006_sync_authoritative_product_tax.sql`; validate HSN/GST counts
 - [ ] Data scripts (4c) for Prod in table order: dry run, review, apply; `retire-stale-cart-rule-versions.ts` right after the PLAN-107 backend deploy
+- [ ] PLAN-107: list active promotions of old type `PERCENT_OFF_ITEM` / `FIXED_AMOUNT_OFF_ITEM` with no product / category / subcategory scope and no published V2 rule (whole-cart offers such as FESTIVE SALE). Change each in admin to "Percent of entire cart value" / "Fixed amount of entire cart value" and re-enter the value. UAT 2026-10-13: #1 FESTIVE SALE was `PERCENT_OFF_ITEM` and applied 10% to the whole cart until changed.
 - [ ] Deploy Prod in runbook order, production smoke tests, monitor logs
 - [ ] Update this file and Master.md
 
