@@ -92,7 +92,7 @@ All default to a dry run. Save both outputs.
 
 | Script | When | Dev / SIT DB | UAT DB | Prod DB |
 | --- | --- | --- | --- | --- |
-| `retire-stale-cart-rule-versions.ts` (PLAN-2026-10-12-107) | After the PLAN-107 backend is deployed. Retires leftover V2 rules on Free Shipping / cart promotions. Apply: `RETIRE_STALE_RULES_APPLY=true` | ✅ 2026-10-12 (0 found; #75 retired on save) | ⬜ | ⬜ |
+| `retire-stale-cart-rule-versions.ts` (PLAN-2026-10-12-107) | After the PLAN-107 backend is deployed. Retires leftover V2 rules on Free Shipping / cart promotions. Apply: `RETIRE_STALE_RULES_APPLY=true` | ✅ 2026-10-12 (0 found; #75 retired on save) | ✅ 2026-10-13 dry run: 0 found, nothing to apply | ⬜ |
 | `normalize-fragrance-type-dependencies.ts` | Fragrance Type picklist dependencies → Subcategory. UAT/Prod: `--target-env=.env.uat --expected-db=assetmanagement_uat` (Prod: `.env.prod`, `railway`); apply adds `--apply --confirm=NIVAANA_NORMALIZE_FRAGRANCE_DEPENDENCIES` | ❓ | ⬜ | ⬜ |
 | `repair-subcategory-parents.ts` | Subcategory parent links per taxonomy. Apply: `--apply --confirm=NIVAANA_REPAIR_SUBCATEGORY_PARENTS` | ❓ | ❓ | ⬜ |
 | `audit-standalone-coupon-policy.ts` | Read-only check after `20260927100000_normalize_standalone_coupon_policy` | ❓ | ⬜ | ⬜ |
@@ -141,6 +141,7 @@ Dev and SIT share a database, so database steps done on dev are already done her
 - [ ] `npx prisma migrate deploy`; re-run `migrate status`
 - [ ] `20261006_sync_authoritative_product_tax.sql`; validate HSN/GST counts
 - [ ] Data scripts (4c) for Prod in table order: dry run, review, apply; `retire-stale-cart-rule-versions.ts` right after the PLAN-107 backend deploy
+- [ ] PLAN-107: list active promotions of old type `PERCENT_OFF_ITEM` / `FIXED_AMOUNT_OFF_ITEM` with no product / category / subcategory scope and no published V2 rule (whole-cart offers such as FESTIVE SALE). Change each in admin to "Percent of entire cart value" / "Fixed amount of entire cart value" and re-enter the value. UAT 2026-10-13: #1 FESTIVE SALE was `PERCENT_OFF_ITEM` and applied 10% to the whole cart until changed.
 - [ ] Deploy Prod in runbook order, production smoke tests, monitor logs
 - [ ] Update this file and Master.md
 
