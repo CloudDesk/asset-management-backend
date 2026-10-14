@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
+import { logger } from '../config/logger.js';
 import { AmazonListingScope } from './amazon-listing-scope.service.js';
 import { AmazonRawOrder } from './amazon-production-listings.client.js';
 import { amazonOrderRoutingService } from './amazon-order-routing.service.js';
@@ -176,6 +177,7 @@ export class AmazonOrderImportService {
     let unmapped = 0;
     let cancelled = 0;
     let pagesProcessed = 0;
+    let failed = 0;
 
     do {
       const page = await scope.client.searchOrders({
@@ -183,11 +185,18 @@ export class AmazonOrderImportService {
         ...(paginationToken ? { paginationToken } : {}),
       });
       for (const raw of page.orders) {
-        const outcome = await this.upsertOrder(raw, scope, actor);
         fetched += 1;
-        if (outcome.created) created += 1; else updated += 1;
-        if (outcome.hasUnmappedItems) unmapped += 1;
-        if (outcome.isCancelled) cancelled += 1;
+        try {
+          const outcome = await this.upsertOrder(raw, scope, actor);
+          if (outcome.created) created += 1; else updated += 1;
+          if (outcome.hasUnmappedItems) unmapped += 1;
+          if (outcome.isCancelled) cancelled += 1;
+        } catch (error) {
+          failed += 1;
+          logger.error({ sellerId: scope.sellerId, marketplaceId: scope.marketplaceId,
+            amazonOrderId: raw.orderId, error: error instanceof Error ? error.message : 'Unknown import failure' },
+            'Amazon order import failed for order');
+        }
         if (onProgress && fetched % 10 === 0) {
           await onProgress({ fetched, created, updated, unmapped, cancelled, pagesProcessed, searchStart });
         }
@@ -196,6 +205,10 @@ export class AmazonOrderImportService {
       if (onProgress) await onProgress({ fetched, created, updated, unmapped, cancelled, pagesProcessed, searchStart });
       paginationToken = page.nextToken ?? undefined;
     } while (paginationToken);
+
+    if (failed > 0) throw new AmazonOrderImportError(
+      `Amazon order import completed with ${failed} failed orders out of ${fetched}; review the order-specific server logs`,
+      502, 'AMAZON_ORDER_IMPORT_PARTIAL_FAILURE');
 
     return {
       fetched,

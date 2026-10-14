@@ -15,6 +15,12 @@ export type AmazonListingScope = {
   source: 'OAUTH' | 'ENVIRONMENT_FALLBACK';
 };
 
+export class AmazonListingScopeError extends Error {
+  readonly statusCode = 409;
+  readonly code = 'AMAZON_CONNECTION_REQUIRED';
+  constructor() { super('Connect your Amazon seller account before using Amazon integration'); }
+}
+
 export class AmazonListingScopeService {
   private scopeFromConnection(connection: { sellerId: string; marketplaceId: string; refreshToken: string }): AmazonListingScope {
     const refreshToken = amazonTokenCryptoService.decrypt(connection.refreshToken);
@@ -48,6 +54,8 @@ export class AmazonListingScopeService {
       return this.scopeFromConnection(connection);
     }
 
+    // Preserve the configured shared-account flow when no personal OAuth
+    // connection exists. Route authentication and channel permissions still apply.
     return {
       sellerId: amazonProductionListingsClient.getSellerId(),
       marketplaceId: amazonProductionListingsClient.getMarketplaceId(),

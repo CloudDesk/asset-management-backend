@@ -2,8 +2,9 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
 import { AmazonListingScope } from './amazon-listing-scope.service.js';
 import { amazonProductionWriteGuardService } from './amazon-production-write-guard.service.js';
-import { AmazonEasyShipTimeSlot } from './amazon-production-listings.client.js';
+import { AmazonEasyShipTimeSlot, AmazonSpApiError } from './amazon-production-listings.client.js';
 import { amazonOrderRoutingService } from './amazon-order-routing.service.js';
+import { AmazonAuthorizationError } from './amazon-lwa-token.service.js';
 
 export type AmazonFulfillmentActor = { userId?: number; userType?: string };
 
@@ -17,6 +18,7 @@ export class AmazonFulfillmentError extends Error {
 const progressedMfnStatuses = new Set([
   'PICK_CREATED', 'PACKED', 'SHIPPING_SELECTED', 'TRACKING_READY',
   'SHIPPED_INTERNAL', 'AMAZON_CONFIRMATION_FAILED', 'AMAZON_CONFIRMED',
+  'AMAZON_CONFIRMATION_PENDING', 'AMAZON_CONFIRMATION_UNKNOWN',
 ]);
 
 const serialize = (fulfillment: any) => ({
@@ -243,6 +245,16 @@ export class AmazonOrderFulfillmentService {
     const writeStatus = await amazonProductionWriteGuardService.status(scope.sellerId, scope.marketplaceId);
     if (!writeStatus.effectiveEnabled) this.fail('Amazon production writes are disabled by the global kill switch', 409, 'AMAZON_PRODUCTION_WRITES_DISABLED');
     const current = order.fulfillment;
+    if (current?.workflowStatus === 'AMAZON_CONFIRMED') return serialize(current);
+    if (current?.amazonConfirmationStatus === 'CONFIRMED') {
+      await amazonOrderRoutingService.finalizeReservationsAsSold(order.id);
+      return serialize(await this.transition(order.id, 'CONFIRM_SHIPMENT_TO_AMAZON',
+        ['AMAZON_CONFIRMATION_PENDING', 'AMAZON_CONFIRMATION_UNKNOWN'], 'AMAZON_CONFIRMED', {}, actor));
+    }
+    if (current && ['AMAZON_CONFIRMATION_PENDING', 'AMAZON_CONFIRMATION_UNKNOWN'].includes(current.workflowStatus)) {
+      this.fail('Shipment confirmation is in progress or its outcome is unknown; verify the shipment in Amazon before retrying',
+        409, 'AMAZON_CONFIRMATION_RECONCILIATION_REQUIRED');
+    }
     if (order.fulfilmentType !== 'MFN' || !current || !['SHIPPED_INTERNAL', 'AMAZON_CONFIRMATION_FAILED'].includes(current.workflowStatus)) {
       this.fail('Amazon shipment confirmation is available only after an MFN order is shipped internally');
     }
@@ -251,6 +263,14 @@ export class AmazonOrderFulfillmentService {
     }
     if (!scope.client.confirmShipment) this.fail('Amazon shipment confirmation client is unavailable', 503, 'AMAZON_CONFIRMATION_UNAVAILABLE');
     await amazonOrderRoutingService.assertStockReservationReadyForShipment(order.id);
+    const claimed = await prisma.amazonOrderFulfillment.updateMany({
+      where: { id: current.id, workflowStatus: { in: ['SHIPPED_INTERNAL', 'AMAZON_CONFIRMATION_FAILED'] },
+        amazonConfirmationStatus: { not: 'CONFIRMED' } },
+      data: { workflowStatus: 'AMAZON_CONFIRMATION_PENDING', amazonConfirmationStatus: 'PENDING' },
+    });
+    if (claimed.count !== 1) this.fail('Shipment confirmation is already in progress or requires reconciliation',
+      409, 'AMAZON_CONFIRMATION_IN_PROGRESS');
+    let accepted = false;
     try {
       await scope.client.confirmShipment({
         orderId: order.amazonOrderId, marketplaceId: order.marketplaceId,
@@ -260,14 +280,22 @@ export class AmazonOrderFulfillmentService {
         shipDate: current.shippingDate.toISOString(),
         orderItems: order.items.map((item) => ({ orderItemId: item.amazonOrderItemId, quantity: item.quantityOrdered })),
       });
+      accepted = true;
+      await prisma.amazonOrderFulfillment.update({ where: { id: current.id }, data: {
+        amazonConfirmationStatus: 'CONFIRMED', amazonConfirmedAt: new Date(),
+      } });
       await amazonOrderRoutingService.finalizeReservationsAsSold(order.id);
-      const updated = await this.transition(order.id, 'CONFIRM_SHIPMENT_TO_AMAZON', ['SHIPPED_INTERNAL', 'AMAZON_CONFIRMATION_FAILED'], 'AMAZON_CONFIRMED', {
+      const updated = await this.transition(order.id, 'CONFIRM_SHIPMENT_TO_AMAZON', ['AMAZON_CONFIRMATION_PENDING'], 'AMAZON_CONFIRMED', {
         amazonConfirmationStatus: 'CONFIRMED', amazonConfirmedAt: new Date(),
       }, actor);
       return serialize(updated);
     } catch (error) {
+      const rejected = !accepted && (error instanceof AmazonAuthorizationError
+        || (error instanceof AmazonSpApiError && (error.code === 'AMAZON_WRITE_NOT_SENT'
+          || (error.statusCode >= 400 && error.statusCode < 500))));
       await prisma.amazonOrderFulfillment.update({ where: { id: current.id }, data: {
-        workflowStatus: 'AMAZON_CONFIRMATION_FAILED', amazonConfirmationStatus: 'FAILED',
+        workflowStatus: rejected ? 'AMAZON_CONFIRMATION_FAILED' : 'AMAZON_CONFIRMATION_UNKNOWN',
+        ...(!accepted ? { amazonConfirmationStatus: rejected ? 'FAILED' : 'UNKNOWN' } : {}),
       } });
       await this.recordException(order.id, current.id, 'CONFIRM_SHIPMENT_TO_AMAZON', error, actor);
       throw error;

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createHmac } from 'node:crypto';
 import { AmazonConnectionError, AmazonConnectionService } from './amazon-connection.service.js';
 
 const service = (now = 1_700_000_000_000) => new AmazonConnectionService({
@@ -25,6 +26,16 @@ test('creates an Amazon consent URL with a server-signed state', () => {
   assert.equal(url.searchParams.get('state'), result.state);
   assert.equal(url.searchParams.get('version'), 'beta');
   assert.match(result.state, /^[^.]+\.[^.]+$/);
+});
+
+test('OAuth signing has a separate key and accepts an in-flight legacy state during cutover', () => {
+  const instance = service();
+  const { state } = instance.initiateOAuth(42, 'inventoryusers');
+  const [encoded, signature] = state.split('.');
+  const legacy = createHmac('sha256', 'test-state-secret-that-is-not-used-in-production')
+    .update(encoded).digest('base64url');
+  assert.notEqual(signature, legacy);
+  assert.equal((instance as any).verifyState(`${encoded}.${legacy}`).userId, 42);
 });
 
 test('rejects a tampered OAuth state before token exchange', async () => {

@@ -1,3 +1,4 @@
+import { AmazonListingScopeError } from './amazon-listing-scope.service.js';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import {
@@ -57,11 +58,11 @@ const safeError = (error: unknown): { code: string; message: string; statusCode:
   if (error instanceof AmazonAuthorizationError) {
     return {
       code: error.code,
-      message: 'Amazon authorization is invalid or has expired',
+      message: error.message,
       statusCode: error.statusCode,
     };
   }
-  if (error instanceof AmazonSpApiError) {
+  if (error instanceof AmazonSpApiError || error instanceof AmazonListingScopeError) {
     return {
       code: error.code,
       message: error.message,
@@ -172,6 +173,7 @@ export class AmazonListingImportService {
           });
 
           if (!normalized.sellerSku) {
+            logger.warn({ sellerId, marketplaceId }, 'Amazon import skipped a listing without a seller SKU');
             summary.failed += 1;
             continue;
           }
@@ -203,7 +205,10 @@ export class AmazonListingImportService {
             if (result.outcome === 'UPDATED') summary.updated += 1;
             if (!result.isMapped) summary.unmapped += 1;
             if (isInactiveAmazonListing(normalized.listingStatus)) summary.inactive += 1;
-          } catch {
+          } catch (error) {
+            logger.error({ sellerId, marketplaceId, sellerSku: normalized.sellerSku,
+              error: error instanceof Error ? error.message : 'Unknown listing import failure' },
+              'Amazon listing import failed for SKU');
             summary.failed += 1;
           }
         }

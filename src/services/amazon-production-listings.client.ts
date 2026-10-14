@@ -1,5 +1,6 @@
 import { env } from '../config/env.js';
-import { gunzipSync } from 'node:zlib';
+import { gunzip } from 'node:zlib';
+import { promisify } from 'node:util';
 import {
   AmazonAccessTokenProvider,
   AmazonAuthorizationError,
@@ -8,6 +9,7 @@ import {
 import { AmazonApiTelemetryRecorder, amazonApiTelemetryService } from './amazon-api-telemetry.service.js';
 
 type FetchLike = typeof fetch;
+const unzipReport = promisify(gunzip);
 
 export type AmazonListingSummary = {
   marketplaceId?: string;
@@ -680,8 +682,31 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
     if (!response.ok) {
       throw new AmazonSpApiError('Amazon report download failed', response.status || 502, 'AMAZON_REPORT_DOWNLOAD_FAILED');
     }
-    const bytes = Buffer.from(await response.arrayBuffer());
-    const content = document.compressionAlgorithm === 'GZIP' ? gunzipSync(bytes) : bytes;
+    const maxDownloadBytes = 32 * 1024 * 1024;
+    if (Number(response.headers.get('content-length')) > maxDownloadBytes) {
+      await response.body?.cancel();
+      throw new AmazonSpApiError('Amazon report exceeds the download size limit', 502, 'AMAZON_REPORT_TOO_LARGE');
+    }
+    const chunks: Uint8Array[] = [];
+    const reader = response.body?.getReader();
+    let received = 0;
+    if (reader) {
+      try {
+        while (true) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          received += chunk.value.byteLength;
+          if (received > maxDownloadBytes) {
+            await reader.cancel();
+            throw new AmazonSpApiError('Amazon report exceeds the download size limit', 502, 'AMAZON_REPORT_TOO_LARGE');
+          }
+          chunks.push(chunk.value);
+        }
+      } finally { reader.releaseLock(); }
+    }
+    const bytes = Buffer.concat(chunks, received);
+    const content = document.compressionAlgorithm === 'GZIP'
+      ? await unzipReport(bytes, { maxOutputLength: 128 * 1024 * 1024 }) : bytes;
     return content.toString('utf8').replace(/^\uFEFF/, '');
   }
 
@@ -935,12 +960,18 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
       url.searchParams.set(key, value);
     }
 
-    const maxRetries = this.configuredMaxRetries ?? env.AMAZON_LISTING_IMPORT_MAX_RETRIES;
+    // A timeout or server error can occur after Amazon has accepted a write.
+    // Reads can be retried; writes require reconciliation before resubmission.
+    const maxRetries = method === 'GET'
+      ? this.configuredMaxRetries ?? env.AMAZON_LISTING_IMPORT_MAX_RETRIES
+      : 0;
     let lastNetworkError: unknown;
 
     for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      let requestStarted = false;
       try {
         const accessToken = await this.accessTokenProvider.getAccessToken();
+        requestStarted = true;
         const response = await this.fetchImpl(url, {
           method,
           signal: AbortSignal.timeout(this.requestTimeoutMs),
@@ -970,9 +1001,13 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
           return await response.json() as T;
         }
 
+        const details = await response.json().catch(() => null) as { errors?: Array<{ code?: string; message?: string }> } | null;
+        const messages = Array.isArray(details?.errors) ? details.errors.slice(0, 5)
+          .map((item) => [item?.code, item?.message].filter((value) => typeof value === 'string').join(': ').slice(0, 1000))
+          .filter(Boolean) : [];
         if (response.status === 401 || response.status === 403) {
           this.accessTokenProvider.invalidate();
-          throw new AmazonAuthorizationError();
+          throw new AmazonAuthorizationError(messages.length ? messages.join('; ') : undefined);
         }
 
         const retryable = response.status === 429 || response.status === 500 || response.status === 503;
@@ -982,13 +1017,19 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
         }
 
         throw new AmazonSpApiError(
-          'Amazon SP-API listing request failed',
+          messages.length ? messages.join('; ') : 'Amazon SP-API listing request failed',
           response.status >= 400 && response.status < 600 ? response.status : 502,
-          retryable ? 'AMAZON_RETRY_EXHAUSTED' : 'AMAZON_REQUEST_FAILED'
+          method !== 'GET' && response.status >= 500 ? 'AMAZON_WRITE_OUTCOME_UNKNOWN'
+            : retryable ? 'AMAZON_RETRY_EXHAUSTED' : 'AMAZON_REQUEST_FAILED'
         );
       } catch (error) {
         if (error instanceof AmazonAuthorizationError || error instanceof AmazonSpApiError) {
           throw error;
+        }
+
+        if (method !== 'GET' && !requestStarted) {
+          throw new AmazonSpApiError('Amazon authorization could not be obtained; no write was sent. Try again when authorization is available',
+            502, 'AMAZON_WRITE_NOT_SENT');
         }
 
         lastNetworkError = error;
@@ -1002,7 +1043,7 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
     throw new AmazonSpApiError(
       lastNetworkError ? 'Amazon SP-API could not be reached' : 'Amazon SP-API request failed',
       502,
-      'AMAZON_NETWORK_ERROR'
+      method === 'GET' ? 'AMAZON_NETWORK_ERROR' : 'AMAZON_WRITE_OUTCOME_UNKNOWN'
     );
   }
 
@@ -1019,7 +1060,7 @@ export class AmazonProductionListingsClient implements AmazonListingsReadClient 
       }
     }
 
-    return Math.min(500 * (2 ** attempt), 10_000);
+    return Math.floor(Math.random() * Math.min(500 * (2 ** attempt), 10_000));
   }
 }
 

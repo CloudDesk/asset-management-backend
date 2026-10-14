@@ -486,7 +486,8 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     if (missing.length === 0) return 0;
 
     await prisma.$transaction(async (transaction) => {
-      for (const listing of missing) {
+      for (let offset = 0; offset < missing.length; offset += 500) {
+        const batch = missing.slice(offset, offset + 500);
         const changedFields = [
           'listingStatus',
           'publishedQuantity',
@@ -496,21 +497,25 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           'fbaTotalQuantity',
           'inventorySyncMode',
         ];
-        await transaction.marketplaceListing.update({
-          where: { id: listing.id },
-          data: {
-            listingStatus: 'DELETED',
-            publishedQuantity: 0,
-            fbaFulfillableQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
-            fbaReservedQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
-            fbaPendingOrderQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
-            fbaTotalQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
-            inventorySyncMode: 'DISABLED',
-            lastImportedAt: new Date(),
-          },
-        });
-        await transaction.marketplaceListingAudit.create({
-          data: {
+        for (const isFba of [true, false]) {
+          const ids = batch.filter((listing) => (listing.fulfilmentChannel === 'FBA') === isFba).map((listing) => listing.id);
+          if (ids.length === 0) continue;
+          await transaction.marketplaceListing.updateMany({
+            where: { id: { in: ids } },
+            data: {
+              listingStatus: 'DELETED',
+              publishedQuantity: 0,
+              fbaFulfillableQuantity: isFba ? 0 : null,
+              fbaReservedQuantity: isFba ? 0 : null,
+              fbaPendingOrderQuantity: isFba ? 0 : null,
+              fbaTotalQuantity: isFba ? 0 : null,
+              inventorySyncMode: 'DISABLED',
+              lastImportedAt: new Date(),
+            },
+          });
+        }
+        await transaction.marketplaceListingAudit.createMany({
+          data: batch.map((listing) => ({
             listingId: listing.id,
             ...(input.auditContext?.syncLogId
               ? { syncLogId: BigInt(input.auditContext.syncLogId) }
@@ -543,7 +548,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
             previousProductId: listing.productId,
             productId: listing.productId,
             ...actorData(input.auditContext),
-          },
+          })),
         });
       }
     });
@@ -564,7 +569,9 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     if (query.listingStatus) {
       where.listingStatus = { contains: query.listingStatus, mode: 'insensitive' };
     }
-    if (query.activeOnly) {
+    // Default catalogue/mapping requests show current listings. An explicit
+    // status filter or activeOnly=false still provides access to history.
+    if (query.activeOnly ?? !query.listingStatus) {
       where.NOT = {
         listingStatus: { contains: 'DELETED', mode: 'insensitive' },
       };

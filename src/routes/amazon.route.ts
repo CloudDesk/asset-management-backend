@@ -1,4 +1,6 @@
 import { FastifyInstance } from 'fastify';
+import { logAmazonFailure } from '../utils/amazonFailureLog.js';
+import { AmazonAuthorizationError, AmazonTokenRequestError } from '../services/amazon-lwa-token.service.js';
 import axios from 'axios';
 import { amazonSandboxInventoryService } from '../services/amazon-sandbox-inventory.service.js';
 import { requireAuthentication, AuthenticatedRequest } from '../middleware/auth.middleware.js';
@@ -28,6 +30,9 @@ type AddSandboxInventoryBody = {
 };
 
 function getAmazonError(error: unknown, fallbackMessage: string) {
+  if (error instanceof AmazonAuthorizationError || error instanceof AmazonTokenRequestError) {
+    return { statusCode: error.statusCode, message: error.message };
+  }
   const statusCode = axios.isAxiosError(error) ? (error.response?.status ?? 502) : 500;
   const responseData = axios.isAxiosError(error)
     ? error.response?.data as {
@@ -53,6 +58,7 @@ const amazonUser = (request: AuthenticatedRequest): { userId: number; userType: 
 };
 
 const sendConnectionError = (reply: import('fastify').FastifyReply, error: unknown) => {
+  logAmazonFailure(reply.request, error);
   const connectionError = error instanceof AmazonConnectionError
     ? error
     : new AmazonConnectionError('Amazon connection request failed', 500, 'AMAZON_CONNECTION_FAILED');
@@ -197,7 +203,7 @@ export async function amazonRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       const { statusCode, message } = getAmazonError(error, 'Unable to create Amazon sandbox inventory item');
-      request.log.error({ err: error }, 'Amazon sandbox inventory item creation failed');
+      logAmazonFailure(request, error);
 
       return reply.code(statusCode).send({
         success: false,
@@ -245,7 +251,7 @@ export async function amazonRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       const { statusCode, message } = getAmazonError(error, 'Unable to add Amazon sandbox inventory quantity');
-      request.log.error({ err: error }, 'Amazon sandbox inventory quantity update failed');
+      logAmazonFailure(request, error);
 
       return reply.code(statusCode).send({
         success: false,
@@ -281,7 +287,7 @@ export async function amazonRoutes(fastify: FastifyInstance) {
       });
     } catch (error) {
       const { statusCode, message } = getAmazonError(error, 'Unable to delete Amazon sandbox inventory item');
-      request.log.error({ err: error }, 'Amazon sandbox inventory item deletion failed');
+      logAmazonFailure(request, error);
 
       return reply.code(statusCode).send({
         success: false,
@@ -319,7 +325,7 @@ export async function amazonRoutes(fastify: FastifyInstance) {
     } catch (error) {
       const { statusCode, message } = getAmazonError(error, 'Unable to retrieve Amazon sandbox inventory');
 
-      request.log.error({ err: error }, 'Amazon sandbox inventory request failed');
+      logAmazonFailure(request, error);
 
       return reply.code(statusCode).send({
         success: false,

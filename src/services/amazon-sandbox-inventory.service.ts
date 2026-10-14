@@ -2,13 +2,7 @@ import axios from 'axios';
 import { randomUUID } from 'node:crypto';
 import { env } from '../config/env.js';
 
-const AMAZON_LWA_TOKEN_URL = 'https://api.amazon.com/auth/o2/token';
-
-type LwaTokenResponse = {
-  access_token: string;
-  expires_in: number;
-  token_type: string;
-};
+import { AmazonLwaTokenService } from './amazon-lwa-token.service.js';
 
 type AmazonInventoryDetails = {
   fulfillableQuantity?: number;
@@ -72,8 +66,7 @@ export type SandboxInventoryMutationResult = {
 };
 
 export class AmazonSandboxInventoryService {
-  private accessToken: string | null = null;
-  private accessTokenExpiresAt = 0;
+  private tokenProvider: AmazonLwaTokenService | null = null;
 
   private requiredConfig(name: string, value?: string): string {
     if (!value) {
@@ -103,41 +96,10 @@ export class AmazonSandboxInventoryService {
     };
   }
 
-  private async exchangeRefreshToken(refreshToken: string): Promise<LwaTokenResponse> {
-    const { clientId, clientSecret } = this.getCredentialConfig();
-
-    const body = new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-      client_id: clientId,
-      client_secret: clientSecret,
-    });
-
-    const response = await axios.post<LwaTokenResponse>(AMAZON_LWA_TOKEN_URL, body.toString(), {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-      },
-      timeout: 15_000,
-    });
-
-    return response.data;
-  }
-
   private async getAccessToken(): Promise<string> {
-    if (this.accessToken && Date.now() < this.accessTokenExpiresAt) {
-      return this.accessToken;
-    }
-
-    const { refreshToken } = this.getCredentialConfig();
-    const tokenResponse = await this.exchangeRefreshToken(refreshToken);
-
-    this.accessToken = tokenResponse.access_token;
-    // Refresh one minute before Amazon's reported expiry.
-    this.accessTokenExpiresAt = Date.now() + Math.max(tokenResponse.expires_in - 60, 60) * 1000;
-
-    return this.accessToken;
+    this.tokenProvider ??= new AmazonLwaTokenService(this.getCredentialConfig());
+    return this.tokenProvider.getAccessToken();
   }
-
   private getSandboxBaseUrl(): string {
     const configuredUrl = this.requiredConfig(
       'AMAZON_SANDBOX_SP_API_BASE_URL',
@@ -174,7 +136,7 @@ export class AmazonSandboxInventoryService {
     const tokenToValidate = refreshToken?.trim()
       || this.getCredentialConfig().refreshToken;
 
-    await this.exchangeRefreshToken(tokenToValidate);
+    await new AmazonLwaTokenService({ ...this.getCredentialConfig(), refreshToken: tokenToValidate }).getAccessToken();
 
     return {
       sellerId: env.AMAZON_SELLER_ID ?? 'AMAZON_SANDBOX',
