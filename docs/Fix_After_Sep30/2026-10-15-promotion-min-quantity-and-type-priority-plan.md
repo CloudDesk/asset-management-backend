@@ -17,7 +17,7 @@
 | # | Question | Answer |
 | --- | --- | --- |
 | 1 | Selected products: total of selected products, or each product on its own? | Each product's own quantity. Products that reach the minimum get the promotion. |
-| 2 | Category: add up matching items? Several categories in one promotion? | Add up all items of that category in the cart. With several categories, each category is added up on its own. |
+| 2 | Category: add up matching items? Several categories in one promotion? | Add up all items of that category in the cart. With several categories / subcategories in one promotion, all their items are added up together (changed 2026-10-15 after dev test: Havan Cups 1 + Dhoop Sticks 1 = 2). |
 | 3 | Subcategory | Same as category. |
 | 4 | Subcategory ranked after category | Follow the priority order. |
 | 5 | Higher priority wins on the same item even if it saves less? | Yes, follow the priority order. |
@@ -166,8 +166,8 @@
 | TC-Q05 | Selected products: each product on its own | Diffuser A × 1, Diffuser B × 1 | Q2, Q6 | Neither reaches 2. Q2 skipped. Q6 10% of ₹1,800 = ₹180. |
 | TC-Q06 | Selected products: one reaches the minimum | Diffuser A × 2, Diffuser B × 1 | Q2, Q6 | Diffuser A 20% = ₹400. Q6 on Diffuser B = ₹80. Total ₹480. |
 | TC-Q07 | Fixed amount on two qualifying products | Diffuser A × 2, Diffuser B × 2 | Q1 | ₹100 once, shared (₹55.56 / ₹44.44). |
-| TC-Q08 | Several categories in one promotion, each added up on its own | Rose × 1, Candle × 1 | Q8 | Incense 1, Candles 1. Q8 skipped. |
-| TC-Q09 | Several categories, one qualifies | Rose × 2, Candle × 1 | Q8 | Incense qualifies: 25% of ₹400 = ₹100. Candle gets nothing. |
+| TC-Q08 | Several categories in one promotion are added up together | Rose × 1, Candle × 1 | Q8 | Total 2 meets the minimum: 25% of ₹700 = ₹175. |
+| TC-Q09 | Several categories, total met | Rose × 2, Candle × 1 | Q8 | Total 3: 25% on every matching item, ₹225. |
 | TC-Q10 | Same product on two cart lines | Rose × 1 + Rose × 1 (two lines) | Q3 | Qty 2. ₹100. |
 | TC-Q11 | Quantity change | Rose × 1, then Jasmine added | Q3 | Before: skipped. After: ₹75. |
 | TC-Q12 | Maximum discount across the category | Diffuser A × 1, Diffuser B × 1 | Q10 | 30% of ₹1,800 = ₹540, limited to ₹200 for the promotion. |

@@ -28,6 +28,38 @@ function parseCachedRule(checksum: string, value: Prisma.JsonValue): PromotionRu
   return parsed;
 }
 
+/**
+ * Category / subcategory options for the promotion form (FIX-2026-10-15-117):
+ * every active picklist entry, any number of them, plus values stored on
+ * products but missing from the active picklist. Display names come from the
+ * picklist ("Incense & Rituals"); the id stays the stored product value
+ * ("incense_rituals"), which is what promotion rules save and match on.
+ */
+export function buildFacetOptions(
+  fieldname: 'category' | 'subcategory',
+  picklistItems: Array<{ fieldname: string | null; value: string | null; label: string | null; isactive: boolean | null }>,
+  counts: Array<{ value: string | null; count: number }>,
+): Array<{ id: string; label: string; count: number }> {
+  const options = new Map<string, { id: string; label: string; count: number; active: boolean }>();
+  for (const item of picklistItems) {
+    const id = item.value?.trim();
+    const key = id?.toLowerCase();
+    if (item.fieldname !== fieldname || !id || !key || options.has(key)) continue;
+    options.set(key, { id, label: item.label?.trim() || id, count: 0, active: item.isactive === true });
+  }
+  for (const { value, count } of counts) {
+    const id = value?.trim();
+    if (!id) continue;
+    const option = options.get(id.toLowerCase());
+    if (option) option.count += count;
+    else options.set(id.toLowerCase(), { id, label: id, count, active: true });
+  }
+  return [...options.values()]
+    .filter((option) => option.active || option.count > 0)
+    .map(({ id, label, count }) => ({ id, label, count }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
 export class PromotionsV2Service {
   async getLatestRule(promotionId: number): Promise<{ version: number; status: string; rule: PromotionRuleV2 } | null> {
     const version = await prisma.promotionRuleVersion.findFirst({
@@ -97,50 +129,61 @@ export class PromotionsV2Service {
     if (missing.length) throw new Error(`Gift products unavailable on all channels: ${missing.join(', ')}`);
   }
 
+  /**
+   * Category and subcategory options for the promotion form. The list comes
+   * from the product picklist (every active entry, also ones with no products
+   * yet), with a product count from one grouped query. Values stored on
+   * products but missing from the active picklist are still listed, so
+   * existing promotions keep them. Products are not listed here: the form
+   * pages and searches them with searchProducts (PLAN-2026-10-15-117).
+   */
   async getFacets(): Promise<Record<string, Array<{ id: string; label: string; count: number }>>> {
-    const [products, picklistItems] = await Promise.all([
-      prisma.product.findMany({
-        where: { productstatus: { notIn: ['inactive', 'deleted'] } },
-        select: { id: true, name: true, category: true, subcategory: true },
-      }),
+    const liveProducts = { productstatus: { notIn: ['inactive', 'deleted'] } } satisfies Prisma.ProductWhereInput;
+    const [picklistItems, categoryCounts, subcategoryCounts] = await Promise.all([
       prisma.picklist.findMany({
-        where: { object: 'product', fieldname: { in: ['category', 'subcategory'] }, isactive: true },
-        select: { fieldname: true, value: true, label: true },
+        where: { object: 'product', fieldname: { in: ['category', 'subcategory'] } },
+        select: { fieldname: true, value: true, label: true, isactive: true },
         orderBy: { id: 'asc' },
       }),
+      prisma.product.groupBy({ by: ['category'], where: liveProducts, _count: { _all: true } }),
+      prisma.product.groupBy({ by: ['subcategory'], where: liveProducts, _count: { _all: true } }),
     ]);
-    // Display names come from the picklist ("Incense & Rituals"); the id stays the
-    // stored product value ("incense_rituals"), which is what promotion rules save
-    // and match on. Values without a picklist entry keep the value as the label.
-    const picklistLabels = (fieldname: string): Map<string, string> => {
-      const labels = new Map<string, string>();
-      for (const item of picklistItems) {
-        const key = item.value?.trim().toLowerCase();
-        const label = item.label?.trim();
-        if (item.fieldname === fieldname && key && label && !labels.has(key)) labels.set(key, label);
-      }
-      return labels;
-    };
-    const facet = (
-      selector: (product: typeof products[number]) => string | null,
-      labels: Map<string, string>,
-    ): Array<{ id: string; label: string; count: number }> => {
-      const counts = new Map<string, number>();
-      for (const product of products) {
-        const value = selector(product)?.trim();
-        if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
-      }
-      return [...counts]
-        .map(([value, count]) => ({ id: value, label: labels.get(value.toLowerCase()) ?? value, count }))
-        .sort((a, b) => a.label.localeCompare(b.label));
-    };
     return {
-      PRODUCT: products.map((product) => ({ id: product.id.toString(), label: product.name, count: 1 })),
-      CATEGORY: facet((product) => product.category, picklistLabels('category')),
-      SUBCATEGORY: facet((product) => product.subcategory, picklistLabels('subcategory')),
+      CATEGORY: buildFacetOptions('category', picklistItems, categoryCounts.map((row) => ({ value: row.category, count: row._count._all }))),
+      SUBCATEGORY: buildFacetOptions('subcategory', picklistItems, subcategoryCounts.map((row) => ({ value: row.subcategory, count: row._count._all }))),
       // Future facet responses intentionally disabled:
       // FRAGRANCE, BRAND, COLLECTION, TAG and SUBSUBCATEGORY.
     };
+  }
+
+  /**
+   * One page of products for the promotion form, by name (case-insensitive
+   * "contains") or product id (PLAN-2026-10-15-117).
+   */
+  async searchProducts(input: { search?: string; limit: number; offset: number }): Promise<{ data: Array<{ id: string; label: string; count: number }>; total: number; limit: number; offset: number }> {
+    const search = input.search?.trim() ?? '';
+    const where: Prisma.ProductWhereInput = {
+      productstatus: { notIn: ['inactive', 'deleted'] },
+      ...(search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          ...(/^\d{1,18}$/.test(search) ? [{ id: BigInt(search) }] : []),
+        ],
+      } : {}),
+    };
+    const [rows, total] = await Promise.all([
+      prisma.product.findMany({ where, select: { id: true, name: true }, orderBy: [{ name: 'asc' }, { id: 'asc' }], skip: input.offset, take: input.limit }),
+      prisma.product.count({ where }),
+    ]);
+    return { data: rows.map((row) => ({ id: row.id.toString(), label: row.name, count: 1 })), total, limit: input.limit, offset: input.offset };
+  }
+
+  /** Names of already-selected products (any status), for the form's chips. */
+  async productsByIds(ids: string[]): Promise<Array<{ id: string; label: string; count: number }>> {
+    const numericIds = [...new Set(ids.filter((id) => /^\d{1,18}$/.test(id)))];
+    if (!numericIds.length) return [];
+    const rows = await prisma.product.findMany({ where: { id: { in: numericIds.map(BigInt) } }, select: { id: true, name: true } });
+    return rows.map((row) => ({ id: row.id.toString(), label: row.name, count: 1 }));
   }
 
   async getMatchedProducts(promotionId: number, page = 1, limit = 50): Promise<{ data: unknown[]; total: number; page: number; limit: number }> {
