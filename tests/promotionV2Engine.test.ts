@@ -1217,7 +1217,7 @@ test('TC-Q02 / TC-Q33 category below minimum: locked offer details, item gets th
   assert.deepEqual(minimumMissed(quote, 103), [{
     current: 1, required: 2, remaining: 1, product_ids: ['rose'],
     benefit_type: 'PERCENT_OFF', benefit_value: 25, product_rank: 3,
-    scope_facet: 'CATEGORY', scope_value: 'Incense', scope_name: 'Incense & Rituals',
+    scope_facet: 'CATEGORY', scope_values: ['Incense'], scope_name: 'Incense & Rituals',
   }]);
   // The cart-row hint reads which offer the item has now.
   const roseAdjustment = quote.adjustments.find((adjustment) => adjustment.product_id === 'rose')!;
@@ -1260,16 +1260,39 @@ test('TC-Q07 fixed amount on two qualifying products is one amount', () => {
   assert.deepEqual(minimumMissed(quote, 101), []);
 });
 
-test('TC-Q08 several categories in one promotion are added up each on its own', () => {
+test('TC-Q08 several categories in one promotion are added up together', () => {
+  // Incense 1 + Candles 1 = 2 meets the minimum (BA, 2026-10-15).
   const quote = evaluatePromotionQuote([rose(1), qCandle(1)], [Q8()], []);
-  assert.deepEqual(savings(quote), {});
-  assert.deepEqual(minimumMissed(quote, 108).map((details) => details?.scope_value), ['Candles', 'Incense']);
+  assert.deepEqual(savings(quote), { 108: 17_500 });
+  assert.deepEqual(discountByProduct(quote, 108), { candle: 12_500, rose: 5_000 });
 });
 
-test('TC-Q09 several categories, one qualifies', () => {
+test('TC-Q08b several categories below the minimum together: one locked entry naming both', () => {
+  const quote = evaluatePromotionQuote([rose(1)], [Q8()], [], {
+    facetLabels: { CATEGORY: new Map([['incense', 'Incense & Rituals']]) },
+  });
+  assert.deepEqual(savings(quote), {});
+  assert.deepEqual(minimumMissed(quote, 108).map((details) => [details?.remaining, details?.scope_name, details?.product_ids]), [[1, 'Candles or Incense & Rituals', ['rose']]]);
+});
+
+test('TC-Q09 several categories: every matching item gets the offer once the total is met', () => {
   const quote = evaluatePromotionQuote([rose(2), qCandle(1)], [Q8()], []);
-  assert.deepEqual(savings(quote), { 108: 10_000 });
-  assert.deepEqual(discountByProduct(quote, 108), { rose: 10_000 });
+  assert.deepEqual(savings(quote), { 108: 22_500 });
+  assert.deepEqual(discountByProduct(quote, 108), { candle: 12_500, rose: 10_000 });
+});
+
+test('Havan Cups 1 + Dhoop Sticks 1 meet a subcategory minimum of 2 together', () => {
+  const havan = item('havan', 1, 16_400, 'Incense', 'Havan Cups');
+  const dhoop = item('dhoop', 1, 10_000, 'Incense', 'Dhoop Sticks');
+  const offer = productOffer(113, 'SUBCATEGORY', ['Dhoop Sticks', 'Havan Cups'], { type: 'PERCENT_OFF', value: 20 }, { minimumQuantity: 2 });
+  assert.deepEqual(savings(evaluatePromotionQuote([havan, dhoop], [offer], [])), { 113: 5_280 });
+  assert.deepEqual(savings(evaluatePromotionQuote([havan], [offer], [])), {});
+});
+
+test('Selected products with minimum 1: each selected product gets the percentage', () => {
+  const offer = productOffer(114, 'PRODUCT', ['diffuser-a', 'diffuser-b'], { type: 'PERCENT_OFF', value: 10 }, { minimumQuantity: 1 });
+  const quote = evaluatePromotionQuote([qDiffuserA(1), qDiffuserB(1)], [offer], []);
+  assert.deepEqual(discountByProduct(quote, 114), { 'diffuser-a': 10_000, 'diffuser-b': 8_000 });
 });
 
 test('TC-Q10 same product on two cart lines counts towards the minimum', () => {

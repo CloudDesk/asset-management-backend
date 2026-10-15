@@ -566,12 +566,14 @@ export function evaluatePromotionQuote(
     if (minimumCheckedAbove) {
       // Minimum quantity (PLAN-2026-10-15-116): selected products are checked
       // on each product's own quantity; category / subcategory promotions add
-      // up the quantity of all cart items in that category / subcategory. The
+      // up the quantity of all cart items in any of the promotion's selected
+      // categories / subcategories (Havan Cups 1 + Dhoop Sticks 1 = 2). The
       // qualifying items then share one promotion (one fixed amount, one
       // maximum discount).
       const required = thresholdFor(campaign.rule);
       const benefit = campaign.rule.benefit!;
-      const missed = (current: number, productIds: string[], scope?: { facet: 'CATEGORY' | 'SUBCATEGORY'; value: string }) => {
+      const missed = (current: number, productIds: string[], scope?: { facet: 'CATEGORY' | 'SUBCATEGORY'; values: string[] }) => {
+        const names = scope?.values.map((value) => options.facetLabels?.[scope.facet]?.get(normalise(value)) ?? value) ?? [];
         progress.push({ promotion_id: campaign.promotionId, current, next_minimum: required, remaining: required - current, metric: campaign.rule.qualifier.metric });
         rejected.push({
           promotion_id: campaign.promotionId,
@@ -582,7 +584,9 @@ export function evaluatePromotionQuote(
             benefit_type: benefit.type, benefit_value: benefit.value,
             // Cart-row hint: shown only when it beats the item's current offer.
             product_rank: getProductPromotionRank(campaign),
-            ...(scope ? { scope_facet: scope.facet, scope_value: scope.value, scope_name: options.facetLabels?.[scope.facet]?.get(normalise(scope.value)) ?? scope.value } : {}),
+            // "Add 1 more Dhoop Sticks or Havan Cups item"; with more than two
+            // selected, "Add 1 more eligible item".
+            ...(scope ? { scope_facet: scope.facet, scope_values: scope.values, scope_name: names.length <= 2 ? names.join(' or ') : 'eligible' } : {}),
           },
         });
       };
@@ -590,13 +594,9 @@ export function evaluatePromotionQuote(
       const qualifyingIds = new Set<string>();
       if (summedFacet) {
         const values = [...new Set(campaign.rule.qualifier.scope.include.filter((group) => group.facet === summedFacet).flatMap((group) => group.values))].sort();
-        for (const value of values) {
-          const matching = eligible.filter((line) => lineHasFacet(line, summedFacet, [value]));
-          if (!matching.length) continue;
-          const quantity = matching.reduce((sum, line) => sum + line.quantity, 0);
-          if (quantity >= required) matching.forEach((line) => qualifyingIds.add(lineBalanceKey(line)));
-          else missed(quantity, [...new Set(matching.map((line) => line.id))].sort(), { facet: summedFacet, value });
-        }
+        const quantity = eligible.reduce((sum, line) => sum + line.quantity, 0);
+        if (quantity >= required) eligible.forEach((line) => qualifyingIds.add(lineBalanceKey(line)));
+        else missed(quantity, [...new Set(eligible.map((line) => line.id))].sort(), { facet: summedFacet, values });
       } else {
         const quantities = new Map<string, number>();
         for (const line of eligible) quantities.set(line.id, (quantities.get(line.id) ?? 0) + line.quantity);
