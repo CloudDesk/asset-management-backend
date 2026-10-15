@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
-import { normalizeShipmozoRetryStage } from '../utils/shipmozo-workflow.js';
+import { normalizeShipmozoRetryStage, retiredShipmozoIdempotencyKey } from '../utils/shipmozo-workflow.js';
 
 type OperationInput = {
   idempotencyKey: string;
@@ -79,6 +79,22 @@ export class ShipmozoOperationService {
     }
 
     return prisma.shipmozoOperation.findUniqueOrThrow({ where: { id: operation.id } });
+  }
+
+  /**
+   * Frees an idempotency key held by a cancelled operation (shipment cancelled
+   * before dispatch) so the same order can be shipped again. The cancelled row
+   * stays for history under a new key.
+   */
+  async retireCancelled(idempotencyKey: string) {
+    const timestamp = now();
+    return prisma.shipmozoOperation.updateMany({
+      where: { idempotencyKey, status: 'cancelled' },
+      data: {
+        idempotencyKey: retiredShipmozoIdempotencyKey(idempotencyKey, timestamp),
+        modifieddate: timestamp
+      }
+    });
   }
 
   async stage(id: number, stage: string, data: {

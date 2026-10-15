@@ -74,6 +74,24 @@ export class PromotionsV2Controller {
     return reply.send(createSuccessResponse('Promotion facets retrieved', await this.service.getFacets()));
   });
 
+  searchProducts = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    this.inventoryUser(request);
+    const query = request.query as { search?: string; limit?: string; offset?: string };
+    return reply.send(createSuccessResponse('Promotion products retrieved', await this.service.searchProducts({
+      search: String(query.search ?? '').slice(0, 100),
+      limit: Math.min(50, Math.max(1, Number(query.limit) || 25)),
+      offset: Math.max(0, Number(query.offset) || 0),
+    })));
+  });
+
+  productsByIds = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    this.inventoryUser(request);
+    // ?ids=10,89 — a read, so GET; capped to keep the URL short.
+    const query = request.query as { ids?: string };
+    const ids = String(query.ids ?? '').split(',').map((id) => id.trim()).filter(Boolean).slice(0, 200);
+    return reply.send(createSuccessResponse('Promotion products retrieved', await this.service.productsByIds(ids)));
+  });
+
   checkEligibility = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
     const user = (request as AuthenticatedRequest).user;
     const input = PromotionEligibilityRequestSchema.parse(request.body);

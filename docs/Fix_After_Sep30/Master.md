@@ -115,6 +115,17 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 | **FIX-2026-10-09-105** | 2026-10-09 | **Mobile Cleanup — Dead Order-Line Code Removed** | Removed unused `renderOrderLineItem` and its only helpers (`navigateToOrderTracking`, `navigateToReturnProduct`, `navigateToReviewProduct`) from My Orders (list renders grouped cards), `cancelOrderLine` from `OrderContext` and `orderService` (called the disabled `PATCH /orderlines/:id/cancel`), and the tracked `MyOrdersScreen.tsx.backup`. No behaviour change. G18. | 🟡 Implemented / Dev Verification Pending | `Vibrant-Life-mobile-app/src/screens/profile/MyOrdersScreen.tsx`, `Vibrant-Life-mobile-app/src/contexts/OrderContext.tsx`, `Vibrant-Life-mobile-app/src/api/services/orderService.ts`, `Vibrant-Life-mobile-app/src/screens/profile/MyOrdersScreen.tsx.backup` (deleted) |
 | **FIX-2026-10-09-106** | 2026-10-09 | **Return / Replace All Items — One Request for the Whole Order** | Customers had to raise a return per item, and admin approved / arranged pickup per item. New "Return all items" / "Replace all items" on Ecom and mobile for orders with 2+ eligible items: one reason, resolution and evidence; items pre-ticked with full remaining quantity (untick / reduce allowed); only reasons every item allows. Backend `POST /returns/group` validates every item, then creates one request per item in one transaction (all or none) sharing a `groupnumber` (RETG-… / REPG-…). Admin: "Apply to all items in group" on Approve, Reject and Pickup (`PATCH /returns/group/:groupNumber/approve|reject|pickup-preparation`) — pickup creates ONE Ekart reverse shipment and saves its AWB on every request; group shown next to the request number. Inspection, refund and credit note stay per item. Team issue #5. **Needs migration** `20261009120000_add_return_request_groupnumber`. | 🟡 Implemented / Migration + Dev Verification Pending | `asset-management-backend` (schema, migration, return-request service / controller / route / schema), `Nivaana-Ecom-Web/src/pages/Orders.tsx`, `Nivaana-Ecom-Web/src/services/returnSourceService.ts`, `Vibrant-Life-mobile-app` (OrderDetailScreen, ReturnProductScreen, returnService, navigation types), `asset_management_frontend_aromazen` (OrderReturnActionModal, returnSourceService, returnSource types, OrderDetailPage) |
 | **PLAN-2026-10-12-107** | 2026-10-12 | **Promotion Priority / Cart Label Rename** | Approved plan (Divya). The seven promotion types stay the same; only two labels change: "Percent Off Entire Cart" → "Percent of entire cart value", "Fixed Amount Off Entire Cart" → "Fixed amount of entire cart value". Percentage Off Subcategories / Categories / Selected Products and Fixed Amount Off Selected Products apply only to their own items, with minimum quantity checked on each item's own quantity. Percent of entire cart value is calculated only on items without such a promotion; Fixed amount of entire cart value stays on the full cart value. Example cart ₹2,500: today ₹850 discount, new rule ₹650. Change is in the V2 calculation; no data migration. 38 positive/negative test cases (incl. order save, return/refund, Use code, Stackable). | ✅ Dev Verified (web + mobile) / SIT Pending | [2026-10-12 Promotion Priority Plan](2026-10-12-promotion-priority-and-cart-label-rename-plan.md) |
+| **FIX-2026-10-13-108** | 2026-10-13 | **Inventory — Amazon Integration UI Ported from Dev (Hidden)** | Backend Amazon integration was already identical on `DEV` and `DEV-NEW`; the Inventory Amazon UI existed only on `Dev`. Ported the Amazon screens (workspace, listing editor, publish drafts, order hub, Amazon order detail, returns, operations) with routes, Channels nav / summary card and endpoints into `DEV-NEW` as one squash commit (`d872a46`). Branch `feature/amazon-ui-port` (not yet merged into `DEV-NEW`); 2026-10-14: `integrationFeatures.amazon = !isSitEnvironment` (as on `DEV-NEW`), so Amazon shows everywhere except SIT. Also live stock summary refresh on product detail / stock lists. Dev's global restyle not included. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen` |
+| **FIX-2026-10-13-109** | 2026-10-13 | **Inventory — Shipmozo Hidden in UAT** | The Inventory "Create Shipment" menu hid Shipmozo only in SIT; UAT showed it although the UAT backend has `SHIPMOZO_INTEGRATION_ENABLED=false` (Shipmozo routes not registered), so a Shipmozo shipment there would fail. Shipmozo is now hidden in SIT and UAT; Dev and Prod unchanged. | 🟡 Implemented / Dev Verification Pending | `asset_management_frontend_aromazen/src/config/integrationFeatures.ts` |
+| **FIX-2026-10-13-110** | 2026-10-13 | **Shipmozo — Re-ship After Shipment Cancel** | After "Cancel Shipmozo Shipment" the order returned to Ready for Dispatch, but creating a Shipmozo shipment again failed with 409 "already cancelled" (the order's operation key `forward:<order>` stayed `cancelled`). Create now retires a cancelled operation to `forward:<order>:cancelled:<time>` before starting a fresh one; this also frees orders cancelled before the fix. The cancel endpoint now refuses orders that are not Ready for Dispatch or not found before calling Shipmozo. | 🟡 Implemented / Dev Verification Pending | `asset-management-backend/src/services/shipmozo-operation.service.ts`, `asset-management-backend/src/controllers/shipmozo.controller.ts` |
+| **FIX-2026-10-13-111** | 2026-10-13 | **Ekart — Shipment-Only Cancel** | An Ekart shipment could not be redone: Create Shipment is hidden once the order has a tracking ID, the Inventory had no Ekart cancel, and the backend cancel endpoint did not update the order. `DELETE /v1/ekart/shipments/:trackingId/cancel` now cancels with Ekart first, then clears tracking ID, vendor, link, label and shipment time on the order and lines (order stays Ready for Dispatch, no refund or stock change). Inventory ⋮ menu gets "Cancel Ekart Shipment" for Ready for Dispatch Ekart orders. Shared with Shipmozo via `ShipmentCancellationService`. | 🟡 Implemented / Dev Verification Pending | `asset-management-backend/src/services/shipment-cancellation.service.ts`, `asset_management_frontend_aromazen/src/pages/orders/OrderDetailPage.tsx` |
+| **FIX-2026-10-13-112** | 2026-10-13 | **Courier Cancel — AWB History and Per-AWB Check** | Creating a new shipment replaced `orders.barcodes`, losing the cancelled AWB record; and the order-cancel courier step skipped when `barcodes.cancellation.status` was `confirmed` without checking the AWB, so cancel shipment → re-ship → customer cancels could leave the new AWB booked with the courier. `barcodes.shipment_history` now lists every cancelled AWB (shipment-only, order cancel, courier reported) and is carried across new shipments and manual vendor switches; the skip only applies when this AWB's cancel is confirmed. Customer order cancel still keeps tracking details. | 🟡 Implemented / Dev Verification Pending | `asset-management-backend/src/utils/shipmentCancellation.ts`, `asset-management-backend/src/services/orders.service.ts` |
+| **FIX-2026-10-13-113** | 2026-10-13 | **Shipmozo — Enabled in SIT, UAT at Next Promotion** | Shipmozo is wanted in SIT now and in UAT when `SIT` is merged into `UAT`. Inventory now shows Shipmozo in every environment (replaces FIX-109); the backend switch `SHIPMOZO_INTEGRATION_ENABLED` decides per environment. SIT `.env.sit` set to `"true"`; UAT must be set in the `SIT` → `UAT` merge (RELEASE_SCRIPTS_CHECKLIST.md 4e). | ⛔ Blocked — Shipmozo REST API not active on account (2026-10-13) | `asset_management_frontend_aromazen/src/config/integrationFeatures.ts`, `asset-management-backend/.env.sit` (SIT branch), `asset-management-backend/docs/RELEASE_SCRIPTS_CHECKLIST.md` |
+| **FIX-2026-10-14-114** | 2026-10-14 | **Prod Release — UAT → Prod Database Steps** | `UAT` merged into `Prod` and deployed. Applied 7 migrations on Prod (`20260909110000` … `20261009120000`), HSN/GST SQL (`20261006_sync_authoritative_product_tax.sql`) and the fragrance picklist fix (22 rows). The backend was deployed before the HSN/GST SQL ran, so `product.hsn_code` was missing and product queries failed (P2022) until it ran. Checklist now says: database steps before the backend deploy. UAT DB found missing the same 7 migrations. | ✅ Verified on Prod (UAT migrations pending) | `asset-management-backend/docs/RELEASE_SCRIPTS_CHECKLIST.md` |
+| **FIX-2026-10-14-115** | 2026-10-14 | **Inventory — Shipmozo Hidden in Prod** | Prod Inventory showed Shipmozo under Create Shipment, but the Shipmozo REST API is not active on the account (FIX-113), so it cannot work. Inventory `Prod` branch hides Shipmozo when the build is `prod`; Ekart unchanged. | 🟡 Implemented / Prod deploy pending | `asset_management_frontend_aromazen/src/config/integrationFeatures.ts` (`Prod` branch) |
+| **PLAN-2026-10-15-116** | 2026-10-15 | **Promotion Minimum Quantity & Type Priority** | Builds on PLAN-107, BA answers 2026-10-15. Minimum quantity becomes a required admin field (default 1) for Percentage Off Categories / Subcategories / Selected Products and Fixed Amount Off Selected Products. Selected products: each product on its own quantity. Category / subcategory: quantity of all cart items in that category / subcategory added up. When an item matches several product promotions, priority decides: Fixed Amount Off Selected Products → Percentage Off Selected Products → Categories → Subcategories (same type → bigger saving). Cart promotions unchanged. 36 test cases (incl. locked "Add N more" offer on web + mobile, Stackable-independent priority); TC-P04 and TC-N13 change. No migration. | 🟡 Dev Verified (web) / SIT Pending | [2026-10-15 Min Quantity & Priority Plan](2026-10-15-promotion-min-quantity-and-type-priority-plan.md) |
+| **FIX-2026-10-15-117** | 2026-10-15 | **Promotion Form — Picklist Categories / Subcategories, Paged Product Search** | The promotion form loaded every product in one query and built category / subcategory lists from product values, so subcategories without products were missing (17 of 27 in dev). Categories / subcategories now come from the product picklist (all active entries, product count from one grouped query, 0 when empty); products load 25 at a time with server-side search by name or id and "Show more"; selected products load their names by id. | 🟡 Dev Verified (admin form) / SIT Pending | — |
+| **FIX-2026-10-15-118** | 2026-10-15 | **Promotion Minimum Quantity — Several Categories / Subcategories Added Up Together** | PLAN-116 added up quantity per selected category / subcategory, so promotion 103 (20% Dhoop Sticks + Havan Cups, minimum 2) did not apply to Havan Cups 1 + Dhoop Sticks 1. The quantity of all cart items in any of the promotion's selected categories / subcategories is now added up together; selected products stay per product. | 🟡 Dev Verified (API) / SIT Pending | [2026-10-15 Min Quantity & Priority Plan](2026-10-15-promotion-min-quantity-and-type-priority-plan.md) |
 
 ---
 
@@ -157,7 +168,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Summary:** Added centralized category/subcategory image management across Backend and Inventory Admin, including full image previews, preview-before-upload, explicit storefront visibility, and Ecom consumption of active managed images with a shared fallback.
 * **Repositories Impacted:**
   - `asset-management-backend`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
   - `Nivaana-Ecom-Web`
   - `vyb-lyf-file-upload`
 
@@ -181,7 +192,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Summary:** Removed the Products page Search button and aligned text search with the existing immediate Category and Status filters. Valid searches apply after a 350 ms debounce, short input shows neutral guidance without calling the API, and the last valid filters remain stable for pagination. Backend product search now combines PostgreSQL full-text search with case-insensitive partial matching so product fragments such as `auo` match `AUORA`.
 * **Compatibility:** Reuses `GET /v1/products` and its existing `searchtext`, `category`, `productstatus`, page, and limit parameters. No schema, response shape, or product persistence logic changed.
 * **Repositories Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
   - `asset-management-backend`
 
 ### [2026-10-04: Ecom Promotion Evaluation Safety and Guest Offer Guidance](2026-10-01-mobile-promotion-v2-parity-and-offers-ui.md#guest-cart-promotion-presentation)
@@ -407,7 +418,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Known gap (not changed):** Seller GST TIN is prefilled from `VITE_DEFAULT_SELLER_GST_TIN` (BE fallback `SELLER_GST_TIN`), not per address; a warehouse in another state needs its GSTIN entered manually.
 * **Verification:** Backend and Inventory TypeScript passed. Fastify inject check confirmed `pickup_location` reaches the handler. Pending: create a dev EKART shipment with a non-default address and confirm the pickup warehouse in the EKART dashboard and the Step 3 log.
 * **Repositories Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
   - `asset-management-backend`
 
 ### 2026-10-06: EKART Forward Shipment — Mixed-HSN Orders via items[]
@@ -434,7 +445,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Verification:** Order `NIVAANA-0000000384` label text would be "Incense Accessories (Qty: 1), Luxe Haven (Qty: 1), Premium Incense Combo - MEDITATION & MINDFULNESS COLLECTION (Qty: 1), ALL-IN-ONE Pack - Premium Incense - 12 Fragrances - 120 Sticks (Qty: 1), Opium Vibe- Air Freshener- 100 ml (Qty: 1), Vanilla- Wardrobe Fragrance (Qty: 1)". Backend and Inventory TypeScript passed; backend tests 333/333. Note: `KRA-0075` short name is "Incense Accessories" (reads like a category); review product data.
 * **Repositories Impacted:**
   - `asset-management-backend`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-06: Ecom Promotions — Free Shipping Shown for Ineligible Carts
 * **Issue:** Cart and Checkout built `appliedPromotionsForTotals` from the live V2 quote plus saved V2 selections and legacy backend free-shipping records. Those records can describe an older, higher-value cart, so free shipping (or another offer) showed as applied when the current cart was not eligible.
@@ -490,7 +501,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Found while building (separate task):** the address API has no ownership check (any signed-in customer can read another customer's addresses).
 * **Repositories Impacted:**
   - `asset-management-backend`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-06: Ecom Checkout — Show the Customer's Coupons
 * **Issue:** A coupon created for one customer in Inventory (standalone "quick coupon", e.g. `NV-883055E9AD80`) is deliberately excluded from Checkout Offers (`promotions.service.ts` skips private standalone coupons; they are meant to become wallet credit). Customers could only use it by typing the code or by adding it to the wallet from Profile → Coupons, and Checkout never told them they had one.
@@ -561,7 +572,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
   - Mobile showed Grand Total ₹1,100 (PhonePe + wallet) with a separate "Payment breakdown", unlike Admin/Ecom. Mobile now shows a "Wallet credit −₹100" row and Grand Total = amount paid (`orderamount`, ₹1,000), also on the card header; the duplicate Payment breakdown box was removed.
 * **Verification:** Mobile summary builder on order 163's API data: 2,049 − 84 − 149 − 180 − 99 + 0 = 1,537; You saved 662 (incl. 150). Order 164: 1,100 − 0 + 0 − 100 (wallet) = 1,000; Ecom fallback row not shown. Admin/Ecom/Mobile TypeScript and builds pass; Ecom lint findings in `Orders.tsx` pre-existing (same 9 on HEAD).
 * **Repositories Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
   - `Nivaana-Ecom-Web`
   - `Vibrant-Life-mobile-app`
 
@@ -584,7 +595,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API or data change. Error state unchanged.
 * **Verification:** TypeScript (`tsconfig.app.json`) no errors in dashboard files. Pending: dev check after login (desktop and narrow widths, network throttling).
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Product Detail — Full-Page Loading Skeleton
 * **Issue:** `ProductDetail` returned a 32px spinner in an `h-64` box while the product loaded, so the page was blank and then jumped to the full layout.
@@ -595,7 +606,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change. Error / not-found state unchanged.
 * **Verification:** TypeScript (`tsconfig.app.json`) and ESLint clean on changed files. Pending: dev check opening a product from Products (and with `?tab=stock`), with network throttling.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Platform Stock Not Updated When Stock Is Marked Damaged
 * **Issue:** Admin marked a stock of product 82 (`NIV-0082`) as Damaged. `product` updated correctly (ecompublishedquantity 11, orderedquantity 10, availablequantity 1), but `platformstock` (nivapp) kept ecomqty 12, availableqty 2, damagedqty 0, so the app could sell one more unit than exists.
@@ -623,7 +634,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Verification:** Read-only run of `getDamageCheck` for product 82 / nivapp stock 18239: blocked with "10 unit(s) ordered and waiting to be delivered, and 0 available on nivapp…". Backend `tsc`: no new errors. Inventory `tsc` / ESLint: no new errors (existing `StockImportModal` unused-variable and `stockService` `any` findings unchanged). Pending: dev check of the blocked and allowed dialogs after login.
 * **Repositories Impacted:**
   - `asset-management-backend`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Supplier Duplicate Code — Form Stays Open With a Clear Message
 * **Issue:**
@@ -638,7 +649,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Verification:** New `src/services/supplier.service.test.ts` (5 tests) pass. Read-only run against the local DB: create `00001` → 400 with the new message; update supplier 4 → `00001` → 400; update supplier 3 (owner) keeping `00001` → allowed. Backend and Inventory `tsc`: no new errors. Pending: dev UI check after login (Add Supplier with `00001`; Edit another supplier to `00001`).
 * **Repositories Impacted:**
   - `asset-management-backend`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Product Create / Update — Clear Error Messages on Failed Save
 * **Review finding:** On a failed save, Product Create stays on the form and Product Edit stays in edit mode, so nothing the user typed is lost. The toast text was the problem:
@@ -654,7 +665,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Verification:** Backend `src/services/product.service.errors.test.ts` (4) pass. Inventory `tests/productSaveError.test.ts` (5) pass (`node --test --experimental-strip-types`). Live check against the local DB: update with a 300-character material → 400 "Some of the text entered is too long." (was 500 "no valid fields provided"); the product row was unchanged. Backend `tsc`: only the existing `gst_rate` error. Inventory `tsc`: 99 errors before and after (all existing). Pending: dev UI check after login (create without HSN, combo without items, overlong field on edit).
 * **Repositories Impacted:**
   - `asset-management-backend`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Bulk Add Stock — Clear Error Messages and No Double Save on Retry
 * **Review finding:** Bulk Add Stock (the only stock create path in Inventory; there is no stock edit) closes only on success, so entered values were not lost. Problems:
@@ -674,7 +685,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Verification:** Backend `src/utils/stockBulkErrors.test.ts` (3, including a Fastify inject through the real `errorHandler`) pass. Inventory `tests/bulkStockResult.test.ts` (5) pass. Local server (port 5600), requests rejected by the body check before anything is saved: quantity 20000 → 400 "Quantity can be at most 10,000."; 300-character batch number → "Batch number must be 255 characters or fewer."; no platform → "Platform is required."; empty list → "Please add the stock details before saving." Backend `tsc`: only the existing `gst_rate` error. Inventory `tsc`: 99 before and after (all existing); ESLint: only the existing `StocksList` hook warnings. Pending: dev UI check after login (normal bulk add; quantity above 10,000; partial save is hard to force manually).
 * **Repositories Impacted:**
   - `asset-management-backend`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Order Detail — Full-Page Loading Skeleton
 * **Issue:** `OrderDetailPage` returned a 48px spinner in an `h-64` box while the order loaded, so the page was blank and then jumped to the full layout.
@@ -684,7 +695,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change. Access-denied and not-found states unchanged.
 * **Verification:** TypeScript (`tsconfig.app.json`) and ESLint clean on changed files. Pending: dev check opening an order from Orders with network throttling (desktop and narrow widths).
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Purchase Order — Generate PO URL from Config
 * **Issue:** `PurchaseOrderDetailPage.handleGeneratePO` posted to a hardcoded `https://nivfiles-374914445110.us-central1.run.app/generate-document/po`, ignoring `VITE_API_BASE_URL_UPLOADS`, so dev/SIT/UAT/prod all used the same file service.
@@ -694,7 +705,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** Payload and response handling unchanged. `VITE_API_BASE_URL_UPLOADS` is set in `.env`, `.env.development`, `.env.sit`, `.env.uat` and `.env.prod`; the request now goes to that environment's file service.
 * **Verification:** No `nivfiles-` URLs remain in Inventory `src`. `tsc`: no errors in the changed files. Pending: dev check of Generate PO (request URL in Network tab, PDF opens).
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Register — User Create URL from Config
 * **Issue:** A hardcoded-URL check of Inventory `src` (after FIX-2026-10-07-62) found `RegisterPage` was the only API call building its URL outside `API_CONFIG`: `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5600"}/v1/inventoryusers` with method `"POST"`.
@@ -702,7 +713,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** Resolves to the same URL (`API_CONFIG.BASE_URL` reads the same env var with the same fallback). Payload and response handling unchanged.
 * **Verification:** No API calls with hardcoded hosts or literal paths remain in Inventory `src`; remaining `http(s)://` strings are config fallbacks, CDN scripts/styles, and form placeholders. `tsc`: no errors in the changed file. Pending: dev check of registration (request URL in Network tab).
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Purchase Order — Generate PO Sends Auth Token
 * **Issue:** Generate PO from local Admin (local backend, SIT file service `nivfiles-dev`) failed with 404. The route `POST /generate-document/po` exists and the PDF was uploaded to `niv-po-deve`, but the file service's callback `PUT https://nivaana-dev-…/v1/purchaseorders/1` had no `Authorization` header (Admin's fetch sent only `Content-Type`) and the backend returned 401. `fileupload.controller.ts` catches callback errors and replies 404, hiding the 401. Not an environment issue: local and SIT backends share the JWT secret and `assetmanagement_dev` database.
@@ -711,7 +722,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Verification:** `tsc` and ESLint clean on the changed file. Pending: dev check of Generate PO (request has `Authorization` header, PDF opens, PO `fileurl` saved).
 * **Follow-up (not done):** file service `fileupload.controller.ts` returns 404 for every callback failure; it should pass through the upstream status.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Purchase Request / Purchase Order Detail — Loading Skeleton
 * **Issue:** `EditPurchaseRequestPage` (`/purchase-requests/:id/edit`, the PR detail view) returned a spinner in an `h-64` box; `PurchaseOrderDetailPage` returned a spinner with "Loading..." text. Both pages were blank and then jumped to the full layout.
@@ -722,7 +733,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change. Error / access-denied states unchanged.
 * **Verification:** TypeScript (`tsconfig.app.json`) and ESLint clean on changed files (2 TS errors pre-exist in `CreatePurchaseOrderPage.tsx` and `CreateSamplePurchaseRequestPage.tsx`, untouched). Pending: dev check opening a PR and a PO (and with `?tab=quotes` / `?tab=invoices`) with network throttling.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Promotions List — "No promotions found" Flash on Load
 * **Issue:** On opening `/promotions`, the empty state ("No promotions found") showed first, then the loader, then the list. Cause (frontend only, not API latency):
@@ -734,7 +745,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change. Redemption History tab unchanged.
 * **Verification:** No new TypeScript or ESLint findings on changed lines (existing TS errors at `PromotionsPage.tsx` 469/759 and `usePromotions.ts` 235, and 2 lint warnings, pre-exist on HEAD). Pending: dev check opening Promotions (skeleton → list, no empty-state flash), search typing still debounced, empty search result still shows "No promotions found".
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Roles — Server Error Message Shown in the Toast, 400 for Role Rules
 * **Fix ID:** FIX-2026-10-07-67 (first logged as FIX-61, which was already used; the Inventory commit `5e385dc` message still says FIX-61).
@@ -754,7 +765,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Follow-up (regression found in dev test):** After the change to 400, the API answered only `{ "success": false }`. `role.route.ts` declared 400/404/500 response schemas with only `success` and `error`; Fastify removes properties not in a response schema, so `message` / `details` were dropped (the old 500 path was not affected). All 9 error schemas in `role.route.ts` (list, get, create, update, delete, level preview) now also declare `message`, `details`, `statusCode`. New `src/routes/role.route.test.ts` checks every role error schema and a real POST through the 400 schema; it fails on the previous file with `{"success":false}`. End-to-end on the local DB through the role routes + error handler: `POST /v1/roles` with `system_admin` and `PUT /v1/roles/2` with `system_admin` → 400 `{"success":false,"message":"Role code 'system_admin' is already in use.","details":"Please enter a different role code.","statusCode":400}`; role 2 unchanged. Supplier and product create/update have no such schema (only their list/count GET error schemas omit `message`; not changed).
 * **Repositories Impacted:**
   - `asset-management-backend`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Roles — System Role Hidden from UI
 * **Fix ID:** FIX-2026-10-07-68
@@ -765,7 +776,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only. DB column `roles.issystem`, backend rules, API filter `?issystem=` and `types/role.ts` / `roleService.ts` unchanged. Existing system roles keep their delete/deactivate protection. New roles can no longer be made system roles from the UI.
 * **Verification:** Inventory `tsc` (`tsconfig.app.json`): 99 errors, all existing, none in the changed files; ESLint clean on both files. Pending: dev check on the Roles page (no System column/Type filter; create and edit a role; edit a system role shows Active locked; system role delete button disabled with tooltip).
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Permission Sets — Default Type Hidden from List
 * **Fix ID:** FIX-2026-10-07-69
@@ -776,7 +787,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only. `PermissionSetForm` ("Default (Null)" option and "Default Permission Set" checkbox), DB column, backend rules, API filter `?isdefault=` and fallback behaviour unchanged.
 * **Verification:** Inventory `tsc` (`tsconfig.app.json`): 99 errors, all existing, none in the changed file; ESLint clean. Pending: dev check on the Permission Sets page (no Default column/Type filter; search, role and status filters and paging still work; fallback set shows "Default (fallback)").
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Supplier Detail — Full-Page Loading Skeleton
 * **Issue:** `SupplierDetail` (`/suppliers/:id`) returned a spinner in an `h-64` box while the supplier loaded; the page was blank and then jumped to the full layout.
@@ -787,7 +798,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change. Access-denied / not-found states unchanged.
 * **Verification:** TypeScript (`tsconfig.app.json`) and ESLint clean on changed files. Pending: dev check opening a supplier (and with `?tab=requests` / `?tab=orders`) with network throttling; PR/PO skeletons unchanged.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Permission Set Detail — Full-Page Loading Skeleton
 * **Issue:** `PermissionSetEdit` (the permission set detail page) returned a spinner in an `h-64` box while the permission set loaded; the page was blank and then jumped to the full form.
@@ -797,7 +808,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change. Access-denied / not-found states unchanged.
 * **Verification:** TypeScript (`tsconfig.app.json`) and ESLint clean on changed files. Pending: dev check opening a permission set with network throttling (desktop and narrow widths).
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Customer Detail — Loading Skeleton
 * **Issue:** `CustomerDetailPage` (`/customers/:id`) rendered the breadcrumb and a spinner (`py-20`) until the customer and overview loaded, then jumped to the full layout. The Addresses tab showed another spinner while addresses loaded.
@@ -809,7 +820,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change. Error / invalid-ID states unchanged; Orders and Wallet tabs keep the Table skeleton.
 * **Verification:** TypeScript (`tsconfig.app.json`) and ESLint clean on changed files. Pending: dev check opening a customer and the Addresses tab with network throttling (desktop and narrow widths).
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Picklists — View-Matching Loading Skeleton
 * **Issue:** `PicklistsPage` (`/picklists`) rendered a `py-20` card with a 48px spinner and "Loading picklists..." while loading, in both the Grouped and Individual views, so the content area changed shape when data arrived.
@@ -821,7 +832,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change. Empty state and pagination unchanged.
 * **Verification:** TypeScript (`tsconfig.app.json`) and ESLint: no new findings on changed files. Pending: dev check of both views, view switching and filter changes, with network throttling.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Category Images — Standard Table Loading
 * **Issue:** `CategoryImagesPage` (`/category-images`) rendered a custom `CategoryImagesSkeleton` (grey `bg-slate-200` bars) in place of both the filters and the table while loading. Other list modules (Products, Orders, Suppliers, Purchase Requests/Orders, Customers, Roles, Permission Sets) keep the real filters visible and pass `loading` to the shared `Table`, which draws its own skeleton rows and pagination.
@@ -832,7 +843,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change.
 * **Verification:** TypeScript / ESLint: no new findings (3 pre-existing in this file: unused `getButtonStyles` / `getButtonHoverStyles` imports and unused `refreshing` state). Pending: dev check of first load, search/filter, and empty search result.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Return & Replacement Policies — Standard List Layout
 * **Issue:** `ReturnReplacementPoliciesPage` (`/return-replacement-policies`) did not match other list modules: `min-h-screen bg-slate-50` shell with `max-w-[1440px]`, custom icon tile, KPI tiles (Total / Active / Returns / Replacements) in the header, filters as raw Tailwind inputs inside the table card header, hard-coded `#ffd200` buttons and local badge colours.
@@ -848,7 +859,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change. Modals, policy/reason-rule logic and client-side pagination unchanged.
 * **Verification:** TypeScript (`tsconfig.app.json`) and ESLint: no new findings (pre-existing ones in this file unchanged). Pending: dev check of filters, empty state, configure/edit/delete actions (desktop and narrow widths).
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Return & Replacement Policies — Create Only From "No Policy" Rows
 * **Issue:**
@@ -863,7 +874,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change. Existing policies, edit, delete and reason-rule configuration unchanged.
 * **Verification:** TypeScript (`tsconfig.app.json`) and ESLint: no new findings (pre-existing ones in this file unchanged). Pending: dev check — ⊕ on a category row and on a sub-category row (scope prefilled and locked, saved at the right level, row switches from "No Policy" to the policy), edit shows locked scope, coverage counts.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Return & Replacement Policies — Load All Policies + Page Clamp
 * **Issue:**
@@ -876,7 +887,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** Frontend only; no API change. Same request as before when there are ≤ 100 policies.
 * **Verification:** TypeScript / ESLint: no new findings. Temporary Vitest with a mocked API (removed after the run): 250 policies → 3 requests, 250 unique rows; 31 → 1 request; 0 → empty list. Pending: dev check of delete on the last table page and configuring the last row in a Missing view.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Picklists — Load All Options via v2 (v1 Silently Capped at 100)
 * **Issue:**
@@ -895,7 +906,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
   - v2 requires auth; all callers are inside the authenticated Inventory app. Ecom web not affected (separate service).
 * **Verification:** TypeScript / ESLint: no new findings. Temporary Vitest with a mocked API (removed after the run): grouped load returns all 112 rows from `/v2/picklists?object=product` with the auth header; by-field uses `/v2/picklists?object=product&fieldname=subcategory`; by-fields makes 2 requests and returns only category (13) + subcategory (31). Pending: dev check — product form sub-category dropdown lists all 31 (incl. Air Fresheners, Scented Candles), Products filters, Return & Replacement Policies shows the 11 previously missing sub-categories as "No Policy".
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Return & Replacement Policies — Show + Level Filters, Grouped Rows
 * **Issue:** Two overlapping filters: Coverage (`policyStatus`: all / configured / missing / configured_categories / missing_categories / configured_subcategories / missing_subcategories) and Status (`status`: all / active / inactive / no_policy). "Missing" and "No Policy" returned the same rows; Missing + Active/Inactive and Configured + No Policy were always empty, so Status was disabled and reset in Missing views. Users had to reason about both dropdowns together.
@@ -909,7 +920,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change. Defaults (All, all levels) show the same rows as before.
 * **Verification:** TypeScript: no new findings; ESLint 18 → 15 (three `any` removed). Temporary render test (Vitest + Testing Library, mocked services; removed after the run): 2 categories, 3 sub-categories, 1 active category policy, 1 inactive sub-category policy — checked counts and exact rows for All, No Policy, Sub-categories only, Category = Perfumes, Inactive, Categories only + Active, and Clear Filters. Second temporary render test (removed): filter DOM order Show → Category → Level, "All Statuses (6)", rows grouped Candles → Jar Candles → Perfumes → Perfume Oils → Attars (picklist sortorder, not alphabetical) → orphan "Zzz Old" last; No Policy keeps grouping. Pending: dev check with real data.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Policy Reason Configuration — Unsaved Changes Guard, Policy-Aware Outcomes, No Outside-Click Close
 * **Issue:**
@@ -923,7 +934,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change. Backend enforcement unchanged.
 * **Verification:** TypeScript / ESLint: no new findings. Temporary render test (Vitest + Testing Library, mocked services; removed after the run): policy with Return on / Replacement off — summary text, "Hidden from customers" only on the replacement-only reason, outside click keeps modal open, edit → "Unsaved", switching with Cancel keeps edits, unticked Replacement becomes disabled, save sends `["refund"]` and clears "Unsaved", switching without changes does not prompt, Escape with changes prompts and closes on OK, saving a replacement-only reason asks first and does not call the API on Cancel. Pending: dev check.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Product Images — Drag-and-Drop Upload
 * **Issue:** Product detail → Image tab (`ProductImageUpload`) picked files only through a hidden `<input type="file">` behind "Choose Images" / "Add More Images". The empty-state dashed box looked like a drop zone but had no drop handlers; the existing drag handlers only reorder thumbnails. (The Stock module has no image upload; stock rows have no image fields.)
@@ -936,7 +947,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change. Limits unchanged (5 per product, 5 per request, 15MB each, 30MB total).
 * **Verification:** TypeScript / ESLint: no findings in the file. Temporary render test (Vitest + Testing Library, mocked permissions/toast/Swiper; removed after the run), 5/5 passed: empty-state highlight and drop → "Selected Files (2)"; PDF rejected, 20MB rejected, 6 files rejected; add-more zone with 3 existing images rejects 3 more and accepts 2; non-file (reorder) drag ignored; no drop when product not saved. Browser check not possible in this session (local preview blocked). Pending: dev check — drag images from Finder onto both areas, then Upload.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Product Breadcrumb & Stock Modal — Short Name
 * **Issue:**
@@ -954,7 +965,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Verification:** Inventory TypeScript: no findings in changed files; ESLint: same 4 pre-existing warnings as before (no new). Backend TypeScript: no findings in changed files. Route check (Fastify inject on the real `stockRoutes` with the app's ajv config): `GET /v1/stocks` returned 200 with `productshortname` on every row next to `productname` (e.g. "NIVAANA - Coconut Soap" → "Coconut Soap"); this was a read-only request against the `.env` database. Pending: dev check — product detail breadcrumb, Stock tab → Add/Edit/View stock subtitle, /stocks page → Edit stock subtitle.
 * **Repository Impacted:**
   - `asset-management-backend`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Stock List — Product Name Column
 * **Issue:** `StocksList` always rendered a wide "Product Name" column with the full product name. On Product detail → Stock tab (`product` prop set) every row showed the same name already in the breadcrumb; on /stocks the full name was always truncated.
@@ -962,7 +973,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only. Excel export (separate API) and mobile card view unaffected (mobile cards do not depend on the first column).
 * **Verification:** TypeScript / ESLint: no findings in the file. No render test (column toggle only). Pending: dev check — Product → Stock tab has no Product Name column; /stocks shows short names (needs backend from FIX-82 deployed).
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Category Images — Show / Category / Level Filters, Grouped Rows
 * **Issue:** `CategoryImagesPage` filtered only by search and `viewFilter` (all / configured / missing). No filter for storefront visibility (Visible / Hidden), category, or level; "Clear filters" only in the empty state. Rows followed the API order (all categories, then sub-categories by parent alphabetically), so a category's sub-categories were not next to it.
@@ -976,7 +987,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** UI only; no API change (still one `GET /v1/category-images` load, filtered client-side). Default view shows the same rows as before, grouped.
 * **Verification:** TypeScript / ESLint: no new findings (ESLint 3 → 1; remaining pre-existing unused `refreshing`). Temporary render test (Vitest + Testing Library, mocked service/permissions/toast; removed after the run), passed: 2 categories + 4 sub-categories (one with an unknown parent) grouped Candles → Jar Candles → Perfumes → Perfume Oils → Attars → Zzz Old; counts "All Statuses (6) / Visible (2) / Hidden (1) / Missing Image (3)"; Hidden → Jar Candles; Category = Perfumes → 3 rows with counts (3/2/0/1); + Sub-categories only → 2; + Missing → Attars; Clear Filters → all 6; search "candles" → Candles, Jar Candles; no match → empty state with Clear filters. Pending: dev check with real data.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Coupons — Usage Column, Full Wallet History, Correct Status Filter
 * **Issue:**
@@ -997,7 +1008,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Verification:** Backend TypeScript: no findings in changed files. Route checks (Fastify inject on real `couponWalletRoutes` against the dev DB, read-only): standalone 31 / all 48 coupons — status counts sum to total; for all 8 statuses every returned row has that status and total = count; "Claimed" page now 9 of 9. History for all 48 coupons: 22 wallet credits, timeline final balance = stored `remaining_amount` for every non-expired credit (0 mismatches), all 8 event types seen (e.g. NV-BC53804D8BE3: +100, −100 #396, +100 cancelled, −100 #397, +100 return refund RRF-22, −100 #398, +25 ×3 return refunds → ₹75 = stored); 404 for unknown id, 400 for invalid id. Inventory TypeScript: no new errors; ESLint: 1 pre-existing warning. Temporary render test (Vitest + Testing Library, mocked service; removed after run): no cards, no "Sent With Order" column, Usage "₹25 used of ₹100 / ₹75 left / Not claimed", "All statuses (2)" / "Claimed (1)", status change refetches with `status=claimed`, modal shows history rows, ±amounts, refund reference, order link `/orders/398`, printed-coupon field. Pending: dev check.
 * **Repository Impacted:**
   - `asset-management-backend`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-07: Inventory Coupons — Simple Status Model, Source Filter, Detail Page, Quick History Drawer
 * **Issue (review of FIX-85):** Name and code in two columns; "Who Can Use" header for what is always one customer; Ownership filter offered only "Personalized customer" (all standalone coupons, incl. coupon-group ones, are `assignment_type = 'customer'`), so it never filtered; status names were system terms and "Claimed" did not say whether any balance was left; details modal was a grid of boxed fields; no quick way to see history from the list; direct-checkout redemptions showed the internal order id ("167", no link) and the "not claimed" message.
@@ -1013,7 +1024,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Verification:** Backend TypeScript: no findings in changed files. Route checks (Fastify inject, dev DB, read-only): counts available 1, in_wallet 5, fully_used 4, redeemed 3, expired 17, inactive 1 (sum 31 = total); each status filter returns only rows with that `display_status`; `status=claimed` = in_wallet + fully_used; source coupon_group 9 + customer 22 = 31; checkout redemptions resolve to NIVAANA-0000000398 / 394 / 393 with status. Inventory TypeScript: no coupon errors (the earlier `initialCustomer` error is gone); ESLint: 1 pre-existing warning. Final status model on dev (standalone 31): not used 1, added to wallet 0, partly used 5, fully used 12, expired 12, paused 1, cancelled 0 — sum 31, every filter returns only its rows (also checked for scope=all, 48); 5 coupons spent to ₹0 moved from Expired to Fully used. Temporary render tests (removed): list headers, "via group", labels, status option texts with counts, source filter request, history drawer (checkout message, order link `/orders/167`, Escape closes), View navigates to detail page; detail page header balance, compact rows, history with refund reference, no Edit for claimed coupon. Pending: dev check.
 * **Repository Impacted:**
   - `asset-management-backend`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-08: Order Lifecycle Dates Stored +5:30 Ahead
 * **Issue:** `update_order_status_date` / `update_orderline_orderstatus_date` triggers built epoch seconds from the India wall clock, storing lifecycle dates 19,800 s ahead; the orderline trigger also rewrote dates on any update while the status stayed the same. Order 171 on dev: `delivereddate` 1791483421 (11:47 PM IST) vs `status_history` delivered 1791463620678 (6:17 PM). Return eligibility (`return-request.service.ts`) reads `delivereddate`, so windows ended 5.5 h late. Admin timeline reads `status_history`, so it looked correct.
@@ -1051,7 +1062,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Verification:** Backend and Inventory TypeScript pass. Service run on dev DB (read-only): request 26 (order 168) refund ₹0, manual ₹10 rejected; request 23 (order 167) ₹95. Pending: dev check closing request 26 from Inventory.
 * **Repository Impacted:**
   - `asset-management-backend`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-08: Return Pickup — Seller Details No Longer Captured
 * **Issue:** Team issue #10. `OrderReturnActionModal` → Pickup with "Create reverse shipment with EKART" showed Seller name (required), Seller GST TIN, Seller location alias and Seller address. For a return pickup these are not the admin's input: Ekart's `/v1/package/create` needs `seller_*` fields, which for a reverse shipment mean the return destination (our warehouse).
@@ -1059,7 +1070,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Compatibility:** API still accepts the optional seller fields (`return-source.schema.ts`), so other callers are unaffected. Warehouse choice by alias is no longer offered in the form (first Ekart address is used).
 * **Verification:** Inventory TypeScript passes. Backend `SELLER_GST_TIN` present in `.env`. Payload built for request 26 with no seller fields (Ekart address read only, no shipment created): seller name/address filled, pickup from customer, `payment_mode` Pickup. Pending: dev check creating a reverse pickup from Inventory.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-08: Return Policy — Re-creating a Deactivated Scope Reactivates It
 * **Issue:** Team issue #7. `return_replacement_policies.scopekey` (`category|subcategory`) is unique and includes inactive rows. Deactivating a policy and then creating one for the same scope hit P2002 → "Policy already exists". Reproduced: Edit → Active off/on on policy 34 works; create on the same scope while inactive fails.
@@ -1144,7 +1155,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Fix:** Re-added `{ id: "return-sources", title: "RTO Operations", path: "/return-sources?requesttype=rto", icon: "rotate-left" }` after Orders in `navigationConfig`.
 * **Verification:** Inventory TypeScript: no findings. Pending: dev check — menu shows RTO Operations, Create RTO opens and saves.
 * **Repository Impacted:**
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 
 ### 2026-10-09: Partially Returned Orders — Correct Status and Return Button
 * **Issue:** G13. `OrdersService.attachEffectiveStatuses` takes the latest return request's status for the whole order, so order 167 (line 253 qty 2 with 1 returned, lines 252/251 returned) showed `refund_completed`. Ecom `canUseReturnFlow = isOrderReturnFlowAvailable(displayStatus || order.orderstatus)` only allows `delivered`, so any return/refund display status hid Return for the remaining units.
@@ -1190,7 +1201,7 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
   - `asset-management-backend`
   - `Nivaana-Ecom-Web`
   - `Vibrant-Life-mobile-app`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
 * **2026-10-12 update:** Reverted at the user's request — the RTO Operations menu link is not needed (Shipmozo RTO records are auto-created by FIX-2026-10-09-100 and show on the order's returns section). `/return-sources?requesttype=rto` still works by URL.
 
 ### 2026-10-12: Promotion Priority and Cart Label Rename (Plan)
@@ -1234,7 +1245,130 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
   - Open (accounts to confirm): wallet credits with `source_type = coupon` (24 of 25 on dev) are spent as a payment, so GST stays on the full price (order 177), while the same coupon used directly reduces GST (order 178). Refund credits (`return_refund`) as payment are normally right. No change until accounts decide. Repair script for existing orders (later) must not change GST on orders that already have an invoice (credit / debit note instead).
   - Dev check 2026-10-12, order 179 (₹60 direct coupon `NV-FD620806ADF3`): promotions per line, coupon split 35.01 / 22.51 / 2.48, GST refreshed (taxable + GST = ₹3,437.60 = paid). Found MRP discount counted twice in line / header fields (amounts paid, refunds, GST correct) — kept as is for now (UIs may rely on these fields; check all 3 apps before changing).
 * **2026-10-12 dev verification complete (user confirmed all fine):** web orders 175–179 and mobile orders 180 (no coupon / wallet), 181 (₹100 wallet), 182 (₹50 coupon `NV-8876875C9DEA`) — same cart gives identical promotion, line and GST amounts on web and mobile (TC-P14); coupon redeemed once (usage 1 / 1); wallet reservation consumed once. Refund split logic checked against existing refund operations (wallet part back to wallet, paid part to PhonePe, proportional on partial returns). Remaining before release: push mobile commit `b2b1b43b`; SIT run of `scripts/retire-stale-cart-rule-versions.ts` per `docs/RELEASE_SCRIPTS_CHECKLIST.md`; accounts decision on coupon-sourced wallet credits (GST / restore); COD + wallet refund rule; repair script for older orders; MRP field double count (kept as is).
+* **2026-10-13 UAT:** all 3 apps deployed. `retire-stale-cart-rule-versions.ts` dry run on `assetmanagement_uat`: 0 found. FESTIVE SALE 10% still applied to the whole cart: UAT promotion #1 was stored as old type `PERCENT_OFF_ITEM` (whole-cart scope, no V2 rule), which is not one of the seven types, so it got no group and kept the old behaviour. Fixed in UAT admin (type → Percent of entire cart value, 10%); now `PERCENT_OFF_CART`, group CART_PERCENT, working. No other such promotion on UAT. Prod (UAT was cloned from it) needs the same check before release — added to `docs/RELEASE_SCRIPTS_CHECKLIST.md`.
 * **Repository Impacted (planned):**
   - `asset-management-backend`
-  - `asset_management_frontend_aromazen`
+  - `asset_management_frontend_aromazen` (`28b034c`)
   - `Nivaana-Ecom-Web` (verification only)
+
+### 2026-10-13: Inventory — Amazon Integration UI Ported from Dev (Hidden)
+* **Issue:** Backend Amazon integration (services, routes, schedulers, 21 migrations, 24 models) is the same on `DEV` and `DEV-NEW`. The Inventory frontend had the full Amazon UI only on `Dev` (24 files, hidden there by `ca158db` "Hide unfinished Amazon integration"); `DEV-NEW` had only the early Channels accordion.
+* **Fix:** `git merge --squash origin/Dev` (no merge record, so `Dev`'s restyle can still be merged later), keeping only the Amazon work: `src/components/amazon/*`, `AmazonWorkspacePage`, `AmazonListingEditorPage`, `AmazonOrderDetailPage`, `AmazonChannelSummaryCard`, updated `amazonService` / `AmazonContext` / callback / accordion, `amazonFulfilment`, Amazon endpoints in `api.config.ts`, routes in `App.tsx`, Channels → Amazon nav item, scoped `.amazon-nivaana-*` CSS. Inventory: `ProductDetail` refreshes the stock summary (15s / on focus), `StocksList` silent summary refresh, `StockSummaryModal` shows the single location's numbers. `integrationFeatures.amazon = false` (as on `Dev`): all Amazon routes, nav and cards hidden. Orders source tabs (Nivaana / Amazon / Flipkart) render only when the flag is on, so Orders is unchanged today.
+* **Not included:** `Dev`'s global restyle (MainLayout, Table, Detail / Index page wrappers, PermissionButton, `uiTheme`, rest of `index.css`), `.env` change, local API base URL switch in `api.config.ts`.
+* **Compatibility:** No backend change. To enable later: set `integrationFeatures.amazon` (per environment) in `src/config/integrationFeatures.ts`; backend needs `AMAZON_INTEGRATION_ENABLED` (default true) and Amazon secrets.
+* **Verification:** `tsc` and `npm run build` pass; lint unchanged for existing files (new Amazon files bring 1 `any` error + 3 hook-deps warnings from `Dev`). All changed pages load in the dev server without console errors. User checked Channels, Orders, Stocks and product detail locally: working.
+* **Repository Impacted:**
+  - `asset_management_frontend_aromazen` (`d872a46`)
+* **2026-10-14 update:** On request, Amazon stays visible as it was on `DEV-NEW` (Channels card), now with the full UI. Merged latest `DEV-NEW` into `feature/amazon-ui-port` (`51e9a1a`), taking `DEV-NEW`'s `integrationFeatures.ts`: `amazon: !isSitEnvironment`, `shipmozo: true`. Sidebar Channels → All Channels, Amazon; Orders shows Nivaana / Amazon / Flipkart tabs; Amazon workspace, listing editor and order detail routes on. Not shown on SIT. UAT / Prod builds will show it: see `docs/RELEASE_SCRIPTS_CHECKLIST.md` 4e before those merges. Verification: `tsc` and `npm run build` pass; pages load in the dev server with no console errors.
+
+### 2026-10-13: Inventory — Shipmozo Hidden in UAT
+* **Issue:** `integrationFeatures.shipmozo` was `!isSitEnvironment`, so the UAT Inventory (orders/55) showed Shipmozo under Create Shipment while SIT (orders/185) showed only Ekart. Backend `.env.sit` and `.env.uat` both set `SHIPMOZO_INTEGRATION_ENABLED: "false"`, which skips the Shipmozo routes (`src/routes/index.ts`) and blocks the Shipmozo path in `orders.controller.ts`, so UAT offered a provider that cannot work.
+* **Fix:** `integrationFeatures.ts` also detects UAT (`MODE` or `VITE_APP_ENV` = `uat`); `shipmozo` is now `!isSitEnvironment && !isUatEnvironment`. All existing uses (`ShipmentProviderMenu`, `OrderDetailPage` Shipmozo form / vendor checks) follow the flag. Amazon unchanged (hidden in SIT only).
+* **Compatibility:** Dev and Prod (backend flag `true`) still show Shipmozo. No `.env` change. To enable Shipmozo in UAT later, set the backend flag to `true` and remove the UAT check.
+* **Verification:** Inventory `tsc --noEmit` clean. Pending: UAT deploy and check orders/55 shows only Ekart.
+* **Repository Impacted:**
+  - `asset_management_frontend_aromazen` (`28b034c`)
+
+### 2026-10-13: Courier Shipment Cancel — Shipmozo Re-ship, Ekart Shipment-Only Cancel, AWB History (FIX-110, FIX-111, FIX-112)
+* **Summary:** Two kinds of courier cancel exist. (1) Customer / admin cancels the order: the order flow cancels the courier shipment in the background and keeps the tracking details on the order. (2) Shipment-only cancel before pickup (wrong weight or box, address change, wrong courier): the courier shipment is cancelled, the order stays Ready for Dispatch and its shipment fields are cleared so a new shipment can be created. Shipmozo had (2) but could not re-ship; Ekart had no (2).
+* **FIX-110 Issue:** `ShipmozoOperationService.begin` claims only `pending` / `failed` operations. The shipment-only cancel marks the order's `forward:<order>` operation `cancelled`, so the next create returned 409 "Shipmozo operation … is already cancelled".
+* **FIX-110 Fix:** `shipmozoOperationService.retireCancelled(key)` moves a `cancelled` operation to `forward:<order>:cancelled:<time>` (`retiredShipmozoIdempotencyKey`, fits the 200-character column); `createForwardShipment` calls it after its order checks and before `begin`. Works for existing cancelled rows too. The cancelled row stays as history.
+* **FIX-111 Issue:** `orderActions.config.ts` shows Create Shipment only without a tracking ID; the Inventory never called `EKART.cancelShipment`; `EkartController.cancelShipment` only called Ekart and left the order unchanged. A wrong Ekart shipment could only be fixed by cancelling the whole order or a manual database edit.
+* **FIX-111 Fix:** New `ShipmentCancellationService.cancelShipmentKeepOrder` (used by Ekart and Shipmozo cancel endpoints): finds the order by tracking ID and vendor, requires `ready_for_dispatch` (400 otherwise, courier not called), calls the courier, then in one transaction clears `tracking_id`, `vendor`, `public_tracking_link`, `shipment_created_at`, `label_url`, `label_downloaded_at`, `label_printed_at`, sets `shipment_tracking_status = 'Cancelled'`, records the cancel, and clears orderline `tracking_id`. Courier refusal changes nothing locally. Inventory: "Cancel Ekart Shipment" in the ⋮ menu (Ready for Dispatch, vendor EKART, tracking ID), with a confirm that says the order is not cancelled or refunded. Response of the Ekart endpoint unchanged (`tracking_id`, `remark`).
+* **FIX-112 Issue:** Ekart and Shipmozo create wrote `barcodes` from scratch and the manual vendor switch set it to `null`, dropping `barcodes.cancellation`. `OrdersService.cancelProviderShipment` returned early whenever `barcodes.cancellation.status === 'confirmed'`, so once FIX-111 keeps the record, a later order cancel would skip the new AWB.
+* **FIX-112 Fix:** `src/utils/shipmentCancellation.ts`: `barcodes.shipment_history[]` entries `{provider, tracking_id, status, reason: shipment_only | order_cancelled | courier_reported, confirmed_at / failed_at, error}`; `carryShipmentHistory` used by Ekart create, Shipmozo create and the manual vendor switch; `isShipmentCancellationConfirmed(metadata, awb)` replaces the status-only check; earlier attempt fields are reused only for the same AWB (`cancellationForSameAwb`, also in Shipmozo tracking sync). Order cancel and Shipmozo tracking-reported cancels add a history entry (no duplicate when already confirmed). `barcodes.cancellation` still holds the latest attempt.
+* **Not changed:** order status, refunds, stock, customer order cancel keeping tracking details, Shipmozo tracking sync clearing fields when Shipmozo reports a cancel. Out of scope, noted: `OrderlineService` line cancel still calls Ekart cancel for the whole AWB on any line cancel, without checking the vendor.
+* **Compatibility:** No migration (`barcodes` is JSON). Existing `barcodes.cancellation` records without `tracking_id` still count as confirmed for the current AWB. The Ekart cancel endpoint now needs an Ekart order in Ready for Dispatch with that tracking ID; nothing else called it.
+* **Verification:** Backend `tsc --noEmit` clean; `npm test` 413/413 pass incl. 7 new tests in `tests/shipmentCancellation.test.ts` (fields cleared and history kept, order status untouched; history carried to the new shipment; old-AWB confirm does not skip the new AWB; retired key length; courier called first and lines cleared; courier refusal changes nothing; dispatched / unknown AWB refused without calling the courier) and the updated Shipmozo source test. Routes via Fastify inject (read-only, dev DB): Ekart and Shipmozo cancel with unknown AWB → 400 "No … order has tracking ID …"; Ekart cancel on a delivered order → 400 "Only shipments of orders in ready_for_dispatch …". Inventory `tsc --noEmit` clean. Pending (books real pickups, user decision): Dev Ekart create → Cancel Ekart Shipment → create again; Shipmozo create → cancel → create again; customer cancel after a re-ship cancels the new AWB.
+* **Repository Impacted:**
+  - `asset-management-backend`
+  - `asset_management_frontend_aromazen` (`be07c75`)
+
+### 2026-10-13: Shipmozo Enabled in SIT, UAT at the Next Promotion (FIX-113)
+* **Summary:** The user wants Shipmozo in SIT now and in UAT from the next `SIT` → `UAT` merge, for test orders only (the SIT / UAT keys are the live Shipmozo account; every shipment books a real pickup).
+* **Fix:**
+  - Inventory `integrationFeatures.shipmozo` is now always `true` (Amazon unchanged, hidden in SIT). Replaces FIX-109 (hidden in SIT / UAT). Commit `b401efd`.
+  - Backend `SIT` branch `.env.sit`: `SHIPMOZO_INTEGRATION_ENABLED: "true"` (tracking sync was already `"true"`). Committed on `SIT` with the `DEV-NEW` → `SIT` merge because `.env.sit` differs between the two branches.
+  - `docs/RELEASE_SCRIPTS_CHECKLIST.md`: new section 4e (environment config changes) with the Shipmozo row; UAT run order has a bold step to set `.env.uat` `SHIPMOZO_INTEGRATION_ENABLED` and `SHIPMOZO_TRACKING_SYNC_ENABLED` to `"true"` in the `SIT` → `UAT` merge; Prod step to verify trigger keys.
+* **Compatibility:** Prod backend already `"true"`. UAT: until `.env.uat` is changed, a UAT Inventory built from this code shows Shipmozo but the backend refuses it, so the switch must go in the same merge. `SHIPMOZO_WAREHOUSE_ID` and `SHIPMOZO_WEBHOOK_SECRET` stay unset in SIT / UAT (warehouse picked in the form; status by the 15-minute sync).
+* **Verification:** Inventory `tsc --noEmit` clean; `vite build --mode sit` passes and includes Shipmozo. Pending: SIT deploy, then create → cancel → create on a test order (Ekart and Shipmozo).
+* **Repository Impacted:**
+  - `asset_management_frontend_aromazen` (`b401efd`)
+  - `asset-management-backend` (`.env.sit` on `SIT`, docs)
+* **⛔ 2026-10-13 BLOCKED — Shipmozo account: REST API not active (action with client / Shipmozo, no code change needed):**
+  - **What happened:** SIT deployed (backend `SIT` `150d834`, Cloud Build 10:24 UTC). `GET https://nivaana-dev-715569764663.asia-south1.run.app/v1/shipmozo/warehouses` reached Shipmozo and returned 502 *"Shipmozo warehouse lookup failed: Rest api is not active on this account. Please contact shipmozo support team"* (Shipmozo `result: "0"`, `data: []`).
+  - **Confirmed on Shipmozo's side:** the public / private keys in `.env.sit` match the Shipmozo panel (API Documentation dialog, public key `qZPCNf3ZXh6OtWUms2DQ`), and Shipmozo's own Swagger (`GET https://shipping-api.com/app/api/v1/get-warehouses`) returns the same message with those keys. The route answering at all shows the SIT switch is on (switch off = 404).
+  - **Impact:** every Shipmozo call fails for this account — warehouses, create shipment, label, cancel, tracking sync, returns — in SIT and UAT (same keys). Ekart unaffected. Prod uses keys from the Cloud Build trigger: check whether they are the same account (if yes, Prod Shipmozo is also failing).
+  - **Action taken:** Suresh emailed BA Divya (2026-10-13) to have the client raise a Shipmozo Support ticket to activate REST API access and confirm whether the keys change.
+  - **When Shipmozo confirms (next steps):**
+    1. Re-run the Swagger `get-warehouses` call; a warehouse list = active.
+    2. Re-open the SIT URL above; same list expected, no redeploy if keys unchanged.
+    3. If Shipmozo issues new keys: update `.env.sit` on `SIT` (redeploys SIT), `.env.uat` in the `SIT` → `UAT` merge, and the Prod trigger `_SHIPMOZO_PUBLIC_KEY` / `_SHIPMOZO_PRIVATE_KEY`. Shared securely, not by plain email.
+    4. Security: the current keys are committed in `.env.sit` / `.env.uat` and the private key was shared in chat; ask Shipmozo to regenerate the private key after activation and consider Secret Manager (as for Amazon in `cloudbuildsit.yaml`).
+    5. Then run the SIT tests for FIX-110 / 111 / 112 (Shipmozo and Ekart create → cancel → create; customer cancel after re-ship) and update this entry's status.
+  - **UAT merge is unaffected:** still set `.env.uat` `SHIPMOZO_INTEGRATION_ENABLED` / `SHIPMOZO_TRACKING_SYNC_ENABLED` to `"true"` (RELEASE_SCRIPTS_CHECKLIST.md 4e); Shipmozo will start working there once the account is active.
+
+### 2026-10-14: Prod Release — UAT → Prod Database Steps (FIX-114)
+* **Summary:** Backend `UAT` (`5d2c605`) merged into `Prod`, backend and Inventory deployed to Prod. Database steps run against `railway` per RELEASE_SCRIPTS_CHECKLIST.md.
+* **Done on Prod:**
+  - `prisma migrate deploy`: 7 migrations — `20260909110000_remove_default_order_courier` (already on the `Prod` branch but never applied to the Prod DB), `20260922090000_fix_promotion_utc_epoch_timestamps`, `20260924110000_normalize_optional_promotion_limits`, `20260927100000_normalize_standalone_coupon_policy`, `20261008090000_optimize_instore_search`, `20261008195500_fix_order_lifecycle_utc_timestamps`, `20261009120000_add_return_request_groupnumber`. First attempt stopped with P3015 because of 3 empty local migration folders (not in git); deleted, then all applied.
+  - `scripts/migrations/20261006_sync_authoritative_product_tax.sql` via `prisma db execute` (no `psql` installed). Previewed first inside a rolled-back transaction. Result: 89 products, 77 with HSN, 88 with GST; 27 `gst_hsn_mapping` rows.
+  - `normalize-fragrance-type-dependencies.ts --target-env=.env.prod --expected-db=railway`: 22 of 33 Fragrance Type rows moved from Subsubcategory (Incense Sticks 13, Wardrobe Fragrance 6, Air Fresheners 3) to Subcategory; Fragrance Oils (11) already correct. Backup `docs/backups/FRAGRANCE_DEPENDENCY_BACKUP_railway_2026-10-14T05-34-16-511Z.json` (local, `Prod` checkout).
+  - `audit-standalone-coupon-policy.ts`: 3 assignments, 0 non-compliant. `retire-stale-cart-rule-versions.ts` dry run: 0 found.
+  - `repair-subcategory-parents.ts` not run: it requires the SIT-only test value `candle&candle`; Prod's 27 subcategories already have the right parent (same as UAT).
+* **Incident:** the backend was deployed before the HSN/GST SQL. `model Product` has `hsn_code` / `gst_rate`, the Prod table did not, so every Prisma product query failed with P2022 *"The column `product.hsn_code` does not exist"* (shop, product list, cart, orders) until the SQL ran. Confirmed with a read-only `product.findFirst()` before and after.
+* **Verification:** `migrate status` / `_prisma_migrations` on Prod lists all 7 as finished; `prisma migrate diff` Prod DB → schema shows no missing table or column except the old `quotes` / `picklist_backup` drift that UAT has too; product query works.
+* **Found on UAT (not changed):** `assetmanagement_uat` has no migration after `20260908170000_add_invoice_seller_address` — no `return_requests.groupnumber`, no `pg_trgm` indexes, `orders.vendor` still defaults to `'EKART'`. UAT backend code needs them. Next step: backup, then `migrate deploy` on UAT.
+* **Checklist changes:** top note "database steps before the backend deploy"; section 3 / 4a / 4b / 4c Prod and UAT status; empty-folder P3015 note; `prisma db execute` alternative to `psql`; missing-column check step in the Prod run order.
+* **Repository Impacted:**
+  - `asset-management-backend` (docs only; database changes on Prod)
+
+### 2026-10-14: Inventory — Shipmozo Hidden in Prod (FIX-115)
+* **Issue:** Prod Inventory (`orders/54`) showed Shipmozo under Create Shipment. The Shipmozo REST API is not active on the account (FIX-113 blocked note), so every Shipmozo call fails.
+* **Fix:** Inventory `Prod` branch, `src/config/integrationFeatures.ts`: new `isProdEnvironment` (`MODE` or `VITE_APP_ENV` = `prod`; `.env.prod` sets `VITE_APP_ENV=prod`, `build:prod` uses `--mode prod`); `shipmozo` is `!isSitEnvironment && !isUatEnvironment && !isProdEnvironment`. Menu, Shipmozo form and vendor checks follow the flag. Ekart and Amazon unchanged.
+* **Compatibility:** Edited on the Inventory `Prod` branch only; `DEV-NEW` still has `shipmozo: true` (FIX-113). Keep the Prod check in the next `UAT` → `Prod` Inventory merge until Shipmozo is active (RELEASE_SCRIPTS_CHECKLIST.md 4e). To show Shipmozo again: remove `!isProdEnvironment`.
+* **Verification:** Inventory `tsc --noEmit` clean. Pending: `npm run deploy:prod`, then `orders/54` shows only Ekart.
+* **Repository Impacted:**
+  - `asset_management_frontend_aromazen` (`Prod` branch)
+
+
+### 2026-10-15: Promotion Minimum Quantity and Type Priority (PLAN-2026-10-15-116)
+* **Request:** Minimum quantity required for the four product promotion types; category / subcategory minimum checked on the added-up quantity; fixed priority order between promotion types; show "Add N more" to the customer.
+* **Before:** Admin simple setup had no minimum quantity field (always 1); engine checked the minimum per product for every type; overlapping product promotions picked the bigger saving; web and mobile hid offers that missed their minimum.
+* **Fix:**
+  - Backend `promotionGroup.ts`: `getProductPromotionRank` (1 Fixed Amount Off Selected Products, 2 Percentage Off Selected Products, 3 Categories, 4 Subcategories); `eligibilityCardCampaigns` evaluates a product card with higher-ranked product promotions present.
+  - Backend `promotion-v2-engine.ts`: selected products checked per product; category / subcategory quantity added up per selected category / subcategory (also for rules saved with the per-product metric); `byProductPriority` drops a lower-ranked product candidate on a unit a higher-ranked one uses, before the best-saving optimiser (Stackable has no effect); `MINIMUM_QUANTITY_NOT_MET` details carry `benefit_type`, `benefit_value`, `scope_facet`, `scope_value`, `scope_name`.
+  - Backend `promotions-v2.service.ts`: category / subcategory display names from the picklist (5-minute cache) passed to calculate, check-eligibility and simulate.
+  - Admin `PromotionRuleBuilderV2.tsx`: required "Minimum quantity" field (default 1) on the simple setup for the four types; `PromotionForm.tsx` message "Minimum quantity must be at least 1."
+  - Ecom `cartPromotions.ts`, `Cart.tsx`, `Checkout.tsx`, new `LockedOfferCard.tsx`: offers that only miss the minimum quantity show as locked with "Add 1 more Incense item to get 25% off"; an offer applied on some items is no longer hidden; "We'll keep whichever saves you more" note hidden for the product / cart types.
+  - Mobile `promotionOfferEligibility.ts`, `usePromotions.ts`, `CartScreen.tsx`, `PaymentStep.tsx`: same locked offers and text in the offers sheet and under "View all offers".
+  - Cart-row hint (added 2026-10-15 after the user's dev test): under each cart item that a locked product / category / subcategory offer covers, "Add 1 more Incense & Rituals item to get 20% off instead of 10%" (product offers: "Add 1 more to get 20% off this item" / "Add 1 more to get ₹100 off"). Same for Automatic and Apply-button offers; the hint goes away once the minimum is met. Hidden when the item already has an applied offer of the same or higher priority. Backend quote adjustments now carry `metadata.group`, `product_rank`, `benefit_percent`, and the rejection details carry `product_rank`. Ecom `cartRowOfferHints` in `Cart.tsx`; mobile `CartItemCard` `offerHint` via `CartReviewStep`.
+  - Automatic offers (dev test, promotion 102 switched to Automatic): the legacy offers API (`/promotions/available-offers`) lists automatic offers only once applied, so a not-yet-qualified automatic offer never reached Cart / Checkout and no locked card or row hint showed. `check-eligibility` now also returns active automatic offers that only miss their minimum quantity (with `details.promotion_name`), accepts an empty `promotion_ids`, and no longer returns early when none of the ids has a V2 rule. Ecom Cart / Checkout and mobile run the check even with no listed offers and build the locked offer from the eligibility result when it is not in the offer list.
+* **Compatibility:** No migration, no release script. Existing promotions keep minimum quantity 1, so category promotions only change when two of them overlap on an item or an admin raises the minimum. TC-P04, TC-P05 and TC-N13 expected results changed as planned.
+* **Verification:** Dev order 186 (NIVAANA-0000000417): ₹860 promotions (102 Incense 20% on Vanilla, 94 10% only on Opulent Living), ₹4,140 paid, line amounts and GST match. Cart-row hint helpers checked on real local API responses (qty 2 → hint, qty 3 → none). Backend `tsc` clean, `npm test` 440/440 (TC-Q01–Q24, Q33–Q35 plus updated PLAN-107 cases). Local backend (dev DB, read-only `preview_only`) `/v2/promotions/calculate` OK with live promotions 95 / 96 / 77; engine on real products 89 / 90: category 1 + 1 meets minimum 2, locked details show "Home & Car Fragrance", per-product minimum, and fixed-product priority over category all as planned. Admin, Ecom, mobile `tsc`: no new errors. Not checked in the browser / app (needs sign-in): admin field, web and mobile locked cards (TC-Q25–Q32, Q36).
+* **Known, older limit:** two cart lines of the same product share per-unit keys, so only one line is discounted; carts merge the same product into one line, so the storefront does not hit it.
+* **Repository Impacted:**
+  - `asset-management-backend` (`DEV-NEW`)
+  - `asset_management_frontend_aromazen` (`DEV-NEW`)
+  - `Nivaana-Ecom-Web` (`DEV-NEW`)
+  - `Vibrant-Life-mobile-app` (`expo_rn_migrations_v2`)
+
+### 2026-10-15: Promotion Form — Picklist Categories / Subcategories, Paged Product Search (FIX-117)
+* **Issue:** `GET /v2/promotions/facets` loaded every non-inactive product (one query, no limit) and built the category / subcategory lists from values stored on products. Subcategories with no products never appeared (dev: 17 of 27; missing Aromatherapy, Traditional Fragrances, Luxury Collection, Dusky Evenings, Wellness Gifts, Reed Diffusers, Cleaning Fragrances, Scented Candles, Dhoop Sticks, Dhoop Cones). Search filtered the loaded list in the browser, and the full product list would grow with the catalogue.
+* **Fix:**
+  - Backend `promotions-v2.service.ts` `getFacets`: CATEGORY / SUBCATEGORY from the product picklist (active entries) with product counts from `groupBy` (0 when empty); a value stored on products but missing from the active picklist is still listed. PRODUCT is no longer returned here.
+  - New `GET /v2/promotions/facets/products?search=&limit=25&offset=0` (name contains, case-insensitive, or exact product id; max 50 per page; returns `total`) and `GET /v2/promotions/facets/products/by-ids?ids=10,89` (names for selected products, any status, max 200 ids). Both admin-only.
+  - Admin `PromotionRuleBuilderV2.tsx` / `promotionService.ts`: product picker loads 25, searches the server 300 ms after typing, "Showing 25 of 80 products" with "Show more"; chips get names by id. Category / subcategory pickers keep the full list (any number of entries) filtered in the browser, and always show the product count (0 for empty ones; products show none). Buy X Get Y gift list uses the same loaded products (not in scope; no search added there).
+* **Compatibility:** Only the admin promotion form reads `/facets` (Ecom and mobile never call it). Option shape `{ id, label, count }` unchanged; only the PRODUCT key moved to the new endpoints, so deploy backend and admin together (an older admin would show an empty product list). All 35 category / subcategory values saved in existing dev promotion rules and every product value match the new option ids exactly. No migration, no release script.
+* **Verification:** Backend `tsc` clean, `npm test` 444/444 (new `tests/promotionFacets.test.ts`: 150 picklist subcategories all listed with 0 counts, unknown product values kept, inactive entries only while used). Admin search logic on dev lists: "incense", "FRAG", "dhoop" (2), "diff" (3), " reed " match; products "davana"/"DAVANA" 2, "diffuser oil" 5, id "89" 1, "nivaana" page 2 = 25 of 61. Fastify inject on dev DB (read-only): `/facets` 6 categories, 27 subcategories; products page 25 of 80, `offset=75` gives 5, search "diffuser" 7, id "89" finds the Diffuser, by-ids (GET) returns names and skips non-numeric ids; no login → 403. Admin `tsc`: no new errors, eslint clean. Checked by the user in the admin form (subcategories with counts, 0 for empty ones).
+* **Repository Impacted:**
+  - `asset-management-backend` (`DEV-NEW`)
+  - `asset_management_frontend_aromazen` (`DEV-NEW`)
+
+### 2026-10-15: Promotion Minimum Quantity — Several Categories / Subcategories Added Up Together (FIX-118)
+* **Issue:** Dev test: promotion 103 "20% OFF Dhoop stick and Haven Cups" (Automatic, subcategories `dhoop_sticks` + `havan_cups`, minimum 2) did not apply to Sandalwood Havan Cups × 1 + Dhoop Sticks × 1; the cart showed "Add 1 more Dhoop Sticks item". PLAN-116 counted each selected category / subcategory on its own (a plan decision, not a BA answer).
+* **Fix:** `promotion-v2-engine.ts`: for category / subcategory promotions the minimum is checked on the total quantity of all cart items in any of the promotion's selected categories / subcategories; once met, every matching item gets the offer. One locked entry per promotion with `scope_values` and `scope_name` ("Dhoop Sticks or Havan Cups"; "eligible" when more than two are selected). Selected products unchanged (each product on its own; with minimum 1 every selected product gets the percentage).
+* **Compatibility:** No migration. Ecom / mobile read only `scope_name`, so the hint text changes without client code. Promotions with one category / subcategory behave as before.
+* **Verification:** `npm test` 447/447 (TC-Q08/Q09 updated, new Havan + Dhoop and selected-products-minimum-1 cases). Local backend (dev DB, preview only): Havan Cups 81 × 1 + Dhoop Sticks 91 × 1 → 103 applies ₹52.80 (₹32.80 + ₹20.00); Dhoop Sticks × 1 alone → locked "Add 1 more Dhoop Sticks or Havan Cups item".
+* **Repository Impacted:**
+  - `asset-management-backend` (`DEV-NEW`)

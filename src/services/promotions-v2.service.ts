@@ -28,6 +28,38 @@ function parseCachedRule(checksum: string, value: Prisma.JsonValue): PromotionRu
   return parsed;
 }
 
+/**
+ * Category / subcategory options for the promotion form (FIX-2026-10-15-117):
+ * every active picklist entry, any number of them, plus values stored on
+ * products but missing from the active picklist. Display names come from the
+ * picklist ("Incense & Rituals"); the id stays the stored product value
+ * ("incense_rituals"), which is what promotion rules save and match on.
+ */
+export function buildFacetOptions(
+  fieldname: 'category' | 'subcategory',
+  picklistItems: Array<{ fieldname: string | null; value: string | null; label: string | null; isactive: boolean | null }>,
+  counts: Array<{ value: string | null; count: number }>,
+): Array<{ id: string; label: string; count: number }> {
+  const options = new Map<string, { id: string; label: string; count: number; active: boolean }>();
+  for (const item of picklistItems) {
+    const id = item.value?.trim();
+    const key = id?.toLowerCase();
+    if (item.fieldname !== fieldname || !id || !key || options.has(key)) continue;
+    options.set(key, { id, label: item.label?.trim() || id, count: 0, active: item.isactive === true });
+  }
+  for (const { value, count } of counts) {
+    const id = value?.trim();
+    if (!id) continue;
+    const option = options.get(id.toLowerCase());
+    if (option) option.count += count;
+    else options.set(id.toLowerCase(), { id, label: id, count, active: true });
+  }
+  return [...options.values()]
+    .filter((option) => option.active || option.count > 0)
+    .map(({ id, label, count }) => ({ id, label, count }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
 export class PromotionsV2Service {
   async getLatestRule(promotionId: number): Promise<{ version: number; status: string; rule: PromotionRuleV2 } | null> {
     const version = await prisma.promotionRuleVersion.findFirst({
@@ -97,50 +129,61 @@ export class PromotionsV2Service {
     if (missing.length) throw new Error(`Gift products unavailable on all channels: ${missing.join(', ')}`);
   }
 
+  /**
+   * Category and subcategory options for the promotion form. The list comes
+   * from the product picklist (every active entry, also ones with no products
+   * yet), with a product count from one grouped query. Values stored on
+   * products but missing from the active picklist are still listed, so
+   * existing promotions keep them. Products are not listed here: the form
+   * pages and searches them with searchProducts (PLAN-2026-10-15-117).
+   */
   async getFacets(): Promise<Record<string, Array<{ id: string; label: string; count: number }>>> {
-    const [products, picklistItems] = await Promise.all([
-      prisma.product.findMany({
-        where: { productstatus: { notIn: ['inactive', 'deleted'] } },
-        select: { id: true, name: true, category: true, subcategory: true },
-      }),
+    const liveProducts = { productstatus: { notIn: ['inactive', 'deleted'] } } satisfies Prisma.ProductWhereInput;
+    const [picklistItems, categoryCounts, subcategoryCounts] = await Promise.all([
       prisma.picklist.findMany({
-        where: { object: 'product', fieldname: { in: ['category', 'subcategory'] }, isactive: true },
-        select: { fieldname: true, value: true, label: true },
+        where: { object: 'product', fieldname: { in: ['category', 'subcategory'] } },
+        select: { fieldname: true, value: true, label: true, isactive: true },
         orderBy: { id: 'asc' },
       }),
+      prisma.product.groupBy({ by: ['category'], where: liveProducts, _count: { _all: true } }),
+      prisma.product.groupBy({ by: ['subcategory'], where: liveProducts, _count: { _all: true } }),
     ]);
-    // Display names come from the picklist ("Incense & Rituals"); the id stays the
-    // stored product value ("incense_rituals"), which is what promotion rules save
-    // and match on. Values without a picklist entry keep the value as the label.
-    const picklistLabels = (fieldname: string): Map<string, string> => {
-      const labels = new Map<string, string>();
-      for (const item of picklistItems) {
-        const key = item.value?.trim().toLowerCase();
-        const label = item.label?.trim();
-        if (item.fieldname === fieldname && key && label && !labels.has(key)) labels.set(key, label);
-      }
-      return labels;
-    };
-    const facet = (
-      selector: (product: typeof products[number]) => string | null,
-      labels: Map<string, string>,
-    ): Array<{ id: string; label: string; count: number }> => {
-      const counts = new Map<string, number>();
-      for (const product of products) {
-        const value = selector(product)?.trim();
-        if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
-      }
-      return [...counts]
-        .map(([value, count]) => ({ id: value, label: labels.get(value.toLowerCase()) ?? value, count }))
-        .sort((a, b) => a.label.localeCompare(b.label));
-    };
     return {
-      PRODUCT: products.map((product) => ({ id: product.id.toString(), label: product.name, count: 1 })),
-      CATEGORY: facet((product) => product.category, picklistLabels('category')),
-      SUBCATEGORY: facet((product) => product.subcategory, picklistLabels('subcategory')),
+      CATEGORY: buildFacetOptions('category', picklistItems, categoryCounts.map((row) => ({ value: row.category, count: row._count._all }))),
+      SUBCATEGORY: buildFacetOptions('subcategory', picklistItems, subcategoryCounts.map((row) => ({ value: row.subcategory, count: row._count._all }))),
       // Future facet responses intentionally disabled:
       // FRAGRANCE, BRAND, COLLECTION, TAG and SUBSUBCATEGORY.
     };
+  }
+
+  /**
+   * One page of products for the promotion form, by name (case-insensitive
+   * "contains") or product id (PLAN-2026-10-15-117).
+   */
+  async searchProducts(input: { search?: string; limit: number; offset: number }): Promise<{ data: Array<{ id: string; label: string; count: number }>; total: number; limit: number; offset: number }> {
+    const search = input.search?.trim() ?? '';
+    const where: Prisma.ProductWhereInput = {
+      productstatus: { notIn: ['inactive', 'deleted'] },
+      ...(search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          ...(/^\d{1,18}$/.test(search) ? [{ id: BigInt(search) }] : []),
+        ],
+      } : {}),
+    };
+    const [rows, total] = await Promise.all([
+      prisma.product.findMany({ where, select: { id: true, name: true }, orderBy: [{ name: 'asc' }, { id: 'asc' }], skip: input.offset, take: input.limit }),
+      prisma.product.count({ where }),
+    ]);
+    return { data: rows.map((row) => ({ id: row.id.toString(), label: row.name, count: 1 })), total, limit: input.limit, offset: input.offset };
+  }
+
+  /** Names of already-selected products (any status), for the form's chips. */
+  async productsByIds(ids: string[]): Promise<Array<{ id: string; label: string; count: number }>> {
+    const numericIds = [...new Set(ids.filter((id) => /^\d{1,18}$/.test(id)))];
+    if (!numericIds.length) return [];
+    const rows = await prisma.product.findMany({ where: { id: { in: numericIds.map(BigInt) } }, select: { id: true, name: true } });
+    return rows.map((row) => ({ id: row.id.toString(), label: row.name, count: 1 }));
   }
 
   async getMatchedProducts(promotionId: number, page = 1, limit = 50): Promise<{ data: unknown[]; total: number; page: number; limit: number }> {
@@ -185,7 +228,35 @@ export class PromotionsV2Service {
     const group = getPromotionGroup({ type: promotion.type, rule });
     const campaigns: PromotionCampaign[] = [{ promotionId, ruleVersion: version?.version ?? 0, name: promotion.name ?? `Promotion ${promotionId}`, rule, appliesToWholeOrder: isWholeOrderPromotionType(promotion.type), ...(group ? { group } : {}) }];
     const catalog = await this.hydrateRewardCatalog(campaigns, hydrated.catalog, parsed.channel);
-    return evaluatePromotionQuote(hydrated.lines, campaigns, catalog, { shippingAmount: parsed.shipping_amount, rewardSelections: parsed.reward_selections });
+    return evaluatePromotionQuote(hydrated.lines, campaigns, catalog, { shippingAmount: parsed.shipping_amount, rewardSelections: parsed.reward_selections, facetLabels: await this.facetLabels() });
+  }
+
+  private facetLabelCache: { at: number; labels: Promise<Partial<Record<'CATEGORY' | 'SUBCATEGORY', Map<string, string>>>> } | undefined;
+
+  /**
+   * Category / subcategory display names ("Incense & Rituals") keyed by the
+   * stored lower-case value, for the locked offer text "Add 1 more Incense &
+   * Rituals item" (PLAN-2026-10-15-116). Cached for 5 minutes.
+   */
+  private facetLabels(): Promise<Partial<Record<'CATEGORY' | 'SUBCATEGORY', Map<string, string>>>> {
+    if (this.facetLabelCache && Date.now() - this.facetLabelCache.at < 5 * 60_000) return this.facetLabelCache.labels;
+    const labels = prisma.picklist.findMany({
+      where: { object: 'product', fieldname: { in: ['category', 'subcategory'] }, isactive: true },
+      select: { fieldname: true, value: true, label: true },
+      orderBy: { id: 'asc' },
+    }).then((items) => {
+      const result = { CATEGORY: new Map<string, string>(), SUBCATEGORY: new Map<string, string>() };
+      for (const item of items) {
+        const map = item.fieldname === 'category' ? result.CATEGORY : result.SUBCATEGORY;
+        const key = item.value?.trim().toLocaleLowerCase('en-IN');
+        const label = item.label?.trim();
+        if (key && label && !map.has(key)) map.set(key, label);
+      }
+      return result;
+    });
+    labels.catch(() => { this.facetLabelCache = undefined; });
+    this.facetLabelCache = { at: Date.now(), labels };
+    return labels;
   }
 
   async eligibility(input: unknown, authenticatedCustomerId?: string): Promise<{
@@ -200,9 +271,6 @@ export class PromotionsV2Service {
       select: { promotionId: true },
     });
     const versionedIds = [...new Set(versionRows.map((row) => row.promotionId))];
-    if (!versionedIds.length) {
-      return { versioned_promotion_ids: [], eligible_promotions: [], ineligible_promotions: [] };
-    }
 
     const request = PromotionQuoteRequestSchema.parse({
       schema_version: parsed.schema_version,
@@ -215,6 +283,7 @@ export class PromotionsV2Service {
     const hydrated = await this.hydrateCart(request);
     const active = await this.activeCampaigns(request, hydrated.lines);
     const catalog = await this.hydrateRewardCatalog(active.campaigns, hydrated.catalog, request.channel);
+    const facetLabels = await this.facetLabels();
     const eligibleById = new Map<number, { promotion_id: number; name: string; saving: number }>();
     const rejectionById = new Map(active.rejections.map((rejection) => [rejection.promotion_id, rejection]));
 
@@ -226,6 +295,7 @@ export class PromotionsV2Service {
     for (const campaign of active.campaigns) {
       const candidateQuote = evaluatePromotionQuote(hydrated.lines, eligibilityCardCampaigns(campaign, active.campaigns), catalog, {
         shippingAmount: request.shipping_amount,
+        facetLabels,
       });
       const offer = candidateQuote.applied_promotions.find((item) => item.promotion_id === campaign.promotionId);
       if (offer) {
@@ -248,6 +318,22 @@ export class PromotionsV2Service {
       .filter((promotionId) => !eligibleById.has(promotionId))
       .map((promotionId) => rejectionById.get(promotionId)
         ?? { promotion_id: promotionId, reason_code: 'NO_ELIGIBLE_PRODUCTS' as const });
+    // Automatic offers are not in the storefront's offer list until they
+    // apply, so the client cannot ask for them. Return the ones that only miss
+    // their minimum quantity, with their name, for the locked card and the
+    // cart-row hint (PLAN-2026-10-15-116).
+    const requested = new Set(versionedIds);
+    for (const campaign of active.campaigns) {
+      if (requested.has(campaign.promotionId) || eligibleById.has(campaign.promotionId)) continue;
+      const rejection = rejectionById.get(campaign.promotionId);
+      if (rejection?.reason_code !== 'MINIMUM_QUANTITY_NOT_MET') continue;
+      ineligible.push(rejection);
+    }
+    const names = new Map(active.campaigns.map((campaign) => [campaign.promotionId, campaign.name]));
+    for (const [index, rejection] of ineligible.entries()) {
+      if (rejection.reason_code !== 'MINIMUM_QUANTITY_NOT_MET' || !names.has(rejection.promotion_id)) continue;
+      ineligible[index] = { ...rejection, details: { ...rejection.details, promotion_name: names.get(rejection.promotion_id) } };
+    }
 
     return {
       versioned_promotion_ids: versionedIds,
@@ -285,7 +371,7 @@ export class PromotionsV2Service {
     const hydrated = await this.hydrateCart(request);
     const active = await this.activeCampaigns(request, hydrated.lines);
     const catalog = await this.hydrateRewardCatalog(active.campaigns, hydrated.catalog, request.channel);
-    const quote = evaluatePromotionQuote(hydrated.lines, active.campaigns, catalog, { shippingAmount: request.shipping_amount, rewardSelections: request.reward_selections });
+    const quote = evaluatePromotionQuote(hydrated.lines, active.campaigns, catalog, { shippingAmount: request.shipping_amount, rewardSelections: request.reward_selections, facetLabels: await this.facetLabels() });
     quote.rejected_candidates.push(...active.rejections.filter((rejection) => !quote.rejected_candidates.some((item) => item.promotion_id === rejection.promotion_id)));
     // Guest previews are informational and are always recalculated after
     // authentication. Do not persist them as checkout-ready evaluations.
