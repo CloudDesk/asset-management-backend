@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { PromotionBenefit, PromotionRuleV2 } from '../schemas/promotions-v2.schema.js';
-import type { PromotionGroup } from '../utils/promotionGroup.js';
+import { getProductPromotionRank, type PromotionGroup } from '../utils/promotionGroup.js';
 
 export type PromotionChannel = 'web' | 'mobile' | 'nivapp' | 'amazon' | 'flipkart' | 'instore';
 
@@ -38,7 +38,9 @@ export interface PromotionCampaign {
   appliesToWholeOrder?: boolean;
   /**
    * Calculation group (PLAN-2026-10-12-107, see getPromotionGroup). PRODUCT
-   * promotions are worked out first with a per-item minimum quantity; the
+   * promotions are worked out first (minimum quantity per product for
+   * selected products, added up per category / subcategory otherwise, and
+   * getProductPromotionRank on overlap, PLAN-2026-10-15-116); the
    * CART_PERCENT promotion then applies only to items without one, and
    * CART_FIXED to the full cart. Cart promotions never block product
    * promotions or each other. Omitted keeps the earlier behaviour.
@@ -111,6 +113,8 @@ interface EvaluationOptions {
   rewardSelections?: Record<string, string> | undefined;
   now?: Date;
   ttlSeconds?: number;
+  /** Display names of category / subcategory values, for "Add 1 more Incense item". */
+  facetLabels?: Partial<Record<'CATEGORY' | 'SUBCATEGORY', Map<string, string>>>;
 }
 
 const normalise = (value: string): string => value.trim().toLocaleLowerCase('en-IN');
@@ -155,6 +159,19 @@ function hasPerItemMinimumQuantity(campaign: PromotionCampaign): boolean {
   return campaign.group === 'PRODUCT' &&
     !campaign.rule.tiers.length &&
     (campaign.rule.qualifier.metric === 'ELIGIBLE_QUANTITY' || campaign.rule.qualifier.metric === 'PER_PRODUCT_QUANTITY');
+}
+
+/**
+ * CATEGORY / SUBCATEGORY when a product promotion's minimum quantity is added
+ * up per category / subcategory (PLAN-2026-10-15-116). Undefined for selected
+ * products, which are checked per product.
+ */
+function summedQuantityFacet(rule: PromotionRuleV2): 'CATEGORY' | 'SUBCATEGORY' | undefined {
+  const facets = new Set(rule.qualifier.scope.include.map((group) => group.facet));
+  if (facets.has('PRODUCT')) return undefined;
+  if (facets.has('CATEGORY')) return 'CATEGORY';
+  if (facets.has('SUBCATEGORY')) return 'SUBCATEGORY';
+  return undefined;
 }
 
 function matchingBenefit(rule: PromotionRuleV2, metric: number): { benefit?: PromotionBenefit | undefined; minimum: number; next?: number | undefined } {
@@ -386,6 +403,27 @@ function betterSet(left: Candidate[], right: Candidate[]): Candidate[] {
   return signature(left).localeCompare(signature(right)) <= 0 ? left : right;
 }
 
+/**
+ * Promotion priority (PLAN-2026-10-15-116): on an item matched by several
+ * product promotions, only the highest-priority type may apply (see
+ * getProductPromotionRank), whatever the saving or the Stackable switch.
+ * Runs before optimise, which then picks the bigger saving between promotions
+ * of the same type.
+ */
+function byProductPriority(candidates: Candidate[]): Candidate[] {
+  const bestRankByUnit = new Map<string, number>();
+  const rankOf = (candidate: Candidate) => getProductPromotionRank(candidate.campaign);
+  for (const candidate of candidates) {
+    const rank = rankOf(candidate);
+    if (rank === undefined) continue;
+    for (const unit of candidate.consumedUnits) bestRankByUnit.set(unit, Math.min(rank, bestRankByUnit.get(unit) ?? Infinity));
+  }
+  return candidates.filter((candidate) => {
+    const rank = rankOf(candidate);
+    return rank === undefined || [...candidate.consumedUnits].every((unit) => (bestRankByUnit.get(unit) ?? rank) >= rank);
+  });
+}
+
 function optimise(candidates: Candidate[]): Candidate[] {
   const ordered = [...candidates].sort((a, b) => a.campaign.promotionId - b.campaign.promotionId);
   if (ordered.length > 22) {
@@ -524,23 +562,58 @@ export function evaluatePromotionQuote(
     const eligible = scopeLines.filter((line) => isLineInPromotionScope(line, campaign.rule));
     if (!eligible.length) { rejected.push({ promotion_id: campaign.promotionId, reason_code: 'NO_ELIGIBLE_PRODUCTS' }); return; }
     let buckets = qualificationBuckets(campaign.rule, eligible);
-    if (hasPerItemMinimumQuantity(campaign)) {
-      // A product promotion's minimum quantity is met by each item on its
-      // own; other items' quantities do not count. The qualifying items then
-      // share one promotion (one fixed amount, one maximum discount).
+    const minimumCheckedAbove = hasPerItemMinimumQuantity(campaign);
+    if (minimumCheckedAbove) {
+      // Minimum quantity (PLAN-2026-10-15-116): selected products are checked
+      // on each product's own quantity; category / subcategory promotions add
+      // up the quantity of all cart items in that category / subcategory. The
+      // qualifying items then share one promotion (one fixed amount, one
+      // maximum discount).
       const required = thresholdFor(campaign.rule);
-      const quantities = new Map<string, number>();
-      for (const line of eligible) quantities.set(line.id, (quantities.get(line.id) ?? 0) + line.quantity);
-      for (const [productId, quantity] of [...quantities].sort(([a], [b]) => a.localeCompare(b))) {
-        if (quantity >= required) continue;
-        progress.push({ promotion_id: campaign.promotionId, current: quantity, next_minimum: required, remaining: required - quantity, metric: campaign.rule.qualifier.metric });
-        rejected.push({ promotion_id: campaign.promotionId, reason_code: 'MINIMUM_QUANTITY_NOT_MET', details: { current: quantity, required, remaining: required - quantity, product_ids: [productId] } });
+      const benefit = campaign.rule.benefit!;
+      const missed = (current: number, productIds: string[], scope?: { facet: 'CATEGORY' | 'SUBCATEGORY'; value: string }) => {
+        progress.push({ promotion_id: campaign.promotionId, current, next_minimum: required, remaining: required - current, metric: campaign.rule.qualifier.metric });
+        rejected.push({
+          promotion_id: campaign.promotionId,
+          reason_code: 'MINIMUM_QUANTITY_NOT_MET',
+          details: {
+            current, required, remaining: required - current, product_ids: productIds,
+            // For the storefront text "Add 1 more Incense item to get 25% off".
+            benefit_type: benefit.type, benefit_value: benefit.value,
+            // Cart-row hint: shown only when it beats the item's current offer.
+            product_rank: getProductPromotionRank(campaign),
+            ...(scope ? { scope_facet: scope.facet, scope_value: scope.value, scope_name: options.facetLabels?.[scope.facet]?.get(normalise(scope.value)) ?? scope.value } : {}),
+          },
+        });
+      };
+      const summedFacet = summedQuantityFacet(campaign.rule);
+      const qualifyingIds = new Set<string>();
+      if (summedFacet) {
+        const values = [...new Set(campaign.rule.qualifier.scope.include.filter((group) => group.facet === summedFacet).flatMap((group) => group.values))].sort();
+        for (const value of values) {
+          const matching = eligible.filter((line) => lineHasFacet(line, summedFacet, [value]));
+          if (!matching.length) continue;
+          const quantity = matching.reduce((sum, line) => sum + line.quantity, 0);
+          if (quantity >= required) matching.forEach((line) => qualifyingIds.add(lineBalanceKey(line)));
+          else missed(quantity, [...new Set(matching.map((line) => line.id))].sort(), { facet: summedFacet, value });
+        }
+      } else {
+        const quantities = new Map<string, number>();
+        for (const line of eligible) quantities.set(line.id, (quantities.get(line.id) ?? 0) + line.quantity);
+        for (const [productId, quantity] of [...quantities].sort(([a], [b]) => a.localeCompare(b))) {
+          if (quantity >= required) eligible.filter((line) => line.id === productId).forEach((line) => qualifyingIds.add(lineBalanceKey(line)));
+          else missed(quantity, [productId]);
+        }
       }
-      const qualifying = eligible.filter((line) => (quantities.get(line.id) ?? 0) >= required);
+      const qualifying = eligible.filter((line) => qualifyingIds.has(lineBalanceKey(line)));
       buckets = qualifying.length ? [qualifying] : [];
     }
     for (const bucket of buckets) {
-      const metric = metricValue(campaign.rule, bucket, lines, shippingAmount);
+      // The minimum quantity was already checked above (per product or added
+      // up per category); a saved PER_PRODUCT_QUANTITY metric must not check
+      // it again on the largest single line.
+      const measured = metricValue(campaign.rule, bucket, lines, shippingAmount);
+      const metric = minimumCheckedAbove ? Math.max(measured, thresholdFor(campaign.rule)) : measured;
       const match = matchingBenefit(campaign.rule, metric);
       if (match.next !== undefined) progress.push({ promotion_id: campaign.promotionId, current: metric, next_minimum: match.next, remaining: match.next - metric, metric: campaign.rule.qualifier.metric });
       if (!match.benefit) {
@@ -579,7 +652,7 @@ export function evaluatePromotionQuote(
   // 1. Product, shipping and other promotions (and the fixed cart amount,
   //    which is worked out on the full cart).
   for (const campaign of ordered) if (campaign.group !== 'CART_PERCENT') collect(campaign, lines);
-  const nominalSelected = optimise(candidates.filter((candidate) => !isCartGroup(candidate.campaign)));
+  const nominalSelected = optimise(byProductPriority(candidates.filter((candidate) => !isCartGroup(candidate.campaign))));
   // 2. The percent cart promotion applies only to items that did not get a
   //    product promotion in step 1.
   const productLineKeys = new Set(nominalSelected
@@ -614,7 +687,24 @@ export function evaluatePromotionQuote(
       rejected.push({ promotion_id: candidate.campaign.promotionId, reason_code: 'CONFLICTED_WITH_BETTER_OFFER' });
     }
   }
-  const adjustments = selected.flatMap((candidate) => candidate.adjustments);
+  // group / product_rank let the storefront tell which offer an item has now
+  // (cart-row hint "Add 1 more ... to get 20% off instead of 10%",
+  // PLAN-2026-10-15-116).
+  const adjustments = selected.flatMap((candidate) => {
+    const rank = getProductPromotionRank(candidate.campaign);
+    const group = candidate.campaign.group;
+    if (!group) return candidate.adjustments;
+    const benefit = candidate.campaign.rule.benefit;
+    const percent = benefit?.type === 'PERCENT_OFF' ? benefit.value : undefined;
+    return candidate.adjustments.map((adjustment) => ({
+      ...adjustment,
+      metadata: {
+        ...adjustment.metadata, group,
+        ...(rank !== undefined ? { product_rank: rank } : {}),
+        ...(percent !== undefined ? { benefit_percent: percent } : {}),
+      },
+    }));
+  });
   const merchandise = lines.filter((line) => !line.isGift).reduce((sum, line) => sum + line.unitPricePaise * line.quantity, 0);
   const autoAddedGiftValue = adjustments.filter((adjustment) => adjustment.type === 'FREE_ITEM' && adjustment.metadata.fulfilment === 'AUTO_ADD')
     .reduce((sum, adjustment) => sum + adjustment.list_amount, 0);

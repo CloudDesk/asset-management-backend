@@ -185,7 +185,35 @@ export class PromotionsV2Service {
     const group = getPromotionGroup({ type: promotion.type, rule });
     const campaigns: PromotionCampaign[] = [{ promotionId, ruleVersion: version?.version ?? 0, name: promotion.name ?? `Promotion ${promotionId}`, rule, appliesToWholeOrder: isWholeOrderPromotionType(promotion.type), ...(group ? { group } : {}) }];
     const catalog = await this.hydrateRewardCatalog(campaigns, hydrated.catalog, parsed.channel);
-    return evaluatePromotionQuote(hydrated.lines, campaigns, catalog, { shippingAmount: parsed.shipping_amount, rewardSelections: parsed.reward_selections });
+    return evaluatePromotionQuote(hydrated.lines, campaigns, catalog, { shippingAmount: parsed.shipping_amount, rewardSelections: parsed.reward_selections, facetLabels: await this.facetLabels() });
+  }
+
+  private facetLabelCache: { at: number; labels: Promise<Partial<Record<'CATEGORY' | 'SUBCATEGORY', Map<string, string>>>> } | undefined;
+
+  /**
+   * Category / subcategory display names ("Incense & Rituals") keyed by the
+   * stored lower-case value, for the locked offer text "Add 1 more Incense &
+   * Rituals item" (PLAN-2026-10-15-116). Cached for 5 minutes.
+   */
+  private facetLabels(): Promise<Partial<Record<'CATEGORY' | 'SUBCATEGORY', Map<string, string>>>> {
+    if (this.facetLabelCache && Date.now() - this.facetLabelCache.at < 5 * 60_000) return this.facetLabelCache.labels;
+    const labels = prisma.picklist.findMany({
+      where: { object: 'product', fieldname: { in: ['category', 'subcategory'] }, isactive: true },
+      select: { fieldname: true, value: true, label: true },
+      orderBy: { id: 'asc' },
+    }).then((items) => {
+      const result = { CATEGORY: new Map<string, string>(), SUBCATEGORY: new Map<string, string>() };
+      for (const item of items) {
+        const map = item.fieldname === 'category' ? result.CATEGORY : result.SUBCATEGORY;
+        const key = item.value?.trim().toLocaleLowerCase('en-IN');
+        const label = item.label?.trim();
+        if (key && label && !map.has(key)) map.set(key, label);
+      }
+      return result;
+    });
+    labels.catch(() => { this.facetLabelCache = undefined; });
+    this.facetLabelCache = { at: Date.now(), labels };
+    return labels;
   }
 
   async eligibility(input: unknown, authenticatedCustomerId?: string): Promise<{
@@ -200,9 +228,6 @@ export class PromotionsV2Service {
       select: { promotionId: true },
     });
     const versionedIds = [...new Set(versionRows.map((row) => row.promotionId))];
-    if (!versionedIds.length) {
-      return { versioned_promotion_ids: [], eligible_promotions: [], ineligible_promotions: [] };
-    }
 
     const request = PromotionQuoteRequestSchema.parse({
       schema_version: parsed.schema_version,
@@ -215,6 +240,7 @@ export class PromotionsV2Service {
     const hydrated = await this.hydrateCart(request);
     const active = await this.activeCampaigns(request, hydrated.lines);
     const catalog = await this.hydrateRewardCatalog(active.campaigns, hydrated.catalog, request.channel);
+    const facetLabels = await this.facetLabels();
     const eligibleById = new Map<number, { promotion_id: number; name: string; saving: number }>();
     const rejectionById = new Map(active.rejections.map((rejection) => [rejection.promotion_id, rejection]));
 
@@ -226,6 +252,7 @@ export class PromotionsV2Service {
     for (const campaign of active.campaigns) {
       const candidateQuote = evaluatePromotionQuote(hydrated.lines, eligibilityCardCampaigns(campaign, active.campaigns), catalog, {
         shippingAmount: request.shipping_amount,
+        facetLabels,
       });
       const offer = candidateQuote.applied_promotions.find((item) => item.promotion_id === campaign.promotionId);
       if (offer) {
@@ -248,6 +275,22 @@ export class PromotionsV2Service {
       .filter((promotionId) => !eligibleById.has(promotionId))
       .map((promotionId) => rejectionById.get(promotionId)
         ?? { promotion_id: promotionId, reason_code: 'NO_ELIGIBLE_PRODUCTS' as const });
+    // Automatic offers are not in the storefront's offer list until they
+    // apply, so the client cannot ask for them. Return the ones that only miss
+    // their minimum quantity, with their name, for the locked card and the
+    // cart-row hint (PLAN-2026-10-15-116).
+    const requested = new Set(versionedIds);
+    for (const campaign of active.campaigns) {
+      if (requested.has(campaign.promotionId) || eligibleById.has(campaign.promotionId)) continue;
+      const rejection = rejectionById.get(campaign.promotionId);
+      if (rejection?.reason_code !== 'MINIMUM_QUANTITY_NOT_MET') continue;
+      ineligible.push(rejection);
+    }
+    const names = new Map(active.campaigns.map((campaign) => [campaign.promotionId, campaign.name]));
+    for (const [index, rejection] of ineligible.entries()) {
+      if (rejection.reason_code !== 'MINIMUM_QUANTITY_NOT_MET' || !names.has(rejection.promotion_id)) continue;
+      ineligible[index] = { ...rejection, details: { ...rejection.details, promotion_name: names.get(rejection.promotion_id) } };
+    }
 
     return {
       versioned_promotion_ids: versionedIds,
@@ -285,7 +328,7 @@ export class PromotionsV2Service {
     const hydrated = await this.hydrateCart(request);
     const active = await this.activeCampaigns(request, hydrated.lines);
     const catalog = await this.hydrateRewardCatalog(active.campaigns, hydrated.catalog, request.channel);
-    const quote = evaluatePromotionQuote(hydrated.lines, active.campaigns, catalog, { shippingAmount: request.shipping_amount, rewardSelections: request.reward_selections });
+    const quote = evaluatePromotionQuote(hydrated.lines, active.campaigns, catalog, { shippingAmount: request.shipping_amount, rewardSelections: request.reward_selections, facetLabels: await this.facetLabels() });
     quote.rejected_candidates.push(...active.rejections.filter((rejection) => !quote.rejected_candidates.some((item) => item.promotion_id === rejection.promotion_id)));
     // Guest previews are informational and are always recalculated after
     // authentication. Do not persist them as checkout-ready evaluations.
