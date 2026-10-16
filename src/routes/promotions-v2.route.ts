@@ -17,6 +17,8 @@ export async function promotionsV2Routes(fastify: FastifyInstance): Promise<void
   fastify.post('/:promotionId/simulate', controller.simulate);
   fastify.post('/:promotionId/publish', controller.publish);
   fastify.get('/facets', controller.facets);
+  fastify.get('/facets/products', controller.searchProducts);
+  fastify.get('/facets/products/by-ids', controller.productsByIds);
   fastify.get('/analytics', controller.analytics);
   fastify.get('/:promotionId/matched-products', controller.matchedProducts);
 }

@@ -37,3 +37,12 @@ export function asShipmozoWorkflowData(value: unknown): Record<string, any> {
     ? value as Record<string, any>
     : {};
 }
+
+/**
+ * Key a cancelled operation is moved to, freeing the order's key for a new
+ * shipment. Kept within the 200-character column.
+ */
+export function retiredShipmozoIdempotencyKey(key: string, timestamp: number): string {
+  const suffix = `:cancelled:${timestamp}`;
+  return `${key.slice(0, 200 - suffix.length)}${suffix}`;
+}

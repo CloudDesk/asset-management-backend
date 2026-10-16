@@ -6,6 +6,11 @@ import { canApplyShipmozoStatus, normalizeShipmozoTracking } from '../utils/ship
 import { buildShipmozoPublicTrackingUrl, shipmozoService } from './shipmozo.service.js';
 import { customerEmailNotificationService } from './customer-email-notification.service.js';
 import { ReturnRequestService } from './return-request.service.js';
+import {
+  cancellationForSameAwb,
+  isShipmentCancellationConfirmed,
+  withShipmentHistory
+} from '../utils/shipmentCancellation.js';
 
 const TERMINAL_STATUSES = new Set(['delivered', 'rto_delivered', 'cancelled', 'returned']);
 function parseHistory(value: unknown): any[] {
@@ -109,9 +114,7 @@ export class ShipmozoTrackingSyncService {
       const existingMetadata = order.barcodes && typeof order.barcodes === 'object' && !Array.isArray(order.barcodes)
         ? order.barcodes as Record<string, any>
         : {};
-      const existingCancellation = existingMetadata.cancellation && typeof existingMetadata.cancellation === 'object'
-        ? existingMetadata.cancellation as Record<string, any>
-        : {};
+      const existingCancellation = cancellationForSameAwb(existingMetadata, order.tracking_id || '');
 
       await tx.orders.update({
         where: { id: order.id },
@@ -128,7 +131,16 @@ export class ShipmozoTrackingSyncService {
             label_downloaded_at: null,
             label_printed_at: null,
             barcodes: {
-              ...existingMetadata,
+              ...(isShipmentCancellationConfirmed(existingMetadata, order.tracking_id || '')
+                ? existingMetadata
+                : withShipmentHistory(existingMetadata, {
+                    provider: 'SHIPMOZO',
+                    tracking_id: order.tracking_id || '',
+                    status: 'confirmed',
+                    reason: order.orderstatus === 'cancelled' ? 'order_cancelled' : 'courier_reported',
+                    confirmation_source: 'tracking',
+                    confirmed_at: timestamp
+                  })),
               cancellation: {
                 ...existingCancellation,
                 provider: 'SHIPMOZO',

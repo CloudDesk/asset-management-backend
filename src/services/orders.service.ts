@@ -33,6 +33,12 @@ import {
   buildOrderCostBreakdown,
   type OrderCostBreakdown,
 } from '../utils/order-cost-breakdown.js';
+import {
+  cancellationForSameAwb,
+  carryShipmentHistory,
+  isShipmentCancellationConfirmed,
+  withShipmentHistory,
+} from '../utils/shipmentCancellation.js';
 
 export class OrdersService {
   private walletRedemptionService = new WalletRedemptionService();
@@ -161,15 +167,28 @@ export class OrdersService {
     const metadata = order.barcodes && typeof order.barcodes === 'object' && !Array.isArray(order.barcodes)
       ? order.barcodes as Record<string, any>
       : {};
-    const existingCancellation = metadata.cancellation && typeof metadata.cancellation === 'object'
-      ? metadata.cancellation as Record<string, any>
-      : {};
-    if (existingCancellation.status === 'confirmed') return order;
+    // Only an earlier attempt for this same AWB counts: after a shipment-only
+    // cancel and re-ship, the stored cancellation belongs to the old AWB.
+    const existingCancellation = cancellationForSameAwb(metadata, trackingId);
+    if (isShipmentCancellationConfirmed(metadata, trackingId)) return order;
 
     const requestedAt = Date.now();
     const persistCancellation = async (cancellation: Record<string, unknown>) => {
+      const finished = cancellation.status === 'confirmed' || cancellation.status === 'failed';
+      const base = finished
+        ? withShipmentHistory(metadata, {
+            provider,
+            tracking_id: trackingId,
+            status: cancellation.status as 'confirmed' | 'failed',
+            reason: 'order_cancelled',
+            requested_at: requestedAt,
+            ...(cancellation.confirmed_at ? { confirmed_at: cancellation.confirmed_at as number } : {}),
+            ...(cancellation.failed_at ? { failed_at: cancellation.failed_at as number } : {}),
+            ...(cancellation.error ? { error: String(cancellation.error) } : {})
+          })
+        : metadata;
       await dynamicUpdate('orders', { id: order.id }, {
-        barcodes: { ...metadata, cancellation },
+        barcodes: { ...base, cancellation },
         modifieddate: Date.now()
       });
     };
@@ -2343,7 +2362,7 @@ export class OrdersService {
       if (isSwitchingFromEkart) {
         // Reset EKART-specific fields
         updateData.label_url = null; // Reset EKART label URL
-        updateData.barcodes = null; // Reset EKART barcodes
+        updateData.barcodes = carryShipmentHistory(order.barcodes, null); // Reset EKART barcodes, keep cancelled AWB history
         updateData.shipment_tracking_status = null; // Reset EKART tracking status
         logger.info(
           { orderId: order.id },

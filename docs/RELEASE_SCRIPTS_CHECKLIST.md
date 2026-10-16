@@ -1,8 +1,10 @@
 # Release Scripts & Migrations Checklist
 
-**Last updated:** 2026-10-12 · **Owner:** Suresh
+**Last updated:** 2026-10-14 · **Owner:** Suresh
 
 One place for every database migration and one-time script that must run when code moves between environments. A branch merge is **not complete** until every row below that applies to the target environment is ticked for that environment.
+
+> **Run database steps BEFORE deploying the backend.** The new backend reads the new columns as soon as it starts. Prod 2026-10-14: the backend was deployed before `20261006_sync_authoritative_product_tax.sql` ran, so `product.hsn_code` / `gst_rate` were missing and every Prisma product query failed (P2022) until the script ran (FIX-2026-10-14-114).
 
 Related: [SIT_UAT_PROD_DEPLOYMENT_RUNBOOK.md](SIT_UAT_PROD_DEPLOYMENT_RUNBOOK.md) (deploy order, backups, Cloud Build), [Fix_After_Sep30/Master.md](Fix_After_Sep30/Master.md) (fix log).
 
@@ -46,19 +48,21 @@ DATABASE_URL="$TARGET_DB_URL" npx prisma migrate status
 - Prod: the runbook says the live service's `DATABASE_URL` is the source of truth, not the local file. Verify before applying.
 - Never paste or log the connection string.
 
-## 3. Branch state (2026-10-12)
+## 3. Branch state (2026-10-14)
 
 | From → to | Prisma migrations missing in target | Script files missing in target |
 | --- | --- | --- |
 | `DEV-NEW` → `SIT` | none | none pushed yet; local `DEV-NEW` adds `scripts/retire-stale-cart-rule-versions.ts` (PLAN-107, not pushed) |
 | `SIT` → `UAT` | none | none |
-| `UAT` → `Prod` | 6: `20260922090000_fix_promotion_utc_epoch_timestamps`, `20260924110000_normalize_optional_promotion_limits`, `20260927100000_normalize_standalone_coupon_policy`, `20261008090000_optimize_instore_search`, `20261008195500_fix_order_lifecycle_utc_timestamps`, `20261009120000_add_return_request_groupnumber` | 11, incl. `scripts/migrations/20261006_sync_authoritative_product_tax.sql`, `normalize-fragrance-type-dependencies.ts`, `repair-subcategory-parents.ts`, `audit-standalone-coupon-policy.ts`, `recount-platform-stock.ts`, picklist sync / restore |
+| `UAT` → `Prod` | none: merged and released 2026-10-14 (`Prod` = `5d2c605`) | none |
+
+**Database state (checked 2026-10-14 from `_prisma_migrations`):** Prod has every migration up to `20261009120000`. **UAT has none after `20260908170000_add_invoice_seller_address`**: the 7 migrations in section 4a are not applied on `assetmanagement_uat` (no `return_requests.groupnumber`, no `pg_trgm`, `orders.vendor` still defaults to `'EKART'`), although the `UAT` backend code needs them. Run `migrate deploy` on UAT (section 5).
 
 Drift to fix:
 
 - `scripts/migrations/20261006_sync_authoritative_product_tax.sql` exists **only on `UAT`**, not on `DEV-NEW` / `SIT`. Bring it back to `DEV-NEW` so a later `SIT` → `UAT` merge cannot drop it.
 - The dev/SIT database has 4 migrations from `Flipkart-Integration` (`20260803000000_restore_product_remarks_and_name_limits`, `20260826090000_add_flipkart_integration_foundation`, `20260826130000_add_flipkart_order_operations`, `20260826170000_add_flipkart_order_stock_reservations`) that no release branch has. `prisma migrate status` on dev/SIT reports them as "not found locally". UAT / Prod need them only when that branch is released.
-- 3 empty, untracked folders on this machine (`20260731000000_expand_product_remarks`, `20260924090000_make_promotion_budgets_unlimited`, `20260924100000_make_campaign_redemptions_unlimited`) show as "not yet applied" in `migrate status`. They are not in git; ignore or delete locally.
+- 3 empty, untracked folders on this machine (`20260731000000_expand_product_remarks`, `20260924090000_make_promotion_budgets_unlimited`, `20260924100000_make_campaign_redemptions_unlimited`) were **deleted 2026-10-14**: `migrate deploy` refuses to run while any migration folder has no `migration.sql` (P3015). If they reappear in another checkout, delete them before `migrate deploy`.
 
 ## 4. Tracker
 
@@ -68,22 +72,23 @@ Apply with `DATABASE_URL="$TARGET_DB_URL" npx prisma migrate deploy` after a bac
 
 | Migration | Changes data? | Dev / SIT DB | UAT DB | Prod DB |
 | --- | --- | --- | --- | --- |
-| All migrations up to `20260904090000_add_promotions_v2_engine` | mixed | ✅ | ❓ verify with `migrate status` | ❓ verify |
-| `20260922090000_fix_promotion_utc_epoch_timestamps` | yes (promotion dates −5:30) | ✅ | ❓ | ⬜ |
-| `20260924110000_normalize_optional_promotion_limits` | yes (0 limits → NULL) | ✅ | ❓ | ⬜ |
-| `20260927100000_normalize_standalone_coupon_policy` | yes (wallet coupon channel / stacking) | ✅ | ❓ | ⬜ |
-| `20261008090000_optimize_instore_search` | no (pg_trgm + indexes) | ✅ | ❓ | ⬜ |
-| `20261008195500_fix_order_lifecycle_utc_timestamps` | yes (triggers + one-time order date fix) | ✅ | ❓ | ⬜ |
-| `20261009120000_add_return_request_groupnumber` | no (new column + index) | ✅ | ❓ | ⬜ |
+| All migrations up to `20260908170000_add_invoice_seller_address` | mixed | ✅ | ✅ 2026-09-08 | ✅ 2026-09-08 |
+| `20260909110000_remove_default_order_courier` | yes (drops `orders.vendor` default `'EKART'`; clears `EKART` on orders with no shipment data) | ✅ | ⬜ | ✅ 2026-10-14 |
+| `20260922090000_fix_promotion_utc_epoch_timestamps` | yes (promotion dates −5:30) | ✅ | ⬜ | ✅ 2026-10-14 |
+| `20260924110000_normalize_optional_promotion_limits` | yes (0 limits → NULL) | ✅ | ⬜ | ✅ 2026-10-14 |
+| `20260927100000_normalize_standalone_coupon_policy` | yes (wallet coupon channel / stacking) | ✅ | ⬜ | ✅ 2026-10-14 |
+| `20261008090000_optimize_instore_search` | no (pg_trgm + indexes) | ✅ | ⬜ | ✅ 2026-10-14 |
+| `20261008195500_fix_order_lifecycle_utc_timestamps` | yes (triggers + one-time order date fix) | ✅ | ⬜ | ✅ 2026-10-14 |
+| `20261009120000_add_return_request_groupnumber` | no (new column + index) | ✅ | ⬜ | ✅ 2026-10-14 |
 | Flipkart-Integration (4, section 3) | yes | ✅ | ➖ until branch released | ➖ until branch released |
 
 ### 4b. SQL scripts (`scripts/migrations`)
 
-Run with `psql` (or the Railway console) inside the file's own transaction. Validate counts after each environment (runbook section 6).
+Run with `psql` (or the Railway console) inside the file's own transaction. Without `psql`: `DATABASE_URL="$TARGET_DB_URL" npx prisma db execute --file scripts/migrations/<file>.sql --schema prisma/schema.prisma` (prints only "Script executed successfully"; run the count query separately). Validate counts after each environment (runbook section 6). **Run before the backend deploy.**
 
 | Script | Purpose | Dev / SIT DB | UAT DB | Prod DB |
 | --- | --- | --- | --- | --- |
-| `20261006_sync_authoritative_product_tax.sql` | Product / mapping HSN and GST from the approved table. Expected: 77 products both set, 11 decor blank HSN + 18%, 1 peaceful_nights both blank (89 products) | ❓ | ❓ | ⬜ |
+| `20261006_sync_authoritative_product_tax.sql` | Product / mapping HSN and GST from the approved table. Expected: 77 products both set, 11 decor blank HSN + 18%, 1 peaceful_nights both blank (89 products). Creates `product.hsn_code` / `gst_rate` if missing: **the backend fails on every product query without them** | ❓ | ✅ columns present (90 products: 78 HSN, 89 GST on 2026-10-14) | ✅ 2026-10-14 (89 products: 77 HSN, 88 GST; ran after the backend deploy, see top note) |
 | `20260930_add_product_hsn_gst_backfill.sql` | Earlier HSN/GST backfill that enforces NOT NULL. The runbook names `20261006` as the source; treat this as superseded and do not run after `20261006` (confirm with the team) | ❓ | ➖ | ➖ |
 
 ### 4c. One-time data scripts (`scripts/*.ts`)
@@ -92,10 +97,10 @@ All default to a dry run. Save both outputs.
 
 | Script | When | Dev / SIT DB | UAT DB | Prod DB |
 | --- | --- | --- | --- | --- |
-| `retire-stale-cart-rule-versions.ts` (PLAN-2026-10-12-107) | After the PLAN-107 backend is deployed. Retires leftover V2 rules on Free Shipping / cart promotions. Apply: `RETIRE_STALE_RULES_APPLY=true` | ✅ 2026-10-12 (0 found; #75 retired on save) | ⬜ | ⬜ |
-| `normalize-fragrance-type-dependencies.ts` | Fragrance Type picklist dependencies → Subcategory. UAT/Prod: `--target-env=.env.uat --expected-db=assetmanagement_uat` (Prod: `.env.prod`, `railway`); apply adds `--apply --confirm=NIVAANA_NORMALIZE_FRAGRANCE_DEPENDENCIES` | ❓ | ⬜ | ⬜ |
-| `repair-subcategory-parents.ts` | Subcategory parent links per taxonomy. Apply: `--apply --confirm=NIVAANA_REPAIR_SUBCATEGORY_PARENTS` | ❓ | ❓ | ⬜ |
-| `audit-standalone-coupon-policy.ts` | Read-only check after `20260927100000_normalize_standalone_coupon_policy` | ❓ | ⬜ | ⬜ |
+| `retire-stale-cart-rule-versions.ts` (PLAN-2026-10-12-107) | After the PLAN-107 backend is deployed. Retires leftover V2 rules on Free Shipping / cart promotions. Apply: `RETIRE_STALE_RULES_APPLY=true` | ✅ 2026-10-12 (0 found; #75 retired on save) | ✅ 2026-10-13 dry run: 0 found, nothing to apply | ✅ 2026-10-14 dry run: 0 found, nothing to apply |
+| `normalize-fragrance-type-dependencies.ts` | Fragrance Type picklist dependencies → Subcategory. UAT/Prod: `--target-env=.env.uat --expected-db=assetmanagement_uat` (Prod: `.env.prod`, `railway`); apply adds `--apply --confirm=NIVAANA_NORMALIZE_FRAGRANCE_DEPENDENCIES` | ❓ | ⬜ | ✅ 2026-10-14: 22 of 33 rows moved from Subsubcategory to Subcategory; backup `docs/backups/FRAGRANCE_DEPENDENCY_BACKUP_railway_2026-10-14T05-34-16-511Z.json` (local) |
+| `repair-subcategory-parents.ts` | Subcategory parent links per taxonomy. Apply: `--apply --confirm=NIVAANA_REPAIR_SUBCATEGORY_PARENTS`. Reads `.env` (set `DATABASE_URL`). Its taxonomy expects the SIT-only test value `candle&candle`, so it stops with "Required active subcategories are missing" anywhere else | ❓ | ➖ same state as Prod | ➖ 2026-10-14: stops on `candle&candle`; all 27 subcategories already have the right parent (only `controlled*` fields empty, same as UAT). Not needed |
+| `audit-standalone-coupon-policy.ts` | Read-only check after `20260927100000_normalize_standalone_coupon_policy` | ❓ | ⬜ | ✅ 2026-10-14: 3 assignments, 0 non-compliant |
 | `sync-sit-picklist-from-uat.ts` | SIT only: picklist + GST/HSN mappings from UAT | ✅ 2026-10-07 (log in `scripts/dryrun-logs/`) | ➖ | ➖ |
 | `restore-sit-picklist-backup.ts` | SIT only, rollback of the sync above if ever needed | ➖ | ➖ | ➖ |
 
@@ -109,12 +114,25 @@ All default to a dry run. Save both outputs.
 | `import-production-product-catalogue.ts`, `migrate-gst-taxonomy.ts`, `migrate-product-names.ts`, `migrate-product-shortnames.ts`, `migrate-product-taxonomy.ts`, `backup-taxonomy-state.ts` | Jul–Aug 2026 migrations, already on the `Prod` branch. Historical. |
 | `load-test-promotions-v2.ts`, `verify-amazon-inventory-handoff.ts`, `update-amazon-secrets.*`, `deploy-cloud-run-dev.sh` | Tools, not data changes. |
 
+### 4e. Environment config changes (`.env.sit` / `.env.uat` / Prod trigger)
+
+Settings that must change in an environment file when code moves there. SIT and UAT read `.env.sit` / `.env.uat` from their own branch at deploy time; Prod reads Cloud Build trigger substitutions (runbook section 3).
+
+| Change | Why | SIT (`.env.sit` on `SIT`) | UAT (`.env.uat` on `UAT`) | Prod (trigger `nivaana-production`) |
+| --- | --- | --- | --- | --- |
+| **Shipmozo on** (FIX-2026-10-13-113): `SHIPMOZO_INTEGRATION_ENABLED: "true"`, `SHIPMOZO_TRACKING_SYNC_ENABLED: "true"` | From Inventory commit `b401efd` the Inventory shows Shipmozo in **every** environment. Where the backend switch is `"false"` the Shipmozo routes are not loaded, so Create Shipment → Shipmozo fails. Shipmozo keys are shared with the live account: shipments created in SIT / UAT book real pickups; use test orders and cancel them. | ✅ 2026-10-13 (committed on `SIT` with the `DEV-NEW` merge) | ⬜ **Set in the same `SIT` → `UAT` merge, before pushing `UAT`** | ✅ already `"true"`; verify `_SHIPMOZO_PUBLIC_KEY`, `_SHIPMOZO_PRIVATE_KEY`, `_SHIPMOZO_WAREHOUSE_ID` are filled in the trigger |
+| Optional: `SHIPMOZO_WEBHOOK_SECRET` (16+ characters) | Shipmozo push status updates. Without it the webhook is refused and only the 15-minute sync updates status. | ➖ not set | ➖ not set | ❓ verify trigger value |
+| Optional: `SHIPMOZO_WAREHOUSE_ID` | Default pickup warehouse. Empty: the shipment form loads the warehouse list from Shipmozo. | ➖ not set | ➖ not set | ❓ verify trigger value |
+| **Inventory: Shipmozo hidden in Prod** (FIX-2026-10-14-115) | Shipmozo REST API is not active on the account (FIX-113), so every Shipmozo call fails. Inventory `Prod` branch `src/config/integrationFeatures.ts` hides Shipmozo when `VITE_APP_ENV` / mode is `prod`. `DEV-NEW` still has `shipmozo: true`: **keep the Prod check in the next `UAT` → `Prod` Inventory merge** until Shipmozo is active. | ➖ | ➖ | ✅ 2026-10-14 (deploy with `npm run deploy:prod`) |
+| **Inventory: Amazon shown except SIT** (FIX-2026-10-13-108, branch `feature/amazon-ui-port`) | Once merged, Inventory `integrationFeatures.amazon = !isSitEnvironment` shows the full Amazon UI (sidebar, Orders tab, workspace) on **UAT and Prod** builds. Without the backend Amazon settings the pages show "not connected" / errors. Before the `SIT` → `UAT` and `UAT` → `Prod` Inventory merges, either set `AMAZON_SP_API_APP_ID`, `AMAZON_REDIRECT_URI` (`<inventory-host>/amazon/callback`), `AMAZON_TOKEN_ENCRYPTION_KEY` (64 hex), `AMAZON_SELLER_ID`, `AMAZON_CLIENT_ID`, `AMAZON_CLIENT_SECRET`, `AMAZON_ENVIRONMENT`, or hide Amazon on that branch (as done for Shipmozo in Prod). Sync / write switches stay `false` until decided. | ➖ hidden on SIT | ⬜ decide: set Amazon env or hide | ⬜ decide: set Amazon env or hide |
+
 ## 5. Per-environment run order
 
 ### SIT (merge `DEV-NEW` → `SIT`)
 
 Dev and SIT share a database, so database steps done on dev are already done here.
 
+- [ ] Section 4e: environment config changes for SIT are in `.env.sit` on `SIT`
 - [ ] Compare branches: `git diff --stat origin/SIT origin/DEV-NEW -- prisma/migrations scripts`; every new file has a row in section 4
 - [ ] `npx prisma migrate status` (dev `.env`): only the known Flipkart / empty-folder differences (section 3)
 - [ ] Run any section 4 row marked ⬜ or ❓ for Dev / SIT DB; save logs
@@ -123,7 +141,9 @@ Dev and SIT share a database, so database steps done on dev are already done her
 
 ### UAT (merge `SIT` → `UAT`)
 
+- [ ] **Section 4e: in this merge set `.env.uat` `SHIPMOZO_INTEGRATION_ENABLED: "true"` and `SHIPMOZO_TRACKING_SYNC_ENABLED: "true"` before pushing `UAT`** (the UAT Inventory shows Shipmozo from this release; with the switch off it fails)
 - [ ] Compare branches: `git diff --stat origin/UAT origin/SIT -- prisma/migrations scripts`; every new file has a row
+- [ ] **2026-10-14: UAT DB is missing the 7 migrations after `20260908170000` (section 3); apply them now, do not wait for the next merge**
 - [ ] Backup / snapshot `assetmanagement_uat`
 - [ ] `DATABASE_URL="$TARGET_DB_URL" npx prisma migrate status` with `.env.uat`; confirm DB name `assetmanagement_uat`; record which section 4a rows are applied
 - [ ] `npx prisma migrate deploy` for pending migrations; re-run `migrate status`
@@ -134,13 +154,19 @@ Dev and SIT share a database, so database steps done on dev are already done her
 
 ### Prod (merge `UAT` → `Prod`)
 
-- [ ] Compare branches: `git diff --stat origin/Prod origin/UAT -- prisma/migrations scripts` (today: 6 migrations + scripts, section 3)
+Released 2026-10-14 (all database rows in section 4 done for Prod). Next time keep this order: **every database step before the backend deploy.**
+
+- [ ] Compare branches: `git diff --stat origin/Prod origin/UAT -- prisma/migrations scripts`; every new file has a row
+- [ ] Delete empty migration folders (no `migration.sql`) or `migrate deploy` fails with P3015
 - [ ] Restorable backup of the Prod database; record current Cloud Run revisions
+- [ ] Section 4e: Prod trigger substitutions for each config row (Shipmozo keys, warehouse, webhook secret)
 - [ ] Confirm the target DB from the deployed service (runbook section 2); `migrate status` shows `railway`
 - [ ] Review row-impact of data migrations: `20260922090000`, `20260924110000`, `20260927100000`, `20261008195500`
 - [ ] `npx prisma migrate deploy`; re-run `migrate status`
-- [ ] `20261006_sync_authoritative_product_tax.sql`; validate HSN/GST counts
+- [ ] SQL scripts (4b) for Prod; validate HSN/GST counts
+- [ ] Check nothing is missing: `npx prisma migrate diff --from-url "$TARGET_DB_URL" --to-schema-datamodel prisma/schema.prisma --script | grep -E 'CREATE TABLE|ADD COLUMN'` (known old drift only: `quotes`, `picklist_backup`)
 - [ ] Data scripts (4c) for Prod in table order: dry run, review, apply; `retire-stale-cart-rule-versions.ts` right after the PLAN-107 backend deploy
+- [ ] PLAN-107: list active promotions of old type `PERCENT_OFF_ITEM` / `FIXED_AMOUNT_OFF_ITEM` with no product / category / subcategory scope and no published V2 rule (whole-cart offers such as FESTIVE SALE). Change each in admin to "Percent of entire cart value" / "Fixed amount of entire cart value" and re-enter the value. UAT 2026-10-13: #1 FESTIVE SALE was `PERCENT_OFF_ITEM` and applied 10% to the whole cart until changed.
 - [ ] Deploy Prod in runbook order, production smoke tests, monitor logs
 - [ ] Update this file and Master.md
 

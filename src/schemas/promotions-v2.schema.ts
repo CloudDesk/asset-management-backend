@@ -178,7 +178,9 @@ export const PromotionEligibilityRequestSchema = PromotionQuoteRequestSchema.omi
   coupon_code: true,
   reward_selections: true,
 }).extend({
-  promotion_ids: z.array(z.number().int().positive()).min(1).max(200),
+  // May be empty: automatic offers that only miss their minimum quantity are
+  // returned anyway (PLAN-2026-10-15-116).
+  promotion_ids: z.array(z.number().int().positive()).max(200),
 });
 
 export const PromotionSelectionSchema = z.object({
