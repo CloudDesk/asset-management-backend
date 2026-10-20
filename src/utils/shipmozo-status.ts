@@ -25,6 +25,16 @@ const VALID_TRANSITIONS: Record<string, NivaanaShipmentStatus[]> = {
   rto_initiated: ['rto_delivered']
 };
 
+// Statuses that only mean "a courier shipment exists". When the courier
+// cancels that shipment the order goes back to ready_for_dispatch so a new
+// shipment can be created.
+const COURIER_CANCEL_REVERTS_FROM = new Set(['shipped', 'in_transit', 'out_for_delivery']);
+
+export function statusAfterCourierCancellation(currentStatus: string | null | undefined): 'ready_for_dispatch' | null {
+  const current = String(currentStatus || '').toLowerCase().trim();
+  return COURIER_CANCEL_REVERTS_FROM.has(current) ? 'ready_for_dispatch' : null;
+}
+
 export function canApplyShipmozoStatus(currentStatus: string, nextStatus: NivaanaShipmentStatus): boolean {
   const current = currentStatus.toLowerCase().trim();
   return current === nextStatus || Boolean(VALID_TRANSITIONS[current]?.includes(nextStatus));

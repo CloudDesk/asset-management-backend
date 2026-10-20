@@ -1,5 +1,6 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import axios from 'axios';
+import { timingSafeEqual } from 'node:crypto';
 import FormData from 'form-data';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
@@ -552,6 +553,24 @@ export class ShipmozoController {
       throw new ValidationError('limit must be an integer between 1 and 100');
     }
     const result = await shipmozoTrackingSyncService.runBatch(limit);
+    return reply.code(200).send(createSuccessResponse('Shipmozo tracking batch completed', result));
+  });
+
+  runScheduledTrackingSync = asyncHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const configuredSecret = env.SHIPMOZO_SCHEDULER_SECRET;
+    if (!configuredSecret) {
+      logger.error('Shipmozo scheduler job called before SHIPMOZO_SCHEDULER_SECRET was configured');
+      return reply.code(503).send({ success: false, message: 'Scheduler job is not configured', statusCode: 503 });
+    }
+    const providedSecret = Buffer.from(String(request.headers['x-scheduler-secret'] || '').trim());
+    const expectedSecret = Buffer.from(configuredSecret);
+    if (providedSecret.length !== expectedSecret.length || !timingSafeEqual(providedSecret, expectedSecret)) {
+      logger.warn({ secretProvided: providedSecret.length > 0 }, 'Rejected Shipmozo scheduler job with invalid secret');
+      return reply.code(401).send({ success: false, message: 'Invalid scheduler secret', statusCode: 401 });
+    }
+
+    const result = await shipmozoTrackingSyncService.runBatch();
+    logger.info({ processed: result.processed }, 'Scheduled Shipmozo tracking sync completed (Cloud Scheduler)');
     return reply.code(200).send(createSuccessResponse('Shipmozo tracking batch completed', result));
   });
 

@@ -2,7 +2,11 @@ import { Prisma } from '@prisma/client';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { prisma } from '../models/prisma.js';
-import { canApplyShipmozoStatus, normalizeShipmozoTracking } from '../utils/shipmozo-status.js';
+import {
+  canApplyShipmozoStatus,
+  normalizeShipmozoTracking,
+  statusAfterCourierCancellation
+} from '../utils/shipmozo-status.js';
 import { buildShipmozoPublicTrackingUrl, shipmozoService } from './shipmozo.service.js';
 import { customerEmailNotificationService } from './customer-email-notification.service.js';
 import { ReturnRequestService } from './return-request.service.js';
@@ -26,11 +30,13 @@ function parseHistory(value: unknown): any[] {
   return [];
 }
 
+// The scheduler interval decides how often a shipment is checked; this gate
+// only stops one shipment from being checked again sooner than the recheck
+// time. Failures back off up to 6x.
 function nextSyncAt(status: string | null, retryCount = 0): number | null {
   if (status && TERMINAL_STATUSES.has(status)) return null;
-  const baseMinutes = status === 'out_for_delivery' ? 30 : 60;
   const retryMultiplier = Math.min(2 ** retryCount, 6);
-  return Date.now() + baseMinutes * retryMultiplier * 60_000;
+  return Date.now() + env.SHIPMOZO_TRACKING_RECHECK_MINUTES * retryMultiplier * 60_000;
 }
 
 export class ShipmozoTrackingSyncService {
@@ -90,9 +96,12 @@ export class ShipmozoTrackingSyncService {
     const canAdvance = Boolean(
       normalized.system_status && canApplyShipmozoStatus(currentStatus, normalized.system_status)
     );
-    const appliedStatus = canAdvance ? normalized.system_status : null;
-    const statusChanged = Boolean(appliedStatus && appliedStatus !== currentStatus);
     const providerCancelled = normalized.is_provider_cancelled;
+    // A shipment cancelled at Shipmozo (panel or courier) before delivery takes
+    // the order back to ready_for_dispatch, so a new shipment can be created.
+    const revertedStatus = providerCancelled ? statusAfterCourierCancellation(currentStatus) : null;
+    const appliedStatus: string | null = revertedStatus || (canAdvance ? normalized.system_status : null);
+    const statusChanged = Boolean(appliedStatus && appliedStatus !== currentStatus);
     const timestamp = Date.now();
 
     await prisma.$transaction(async (tx) => {
@@ -106,6 +115,7 @@ export class ShipmozoTrackingSyncService {
               changed_date: timestamp,
               source: 'shipmozo',
               shipmozo_original_status: normalized.provider_status,
+              ...(revertedStatus ? { reason: 'courier_shipment_cancelled' } : {}),
               is_active: true
             }
           ]
@@ -154,6 +164,7 @@ export class ShipmozoTrackingSyncService {
           ...(statusChanged ? { orderstatus: appliedStatus, status_history: updatedOrderHistory } : {}),
           ...(appliedStatus === 'shipped' && !order.shipdate ? { shipdate: timestamp } : {}),
           ...(appliedStatus === 'delivered' ? { delivereddate: timestamp } : {}),
+          ...(revertedStatus ? { shipdate: null } : {}),
           modifieddate: timestamp
         }
       });
@@ -161,11 +172,15 @@ export class ShipmozoTrackingSyncService {
       if (statusChanged || providerCancelled) {
         for (const line of order.orderline) {
           const lineHistory = parseHistory(line.status_history);
+          // On a revert, lines already cancelled or returned keep their status.
+          const lineStatusChanged = statusChanged && (
+            !revertedStatus || statusAfterCourierCancellation(line.orderstatus) === revertedStatus
+          );
           await tx.orderline.update({
             where: { id: line.id },
             data: {
               ...(providerCancelled ? { tracking_id: null } : {}),
-              ...(statusChanged ? {
+              ...(lineStatusChanged ? {
                 orderstatus: appliedStatus,
                 status_history: [
                   ...lineHistory.map((entry) => ({ ...entry, is_active: false })),
@@ -175,12 +190,14 @@ export class ShipmozoTrackingSyncService {
                     changed_date: timestamp,
                     source: 'shipmozo',
                     shipmozo_original_status: normalized.provider_status,
+                    ...(revertedStatus ? { reason: 'courier_shipment_cancelled' } : {}),
                     is_active: true
                   }
                 ]
               } : {}),
               ...(appliedStatus === 'shipped' && !line.shipdate ? { shipdate: timestamp } : {}),
               ...(appliedStatus === 'delivered' ? { delivereddate: timestamp } : {}),
+              ...(lineStatusChanged && revertedStatus ? { shipdate: null } : {}),
               modifieddate: timestamp
             }
           });
@@ -234,7 +251,7 @@ export class ShipmozoTrackingSyncService {
       }
     }
 
-    if (appliedStatus && statusChanged) {
+    if (appliedStatus && statusChanged && !revertedStatus) {
       const kind = appliedStatus === 'delivered' ? 'delivery_confirmation' : 'shipment_update';
       customerEmailNotificationService.queueOrderEmail(order.id, kind, {
         status: appliedStatus,
@@ -252,6 +269,7 @@ export class ShipmozoTrackingSyncService {
       event_status: normalized.event_status,
       applied_status: appliedStatus,
       provider_cancellation_confirmed: providerCancelled,
+      reverted_to_ready_for_dispatch: Boolean(revertedStatus && statusChanged),
       ignored_regression: Boolean(normalized.system_status && !canAdvance)
     };
   }
