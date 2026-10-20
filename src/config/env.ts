@@ -417,6 +417,10 @@ const envSchema = z.object({
   SHIPMOZO_TRACKING_SYNC_CRON: z.string().optional().default("*/30 * * * *"),
   SHIPMOZO_TRACKING_SYNC_BATCH_SIZE: z.coerce.number().int().min(1).max(100).optional().default(25),
   SHIPMOZO_WEBHOOK_SECRET: z.string().min(16).optional(),
+  // Shared secret Cloud Scheduler sends in `x-scheduler-secret` to run the tracking sync job.
+  SHIPMOZO_SCHEDULER_SECRET: z.string().min(16).optional(),
+  // Minutes between tracking checks of one active shipment (failures back off up to 6x).
+  SHIPMOZO_TRACKING_RECHECK_MINUTES: z.coerce.number().int().min(1).max(1440).optional().default(10),
   // Seller Information (for EKART shipments)
   SELLER_GST_TIN: z.string().optional(),
 
