@@ -131,5 +131,7 @@ test('normal tracking update still advances in_transit to out_for_delivery', asy
 
   assert.equal(captured.orderUpdate.data.orderstatus, 'out_for_delivery');
   assert.equal(captured.orderUpdate.data.tracking_id, undefined, 'shipment is kept');
+  const recheckMs = Number(captured.operation.data.nextSyncAt) - Date.now();
+  assert.ok(recheckMs > 9 * 60_000 && recheckMs <= 10 * 60_000, `next check in ~10 min, got ${recheckMs} ms`);
   assert.equal(result.reverted_to_ready_for_dispatch, false);
 });

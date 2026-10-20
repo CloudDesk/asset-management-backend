@@ -133,6 +133,20 @@ export async function shipmozoRoutes(fastify: FastifyInstance) {
     }
   }, controller.runTrackingSync);
 
+  fastify.post('/jobs/tracking-sync', {
+    schema: {
+      tags,
+      description: 'Cloud Scheduler job: run one Shipmozo tracking sync batch (x-scheduler-secret required)',
+      headers: {
+        type: 'object',
+        properties: {
+          'x-scheduler-secret': { type: 'string' }
+        }
+      },
+      response: { 200: successResponse }
+    }
+  }, controller.runScheduledTrackingSync);
+
   fastify.post('/webhook/track-status', {
     schema: {
       tags,

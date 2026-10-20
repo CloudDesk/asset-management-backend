@@ -10,7 +10,7 @@ Items analysed and agreed but deliberately parked. Each entry has enough context
 | **PLAN-04** | 2026-10-06 | Ecom Web / PhonePe | Limit iframe checkout to Meta in-app browsers | Low | Parked (decided: keep as is) |
 | **PLAN-05** | 2026-10-06 | Backend / PhonePe | Server-side guard against a second payment while one is pending | Medium | Parked |
 | **PLAN-06** | 2026-10-07 | Inventory / Stock | Protect unallocated customer-order demand before marking stock damaged or transferring it | High | Partly done (damage check: FIX-2026-10-07-57); transfer check parked |
-| **PLAN-09** | 2026-10-20 | Backend / Inventory / Shipmozo | Shipmozo tracking auto-sync via GCP Cloud Scheduler (replace in-process node-cron) + "Last synced on" in Order Details | High (before Shipmozo goes live) | Parked |
+| **PLAN-09** | 2026-10-20 | Backend / Inventory / Shipmozo | Shipmozo tracking auto-sync via GCP Cloud Scheduler (replace in-process node-cron) + "Last synced on" in Order Details | High (before Shipmozo goes live) | Implemented (FIX-2026-10-20-120); SIT secret + scheduler job pending |
 
 ---
 
@@ -177,7 +177,7 @@ The warning should also identify the affected product/PUC, source location, acti
 
 ## PLAN-09: Backend / Inventory — Shipmozo Tracking Auto-Sync via Cloud Scheduler
 
-**Status:** Parked 2026-10-20. Decided: **Cloud Scheduler, not node-cron**. Manual "Sync Shipmozo Tracking" stays as it is.
+**Status:** Parked 2026-10-20, then implemented the same day as **FIX-2026-10-20-120** (see `Fix_After_Sep30/Master.md`). Endpoint `POST /v1/shipmozo/jobs/tracking-sync` with header `x-scheduler-secret` (`SHIPMOZO_SCHEDULER_SECRET`), re-check gate `SHIPMOZO_TRACKING_RECHECK_MINUTES` (default 10), Inventory "Last synced on". SIT Secret Manager secret and Cloud Scheduler job: see `RELEASE_SCRIPTS_CHECKLIST.md` section 4e. Decided: **Cloud Scheduler, not node-cron**. Manual "Sync Shipmozo Tracking" stays as it is.
 
 **Found:** SIT test cases 7 and 8 (order `NIVAANA-0000000419`, SIT order id 188). The shipment was cancelled in the Shipmozo panel, but Nivaana was not updated automatically. The update only arrived after the admin clicked **Sync Shipmozo Tracking**. The status bug from case 8 (AWB removed, but the order stays `in_transit`) is a separate fix and is not part of this plan.
 

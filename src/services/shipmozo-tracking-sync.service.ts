@@ -30,11 +30,13 @@ function parseHistory(value: unknown): any[] {
   return [];
 }
 
+// The scheduler interval decides how often a shipment is checked; this gate
+// only stops one shipment from being checked again sooner than the recheck
+// time. Failures back off up to 6x.
 function nextSyncAt(status: string | null, retryCount = 0): number | null {
   if (status && TERMINAL_STATUSES.has(status)) return null;
-  const baseMinutes = status === 'out_for_delivery' ? 30 : 60;
   const retryMultiplier = Math.min(2 ** retryCount, 6);
-  return Date.now() + baseMinutes * retryMultiplier * 60_000;
+  return Date.now() + env.SHIPMOZO_TRACKING_RECHECK_MINUTES * retryMultiplier * 60_000;
 }
 
 export class ShipmozoTrackingSyncService {
