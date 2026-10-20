@@ -113,6 +113,7 @@ steps:
       - "_SHIPMOZO_TRACKING_SYNC_CRON=${_SHIPMOZO_TRACKING_SYNC_CRON}"
       - "_SHIPMOZO_TRACKING_SYNC_BATCH_SIZE=${_SHIPMOZO_TRACKING_SYNC_BATCH_SIZE}"
       - "_SHIPMOZO_WEBHOOK_SECRET=${_SHIPMOZO_WEBHOOK_SECRET}"
+      - "_SHIPMOZO_SCHEDULER_SECRET=${_SHIPMOZO_SCHEDULER_SECRET}"
     args:
       - "-c"
       - |
@@ -207,6 +208,7 @@ steps:
           "SHIPMOZO_TRACKING_SYNC_CRON": "_SHIPMOZO_TRACKING_SYNC_CRON",
           "SHIPMOZO_TRACKING_SYNC_BATCH_SIZE": "_SHIPMOZO_TRACKING_SYNC_BATCH_SIZE",
           "SHIPMOZO_WEBHOOK_SECRET": "_SHIPMOZO_WEBHOOK_SECRET",
+          "SHIPMOZO_SCHEDULER_SECRET": "_SHIPMOZO_SCHEDULER_SECRET",
         }
 
         required_env_names = [
@@ -248,14 +250,15 @@ steps:
           missing_required.append(
             "FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY"
           )
-        shipmozo_webhook_secret = env_values.get("SHIPMOZO_WEBHOOK_SECRET")
-        if shipmozo_webhook_secret and len(shipmozo_webhook_secret) < 16:
-          print(
-            "Invalid Cloud Build substitution for .env.prod: "
-            "SHIPMOZO_WEBHOOK_SECRET must be at least 16 characters",
-            file=sys.stderr,
-          )
-          sys.exit(1)
+        for secret_name in ["SHIPMOZO_WEBHOOK_SECRET", "SHIPMOZO_SCHEDULER_SECRET"]:
+          secret_value = env_values.get(secret_name)
+          if secret_value and len(secret_value) < 16:
+            print(
+              "Invalid Cloud Build substitution for .env.prod: "
+              f"{secret_name} must be at least 16 characters",
+              file=sys.stderr,
+            )
+            sys.exit(1)
         if missing_required:
           print(
             "Missing required Cloud Build substitutions for .env.prod: "
@@ -376,10 +379,15 @@ substitutions:
   _SHIPMOZO_PRIVATE_KEY: "${SHIPMOZO_PRIVATE_KEY}"
   _SHIPMOZO_BASE_URL: "https://shipping-api.com/app/api/v1"
   _SHIPMOZO_WAREHOUSE_ID: "${SHIPMOZO_WAREHOUSE_ID}"
-  _SHIPMOZO_TRACKING_SYNC_ENABLED: "true"
+  # The Cloud Scheduler job shipmozo-tracking-sync-prod runs the sync (FIX-120);
+  # the in-process cron stays off. Resume that job when Shipmozo goes live.
+  _SHIPMOZO_TRACKING_SYNC_ENABLED: "false"
   _SHIPMOZO_TRACKING_SYNC_CRON: "*/15 * * * *"
   _SHIPMOZO_TRACKING_SYNC_BATCH_SIZE: "25"
   _SHIPMOZO_WEBHOOK_SECRET: "${SHIPMOZO_WEBHOOK_SECRET}"
+  # Set SHIPMOZO_SCHEDULER_SECRET (16+ characters) on trigger nivaana-production;
+  # the same value goes in the Cloud Scheduler job header x-scheduler-secret.
+  _SHIPMOZO_SCHEDULER_SECRET: "${SHIPMOZO_SCHEDULER_SECRET}"
 
 
 options:
