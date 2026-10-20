@@ -10,6 +10,7 @@ Items analysed and agreed but deliberately parked. Each entry has enough context
 | **PLAN-04** | 2026-10-06 | Ecom Web / PhonePe | Limit iframe checkout to Meta in-app browsers | Low | Parked (decided: keep as is) |
 | **PLAN-05** | 2026-10-06 | Backend / PhonePe | Server-side guard against a second payment while one is pending | Medium | Parked |
 | **PLAN-06** | 2026-10-07 | Inventory / Stock | Protect unallocated customer-order demand before marking stock damaged or transferring it | High | Partly done (damage check: FIX-2026-10-07-57); transfer check parked |
+| **PLAN-09** | 2026-10-20 | Backend / Inventory / Shipmozo | Shipmozo tracking auto-sync via GCP Cloud Scheduler (replace in-process node-cron) + "Last synced on" in Order Details | High (before Shipmozo goes live) | Parked |
 
 ---
 
@@ -171,3 +172,33 @@ The warning should also identify the affected product/PUC, source location, acti
 **Why not node-cron in the app:** the backend is deployed on Cloud Run with default settings (`gcloud run deploy nivaana … --memory 512Mi`, no `--min-instances`, CPU throttled outside requests). An in-process cron can miss runs when no instance is up, stall when CPU is throttled, and run once per instance when scaled out. Cloud Scheduler gives one call per schedule, retries and run logs.
 
 **Related risk to review at the same time:** existing in-process schedulers use node-cron / timers inside Cloud Run (`utils/shipmozoTrackingScheduler.ts`, `services/amazon-order-scheduler.service.ts`, `amazon-listing-scheduler.service.ts`, `amazon-retry-scheduler.service.ts`, `amazon-return-scheduler.service.ts`, `utils/sessionCleanup.ts`). Confirm whether they actually run in SIT / UAT / PROD (logs), and either move them to Cloud Scheduler endpoints or deploy with `--min-instances=1 --no-cpu-throttling`.
+
+---
+
+## PLAN-09: Backend / Inventory — Shipmozo Tracking Auto-Sync via Cloud Scheduler
+
+**Status:** Parked 2026-10-20. Decided: **Cloud Scheduler, not node-cron**. Manual "Sync Shipmozo Tracking" stays as it is.
+
+**Found:** SIT test cases 7 and 8 (order `NIVAANA-0000000419`, SIT order id 188). The shipment was cancelled in the Shipmozo panel, but Nivaana was not updated automatically. The update only arrived after the admin clicked **Sync Shipmozo Tracking**. The status bug from case 8 (AWB removed, but the order stays `in_transit`) is a separate fix and is not part of this plan.
+
+**Why the automatic sync does not happen today:**
+1. **In-process cron on Cloud Run.** `utils/shipmozoTrackingScheduler.ts` runs `node-cron` inside the app (started from `index.ts` only when `SHIPMOZO_INTEGRATION_ENABLED`). SIT runs `*/15 * * * *`. `cloudbuildsit.yaml` deploys with no `--min-instances` and no `--no-cpu-throttling`, so when the service is idle Cloud Run throttles CPU or scales to zero and the cron does not fire. If it is scaled out, the job runs once per instance. Same risk as in PLAN-08.
+2. **60-minute gate.** `shipmozo-tracking-sync.service.ts#nextSyncAt` sets the next check 60 minutes after a sync (30 for `out_for_delivery`). `runBatch()` skips orders whose `shipmozoOperation.nextSyncAt` is still in the future. After failures this grows up to ×6 (6 hours). So even a scheduler call every 15 minutes would skip most orders.
+3. **No webhook on SIT / UAT.** `SHIPMOZO_WEBHOOK_SECRET` is commented out in `.env.sit` / `.env.uat`, so `POST /v1/shipmozo/webhook/track-status` returns 503.
+4. `POST /v1/shipmozo/tracking/sync` (runs `runBatch()`) needs an admin login, so Cloud Scheduler cannot call it as it is.
+
+**Agreed design:**
+- New protected endpoint, for example `POST /v1/internal/jobs/shipmozo-tracking-sync`, that calls `shipmozoTrackingSyncService.runBatch()`. Use the same pattern and auth as the PLAN-08 coupon-expiry job: Cloud Scheduler OIDC token from a dedicated service account, or a secret header (`X-Scheduler-Secret` from Secret Manager). It must not be a public route without auth.
+- It picks only Shipmozo orders that are still active. This is the existing `runBatch()` query: `vendor = SHIPMOZO`, `tracking_id` set, status not terminal, plus cancelled orders whose courier cancellation is still `pending` / `failed`. It also covers Shipmozo reverse (return) shipments. One Shipmozo track call per order, at most `SHIPMOZO_TRACKING_SYNC_BATCH_SIZE` (25) per run.
+- **Cloud Scheduler job per environment** (SIT, UAT, Prod), time zone Asia/Kolkata. Every 15 minutes is the recommended start. Every 5 minutes is possible, but it uses more Shipmozo API calls. Check Shipmozo rate limits first.
+- **Change the 60-minute gate** so the scheduler interval decides the timing. For example, reduce `nextSyncAt` to the scheduler interval for non-terminal statuses and keep the backoff only for failures. Otherwise point 2 above still applies.
+- **Turn the in-process cron off** (`SHIPMOZO_TRACKING_SYNC_ENABLED: "false"` in `.env.sit`, `.env.uat` and the Prod trigger) when the scheduler job goes live. This avoids double runs. Keep the code path for local dev.
+- Manual **Sync Shipmozo Tracking** (`POST /v1/shipmozo/orders/:orderId/tracking/sync`) stays unchanged.
+- **Inventory Order Details: "Last synced on …"** for Shipmozo orders only. The value already exists as `shipmozoOperation.lastSyncedAt`, written by `syncOrder()` (forward) and `syncReturn()` (reverse). It is not sent to the Inventory today. Return it with the order details (latest forward operation) or from the sync response, and show it near the Courier Partner / Tracking ID cards. Not shown for EKART or manual vendors.
+- Optional later: set `SHIPMOZO_WEBHOOK_SECRET` and register the webhook in the Shipmozo panel for near-real-time updates. The scheduler stays as the safety net.
+
+**Cost (GCP):** Cloud Scheduler is $0.10 per job per month, and the first 3 jobs per billing account are free. Three jobs (SIT / UAT / Prod) are free or about $0.30 a month. Every 15 minutes is about 2,900 Cloud Run requests a month per environment (every 5 minutes is about 8,600), well inside the Cloud Run free tier. This is cheaper than `--min-instances=1 --no-cpu-throttling`, which keeps an instance and CPU always billed.
+
+**Release notes when implemented:** add rows in `docs/RELEASE_SCRIPTS_CHECKLIST.md` section 4e for the scheduler job, its service account / secret, and `SHIPMOZO_TRACKING_SYNC_ENABLED: "false"` per environment. Also log it in `Fix_After_Sep30/Master.md`.
+
+**Test:** create a Shipmozo shipment on SIT and cancel it in the Shipmozo panel. Without clicking Sync, within one scheduler interval Nivaana should show the shipment as cancelled and "Last synced on" should update. Check Cloud Scheduler run logs and the backend log for each run. Run the job twice in a row to confirm it is safe to repeat.
