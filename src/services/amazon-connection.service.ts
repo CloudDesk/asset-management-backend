@@ -1,9 +1,12 @@
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto';
 import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
 import { prisma } from '../models/prisma.js';
 import { AmazonTokenCryptoService, amazonTokenCryptoService } from './amazon-token-crypto.service.js';
 
 const AMAZON_LWA_TOKEN_URL = 'https://api.amazon.com/auth/o2/token';
+const stateKeyCutover = Date.now();
+const legacyStateDeadline = stateKeyCutover + env.AMAZON_OAUTH_STATE_TTL_SECONDS * 1000;
 
 type FetchLike = typeof fetch;
 type AmazonUserType = 'inventoryusers' | 'users';
@@ -47,6 +50,7 @@ type AmazonConnectionServiceOptions = {
   marketplaceId?: string;
   stateSecret?: string;
   stateTtlSeconds?: number;
+  requestTimeoutMs?: number;
 };
 
 const required = (name: string, value?: string): string => {
@@ -156,8 +160,14 @@ export class AmazonConnectionService {
       const refreshToken = this.tokenCrypto.decrypt(connection.refreshToken);
       await this.exchangeToken({ grant_type: 'refresh_token', refresh_token: refreshToken });
       return this.serializeConnection(connection, 'HEALTHY', lastSuccessfulSyncAt);
-    } catch {
-      return this.serializeConnection(connection, 'NEEDS_ATTENTION', lastSuccessfulSyncAt);
+    } catch (error) {
+      const issue = error instanceof AmazonConnectionError ? error
+        : new AmazonConnectionError('Amazon connection could not be verified; retry the connection check',
+          502, 'AMAZON_CONNECTION_CHECK_FAILED');
+      logger.warn({ userId, userType, sellerId: connection.sellerId, marketplaceId: connection.marketplaceId,
+        code: issue.code, statusCode: issue.statusCode, message: issue.message }, 'Amazon connection health check failed');
+      return { ...this.serializeConnection(connection, 'NEEDS_ATTENTION', lastSuccessfulSyncAt),
+        healthIssue: { code: issue.code, message: issue.message, statusCode: issue.statusCode } };
     }
   }
 
@@ -171,13 +181,30 @@ export class AmazonConnectionService {
     const clientSecret = required('AMAZON_CLIENT_SECRET', this.options.clientSecret ?? env.AMAZON_CLIENT_SECRET);
     const response = await this.fetchImpl(AMAZON_LWA_TOKEN_URL, {
       method: 'POST',
+      signal: AbortSignal.timeout(this.options.requestTimeoutMs ?? 15_000),
       headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', Accept: 'application/json' },
       body: new URLSearchParams({ ...grant, client_id: clientId, client_secret: clientSecret }),
+    }).catch(() => {
+      throw new AmazonConnectionError('Amazon authorization service could not be reached; try again',
+        502, 'AMAZON_AUTH_NETWORK_ERROR');
     });
     if (!response.ok) {
-      throw new AmazonConnectionError('Amazon authorization is invalid or has expired', 401, 'AMAZON_INVALID_AUTHORIZATION');
+      const body = await response.json().catch(() => null) as { error?: unknown; error_description?: unknown } | null;
+      let detail = [body?.error, body?.error_description].filter((item): item is string => typeof item === 'string').join(': ');
+      for (const secret of [clientId, clientSecret, ...Object.values(grant)]) {
+        if (secret.length >= 4) detail = detail.replaceAll(secret, '[redacted]');
+      }
+      const temporary = response.status === 429 || response.status >= 500;
+      const fallback = temporary ? 'Amazon authorization service is temporarily unavailable; try again'
+        : 'Amazon authorization is invalid or has expired; reconnect your seller account';
+      throw new AmazonConnectionError(detail ? `${fallback}. ${detail.slice(0, 1000)}` : fallback,
+        temporary ? response.status : 401,
+        temporary ? 'AMAZON_AUTH_TEMPORARILY_UNAVAILABLE' : 'AMAZON_INVALID_AUTHORIZATION');
     }
-    return response.json() as Promise<LwaTokenResponse>;
+    return response.json().catch(() => {
+      throw new AmazonConnectionError('Amazon returned an invalid authorization response; try again',
+        502, 'AMAZON_AUTH_INVALID_RESPONSE');
+    }) as Promise<LwaTokenResponse>;
   }
 
   private createState(input: Pick<OAuthState, 'userId' | 'userType' | 'redirectUri'>): string {
@@ -198,7 +225,10 @@ export class AmazonConnectionService {
     if (!encoded || !signature) throw new AmazonConnectionError('Invalid Amazon authorization state', 400, 'AMAZON_OAUTH_STATE_INVALID');
     const expected = Buffer.from(this.sign(encoded), 'base64url');
     const actual = Buffer.from(signature, 'base64url');
-    if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
+    const currentSignature = expected.length === actual.length && timingSafeEqual(expected, actual);
+    const legacy = !currentSignature && Date.now() <= legacyStateDeadline
+      ? Buffer.from(this.sign(encoded, true), 'base64url') : null;
+    if (!currentSignature && !(legacy && legacy.length === actual.length && timingSafeEqual(legacy, actual))) {
       throw new AmazonConnectionError('Invalid Amazon authorization state', 400, 'AMAZON_OAUTH_STATE_INVALID');
     }
 
@@ -208,18 +238,23 @@ export class AmazonConnectionService {
     } catch {
       throw new AmazonConnectionError('Invalid Amazon authorization state', 400, 'AMAZON_OAUTH_STATE_INVALID');
     }
+    if (!currentSignature && payload.issuedAt > stateKeyCutover) {
+      throw new AmazonConnectionError('Invalid Amazon authorization state', 400, 'AMAZON_OAUTH_STATE_INVALID');
+    }
     if (payload.expiresAt < this.now()) {
       throw new AmazonConnectionError('Amazon authorization request expired; reconnect Amazon', 400, 'AMAZON_OAUTH_STATE_EXPIRED');
     }
     return payload;
   }
 
-  private sign(value: string): string {
+  private sign(value: string, legacy = false): string {
     const secret = required(
       'AMAZON_TOKEN_ENCRYPTION_KEY',
       this.options.stateSecret ?? env.AMAZON_TOKEN_ENCRYPTION_KEY
     );
-    return createHmac('sha256', secret).update(value).digest('base64url');
+    const key = legacy ? secret : Buffer.from(hkdfSync('sha256', secret,
+      'nivaana-amazon', 'oauth-state-signature', 32));
+    return createHmac('sha256', key).update(value).digest('base64url');
   }
 
   private serializeConnection(

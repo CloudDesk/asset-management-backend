@@ -30,6 +30,19 @@ export class AmazonProductionInventoryError extends Error {
 export const calculateAmazonTargetQuantity = (availableQuantity: number, unitsPerListing: number) =>
   Math.floor(Math.max(0, Math.trunc(availableQuantity)) / Math.max(1, Math.trunc(unitsPerListing)));
 
+export function assertAmazonInventorySubmissionAccepted(result: { status: string; issues: unknown[] }) {
+  if (result.status === 'ACCEPTED') return;
+  const details = result.issues.slice(0, 5).flatMap((issue) => {
+    if (!issue || typeof issue !== 'object') return [];
+    const fields = issue as { code?: unknown; message?: unknown };
+    const message = [fields.code, fields.message].filter((value) => typeof value === 'string').join(': ').slice(0, 1000);
+    return message ? [message] : [];
+  }).join('; ');
+  throw new AmazonProductionInventoryError(details
+    ? `Amazon did not accept the inventory update: ${details}` : 'Amazon did not accept the inventory update',
+    502, 'AMAZON_INVENTORY_REJECTED');
+}
+
 const AMAZON_CONFIRMATION_TIMEOUT_MS = 15 * 60 * 1000;
 
 export const resolveAmazonInventoryConfirmation = (
@@ -376,9 +389,7 @@ export class AmazonProductionInventoryService {
         productType: context.listing.productType!,
         quantity: context.targetQuantity,
       });
-      if (result.status !== 'ACCEPTED') {
-        throw new AmazonProductionInventoryError('Amazon did not accept the inventory update', 502, 'AMAZON_INVENTORY_REJECTED');
-      }
+      assertAmazonInventorySubmissionAccepted(result);
       const submittedAt = new Date();
       const issueSummary = result.issues.length > 0
         ? ` Amazon issues: ${JSON.stringify(result.issues).slice(0, 1500)}`

@@ -12,11 +12,8 @@ Options:
   --config <path>       Secret config JSON (default: config/amazon-secrets.sit.json)
   --from-env <path>     Read AMAZON_* values from a dotenv/YAML env file
   --values-file <path>  Local secrets file (default: .env.amazon.local)
-  --client-id <value>   Override AMAZON_CLIENT_ID
-  --client-secret <value>
-                        Override AMAZON_CLIENT_SECRET
-  --refresh-token <value>
-                        Override AMAZON_REFRESH_TOKEN
+  --confirm-target <project/service>
+                        Required for a custom config before changing secrets
   --redeploy            Redeploy nivaana-dev Cloud Run after updating secrets
   --dry-run             Print actions without calling gcloud
   -h, --help            Show this help
@@ -52,13 +49,13 @@ function parseArgs(argv) {
         options.valuesFile = path.resolve(rootDir, argv[++index]);
         break;
       case '--client-id':
-        options.clientId = argv[++index] ?? '';
-        break;
       case '--client-secret':
-        options.clientSecret = argv[++index] ?? '';
-        break;
       case '--refresh-token':
-        options.refreshToken = argv[++index] ?? '';
+        console.error('Command-line credentials are disabled. Use --values-file, --from-env, or environment variables.');
+        process.exit(1);
+        break;
+      case '--confirm-target':
+        options.confirmTarget = argv[++index] ?? '';
         break;
       case '--redeploy':
         options.redeploy = true;
@@ -140,13 +137,22 @@ if (!config.projectId || !config.serviceAccount || !config.secrets) {
   process.exit(1);
 }
 
+const target = `${config.projectId}/${config.cloudRunService || config.serviceAccount}`;
+const isDefaultSit = options.configFile === path.resolve(rootDir, 'config/amazon-secrets.sit.json')
+  && config.environment === 'sit' && config.projectId === 'nivaana'
+  && config.cloudRunService === 'nivaana-dev' && config.serviceAccount === 'nivaana-dev@nivaana.iam.gserviceaccount.com';
+if (!options.dryRun && !isDefaultSit && options.confirmTarget !== target) {
+  console.error(`Custom secret target requires --confirm-target ${target}. Use --dry-run to review first.`);
+  process.exit(1);
+}
+
 const sourceFile = options.fromEnvFile || (fs.existsSync(options.valuesFile) ? options.valuesFile : '');
 const fileValues = sourceFile ? parseEnvFile(sourceFile) : {};
 
 const resolvedValues = {
-  AMAZON_CLIENT_ID: options.clientId || fileValues.AMAZON_CLIENT_ID || '',
-  AMAZON_CLIENT_SECRET: options.clientSecret || fileValues.AMAZON_CLIENT_SECRET || '',
-  AMAZON_REFRESH_TOKEN: options.refreshToken || fileValues.AMAZON_REFRESH_TOKEN || '',
+  AMAZON_CLIENT_ID: fileValues.AMAZON_CLIENT_ID || process.env.AMAZON_CLIENT_ID || '',
+  AMAZON_CLIENT_SECRET: fileValues.AMAZON_CLIENT_SECRET || process.env.AMAZON_CLIENT_SECRET || '',
+  AMAZON_REFRESH_TOKEN: fileValues.AMAZON_REFRESH_TOKEN || process.env.AMAZON_REFRESH_TOKEN || '',
 };
 
 const missing = Object.entries(resolvedValues)
@@ -155,7 +161,7 @@ const missing = Object.entries(resolvedValues)
 
 if (missing.length > 0) {
   console.error(`Missing required values: ${missing.join(', ')}`);
-  console.error('Provide CLI flags, create .env.amazon.local, or pass --from-env <file>.');
+  console.error('Set environment variables, create .env.amazon.local, or pass --from-env <file>.');
   process.exit(1);
 }
 
@@ -166,7 +172,7 @@ for (const [envName, secretName] of Object.entries(config.secrets)) {
   const secretValue = resolvedValues[envName];
   console.log(`Updating secret: ${secretName} (${envName})`);
 
-  if (!secretExists(secretName, config.projectId)) {
+  if (options.dryRun || !secretExists(secretName, config.projectId)) {
     runGcloud(
       [
         'secrets',
@@ -177,7 +183,7 @@ for (const [envName, secretName] of Object.entries(config.secrets)) {
         '--replication-policy',
         'automatic',
         '--labels',
-        'environment=sit,app=nivaana,credential=amazon',
+        `environment=${String(config.environment || 'custom').toLowerCase().replace(/[^a-z0-9_-]/g, '-')},app=nivaana,credential=amazon`,
       ],
       { dryRun: options.dryRun }
     );
@@ -209,7 +215,7 @@ for (const [envName, secretName] of Object.entries(config.secrets)) {
   );
 }
 
-console.log('Amazon SIT secrets updated successfully.');
+console.log(options.dryRun ? 'Amazon secret update dry run completed.' : 'Amazon secrets updated successfully.');
 
 if (options.redeploy) {
   if (!config.cloudRunService) {

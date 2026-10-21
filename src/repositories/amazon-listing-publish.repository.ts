@@ -156,6 +156,7 @@ export interface AmazonListingPublishPersistence {
     expiresAt: Date;
   }): Promise<any>;
   getValidationAttempt?(requestKey: string): Promise<any | null>;
+  getPublishAttemptForRevision?(draftId: string, draftRevision: number): Promise<any | null>;
   createValidationAttempt?(input: {
     draftId: string;
     operation: string;
@@ -554,6 +555,13 @@ export class PrismaAmazonListingPublishRepository implements AmazonListingPublis
     return prisma.amazonListingPublishAttempt.findUnique({ where: { requestKey } });
   }
 
+  async getPublishAttemptForRevision(draftId: string, draftRevision: number) {
+    return prisma.amazonListingPublishAttempt.findFirst({
+      where: { draftId: BigInt(draftId), draftRevision, operation: 'PUBLISH' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+  }
+
   async createValidationAttempt(input: {
     draftId: string;
     operation: string;
@@ -563,6 +571,14 @@ export class PrismaAmazonListingPublishRepository implements AmazonListingPublis
     requestPayload: Prisma.InputJsonValue;
     actor: AmazonPublishActor;
   }) {
+    if (input.operation === 'PUBLISH') {
+      return prisma.amazonListingPublishAttempt.create({ data: {
+        draftId: BigInt(input.draftId), operation: input.operation, status: 'STARTED',
+        requestKey: input.requestKey, draftRevision: input.draftRevision,
+        payloadHash: input.payloadHash, requestPayload: input.requestPayload,
+        issues: [], ...actorData(input.actor),
+      } });
+    }
     return prisma.amazonListingPublishAttempt.upsert({
       where: { requestKey: input.requestKey },
       update: {},

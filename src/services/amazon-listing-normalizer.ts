@@ -189,21 +189,13 @@ export const normalizeAmazonListing = (
     Boolean(fbaInventory),
     sellerQuantity !== null
   );
-  const listingQuantities = (raw.fulfillmentAvailability ?? [])
-    .map((item) => item.quantity)
-    .filter((quantity): quantity is number => typeof quantity === 'number' && Number.isFinite(quantity));
   const fbaPublishedQuantity = normalizedQuantity(fbaInventory?.inventoryDetails?.fulfillableQuantity)
-    ?? (listingQuantities.length > 0
-      ? listingQuantities.reduce((total, quantity) => total + Math.max(0, Math.trunc(quantity)), 0)
-      : normalizedQuantity(fbaInventory?.totalQuantity))
     ?? (fulfilmentCodes.some((code) => code?.toUpperCase().startsWith('AMAZON_')) ? 0 : null);
   const publishedQuantity = fulfilmentChannel === 'FBA'
     ? fbaPublishedQuantity
     : sellerQuantity !== null
       ? sellerQuantity
-      : listingQuantities.length > 0
-        ? listingQuantities.reduce((total, quantity) => total + Math.max(0, Math.trunc(quantity)), 0)
-        : null;
+      : null;
 
   return {
     marketplace: 'AMAZON',

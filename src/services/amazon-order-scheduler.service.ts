@@ -29,7 +29,9 @@ const enqueueConfiguredScopes = async () => {
 };
 
 export const startAmazonOrderScheduler = async () => {
-  await amazonOrderJobService.recoverPendingJobs();
+  await amazonOrderJobService.recoverPendingJobs().catch((error) =>
+    logger.error({ error: error instanceof Error ? error.message : 'Unknown recovery error' },
+      'Amazon job recovery failed; scheduled retries will continue'));
   if (!env.AMAZON_ORDER_AUTO_SYNC_ENABLED || scheduledTask) return;
   if (!cron.validate(env.AMAZON_ORDER_SYNC_CRON)) {
     logger.error({ cron: env.AMAZON_ORDER_SYNC_CRON }, 'Amazon order scheduler has an invalid cron expression');

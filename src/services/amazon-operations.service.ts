@@ -103,8 +103,8 @@ export class AmazonOperationsService {
       prisma.amazonOrderImportJob.findFirst({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { createdAt: 'desc' } }),
       prisma.amazonOrderNotification.findFirst({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { eventTime: 'desc' } }),
       Promise.all([
-        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } }),
-        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, mappingStatus: { not: 'MAPPED' } } }),
+        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, NOT: { listingStatus: { contains: 'DELETED', mode: 'insensitive' } } } }),
+        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, mappingStatus: { not: 'MAPPED' }, NOT: { listingStatus: { contains: 'DELETED', mode: 'insensitive' } } } }),
         prisma.amazonMarketplaceOrder.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } }),
         prisma.amazonOrderFulfillmentException.count({ where: { status: 'OPEN', order: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } } }),
         prisma.amazonRetryJob.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, status: { in: ['QUEUED', 'RUNNING', 'FAILED'] } } }),
@@ -237,12 +237,21 @@ export class AmazonOperationsService {
   async enqueueRetry(scope: AmazonListingScope, input: { type: string; resourceId: string; listingId?: string; orderId?: string }, actor: Actor) {
     const supported = ['ORDER_IMPORT', 'INVENTORY_SYNC', 'FULFILLMENT_EXCEPTION'];
     if (!supported.includes(input.type)) throw new Error('This failure requires a fresh preview or manual correction and cannot be queued.');
-    const job = await prisma.amazonRetryJob.create({ data: {
+    const job = await prisma.$transaction(async (transaction) => {
+      const key = JSON.stringify([scope.sellerId, scope.marketplaceId, input.type, input.resourceId]);
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+      const existing = await transaction.amazonRetryJob.findFirst({ where: {
+        sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, operation: input.type,
+        resourceId: input.resourceId, status: { in: ['QUEUED', 'RUNNING'] },
+      } });
+      if (existing) return existing;
+      return transaction.amazonRetryJob.create({ data: {
       sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, operation: input.type,
       resourceType: input.type, resourceId: input.resourceId,
       payload: { listingId: input.listingId, orderId: input.orderId } as Prisma.InputJsonValue,
       ...actor,
-    } });
+      } });
+    });
     return { id: String(job.id), status: job.status, nextAttemptAt: job.nextAttemptAt.toISOString() };
   }
 
@@ -250,7 +259,9 @@ export class AmazonOperationsService {
     const job = await prisma.amazonRetryJob.findFirst({ where: { id: BigInt(jobId), sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } });
     if (!job) throw new Error('Retry job was not found');
     if (!['QUEUED', 'FAILED'].includes(job.status)) return { id: jobId, status: job.status };
-    await prisma.amazonRetryJob.update({ where: { id: job.id }, data: { status: 'RUNNING', attempts: { increment: 1 }, startedAt: new Date(), lastError: null } });
+    const claim = await prisma.amazonRetryJob.updateMany({ where: { id: job.id,
+      status: { in: ['QUEUED', 'FAILED'] } }, data: { status: 'RUNNING', attempts: { increment: 1 }, startedAt: new Date(), lastError: null } });
+    if (claim.count !== 1) return { id: jobId, status: 'RUNNING' };
     try {
       const payload = (job.payload || {}) as Record<string, string | undefined>;
       const inventoryActor = {
@@ -275,7 +286,7 @@ export class AmazonOperationsService {
       const message = error instanceof Error ? error.message : 'Retry failed';
       const attempts = job.attempts + 1;
       const terminal = attempts >= job.maxAttempts;
-      await prisma.amazonRetryJob.update({ where: { id: job.id }, data: { status: terminal ? 'FAILED' : 'QUEUED', lastError: message, nextAttemptAt: new Date(Date.now() + Math.min(60, 2 ** attempts) * 60_000), finishedAt: terminal ? new Date() : null } });
+      await prisma.amazonRetryJob.update({ where: { id: job.id }, data: { status: terminal ? 'FAILED' : 'QUEUED', lastError: message, nextAttemptAt: new Date(Date.now() + Math.floor((0.5 + Math.random() * 0.5) * Math.min(60, 2 ** attempts) * 60_000)), finishedAt: terminal ? new Date() : null } });
       throw error;
     }
   }

@@ -215,7 +215,7 @@ export class AmazonInventorySyncService {
           { attempt, sellerSku: context.sellerSku, error: this.getErrorMessage(error) },
           'Retrying Amazon inventory synchronization'
         );
-        await new Promise((resolve) => setTimeout(resolve, attempt * 300));
+        await new Promise((resolve) => setTimeout(resolve, Math.floor(Math.random() * attempt * 600)));
       }
     }
 
@@ -257,7 +257,14 @@ export class AmazonInventorySyncService {
       return this.logSuccess(context, 'INCREASED', previousQuantity, targetQuantity);
     }
 
-    await this.client.depleteInventory(context.sellerSku, previousQuantity - targetQuantity);
+    try {
+      await this.client.depleteInventory(context.sellerSku, previousQuantity - targetQuantity);
+    } catch (error) {
+      // A fulfillment order may already have consumed stock before a timeout.
+      const failure = new Error(this.getErrorMessage(error)) as Error & { code: string };
+      failure.code = 'AMAZON_WRITE_OUTCOME_UNKNOWN';
+      throw failure;
+    }
     return this.logSuccess(context, 'DECREASED', previousQuantity, targetQuantity);
   }
 
@@ -290,7 +297,8 @@ export class AmazonInventorySyncService {
   }
 
   private isRetryable(error: unknown): boolean {
-    const status = (error as any)?.response?.status;
+    if ((error as any)?.code === 'AMAZON_WRITE_OUTCOME_UNKNOWN') return false;
+    const status = (error as any)?.response?.status ?? (error as any)?.statusCode;
     return status === undefined || status === 429 || status >= 500;
   }
 

@@ -1,3 +1,4 @@
+import { logAmazonFailure } from '../utils/amazonFailureLog.js';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
@@ -18,7 +19,7 @@ import {
   amazonPublishCorrectionSchema,
   amazonPublishProductParamsSchema,
 } from '../schemas/amazon-listing-publish.schema.js';
-import { amazonListingScopeService } from '../services/amazon-listing-scope.service.js';
+import { amazonListingScopeService, AmazonListingScopeError } from '../services/amazon-listing-scope.service.js';
 import {
   AmazonListingPublishDraftError,
   amazonListingPublishDraftService,
@@ -34,7 +35,7 @@ import { createSuccessResponse } from '../utils/errorHandler.js';
 import { env } from '../config/env.js';
 
 const errorResponse = (reply: FastifyReply, error: unknown) => {
-  reply.request.log.error({ err: error }, 'Amazon publish draft operation failed');
+
   if (error instanceof ZodError) {
     return reply.code(400).send({
       success: false,
@@ -46,7 +47,7 @@ const errorResponse = (reply: FastifyReply, error: unknown) => {
   }
   if (error instanceof AmazonListingPublishDraftError || error instanceof AmazonListingPublishMediaError
     || error instanceof AmazonAuthorizationError
-    || error instanceof AmazonSpApiError || error instanceof AmazonProductionWriteDisabledError) {
+    || error instanceof AmazonSpApiError || error instanceof AmazonProductionWriteDisabledError || error instanceof AmazonListingScopeError) {
     return reply.code(error.statusCode).send({
       success: false,
       message: error.message,
@@ -140,7 +141,7 @@ export class AmazonListingPublishController {
         data.resumed ? 'Amazon publish draft resumed' : 'Amazon publish draft created',
         data
       ));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return errorResponse(reply, error);
     }
   };
@@ -151,7 +152,7 @@ export class AmazonListingPublishController {
       const scope = await this.resolveScope(request);
       const data = await amazonListingPublishDraftService.get(draftId, scope);
       return reply.code(200).send(createSuccessResponse('Amazon publish draft retrieved', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return errorResponse(reply, error);
     }
   };
@@ -160,7 +161,7 @@ export class AmazonListingPublishController {
     try {
       const data = await amazonListingPublishDraftService.list(await this.resolveScope(request));
       return reply.code(200).send(createSuccessResponse('Amazon publish drafts retrieved', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return errorResponse(reply, error);
     }
   };
@@ -180,7 +181,7 @@ export class AmazonListingPublishController {
         this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon publish draft cancelled', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return errorResponse(reply, error);
     }
   };
@@ -197,7 +198,7 @@ export class AmazonListingPublishController {
         ...(body.mappedAttributes !== undefined ? { mappedAttributes: body.mappedAttributes } : {}),
       }, scope, this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon publish draft updated', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return errorResponse(reply, error);
     }
   };
@@ -215,7 +216,7 @@ export class AmazonListingPublishController {
         }, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon catalog candidates retrieved', data));
-    } catch (error) { return errorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return errorResponse(reply, error); }
   };
 
   selectAsin = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -226,7 +227,7 @@ export class AmazonListingPublishController {
         draftId, body, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon ASIN selected', data));
-    } catch (error) { return errorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return errorResponse(reply, error); }
   };
 
   confirmNoCatalogMatch = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -237,7 +238,7 @@ export class AmazonListingPublishController {
         draftId, body, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('No Amazon catalog match confirmed', data));
-    } catch (error) { return errorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return errorResponse(reply, error); }
   };
 
   searchProductTypes = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -252,7 +253,7 @@ export class AmazonListingPublishController {
         }, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon product types retrieved', data));
-    } catch (error) { return errorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return errorResponse(reply, error); }
   };
 
   selectProductType = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -263,7 +264,7 @@ export class AmazonListingPublishController {
         draftId, body, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon product type selected', data));
-    } catch (error) { return errorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return errorResponse(reply, error); }
   };
 
   loadProductTypeDefinition = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -274,7 +275,7 @@ export class AmazonListingPublishController {
         draftId, body, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon product attributes loaded', data));
-    } catch (error) { return errorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return errorResponse(reply, error); }
   };
 
   checkEligibility = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -285,7 +286,7 @@ export class AmazonListingPublishController {
         draftId, body, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon listing eligibility checked', data));
-    } catch (error) { return errorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return errorResponse(reply, error); }
   };
 
   validateLocally = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -296,7 +297,7 @@ export class AmazonListingPublishController {
         draftId, body, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon draft validated locally', data));
-    } catch (error) { return errorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return errorResponse(reply, error); }
   };
 
   previewValidation = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -307,7 +308,7 @@ export class AmazonListingPublishController {
         draftId, body, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon validation preview completed', data));
-    } catch (error) { return errorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return errorResponse(reply, error); }
   };
 
   submit = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -318,7 +319,7 @@ export class AmazonListingPublishController {
         draftId, body, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon listing submitted for processing', data));
-    } catch (error) { return errorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return errorResponse(reply, error); }
   };
 
   reconcileSubmission = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -329,7 +330,7 @@ export class AmazonListingPublishController {
         draftId, body, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon listing status reconciled', data));
-    } catch (error) { return errorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return errorResponse(reply, error); }
   };
 
   reopenForCorrection = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -340,7 +341,7 @@ export class AmazonListingPublishController {
         draftId, body, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon correction draft reopened', data));
-    } catch (error) { return errorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return errorResponse(reply, error); }
   };
 
   uploadImage = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -386,7 +387,7 @@ export class AmazonListingPublishController {
         }
       );
       return reply.code(201).send(createSuccessResponse('Amazon draft image uploaded', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return errorResponse(reply, error);
     }
   };
@@ -400,7 +401,7 @@ export class AmazonListingPublishController {
         await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon draft image removed', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return errorResponse(reply, error);
     }
   };
@@ -414,7 +415,7 @@ export class AmazonListingPublishController {
         await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon draft image restored', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return errorResponse(reply, error);
     }
   };
@@ -428,7 +429,7 @@ export class AmazonListingPublishController {
         await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon draft images reordered', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return errorResponse(reply, error);
     }
   };
@@ -442,7 +443,7 @@ export class AmazonListingPublishController {
         await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon draft image accessibility checked', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return errorResponse(reply, error);
     }
   };

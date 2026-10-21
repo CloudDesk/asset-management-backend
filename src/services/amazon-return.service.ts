@@ -159,9 +159,16 @@ export class AmazonReturnService {
         await new Promise((resolve) => setTimeout(resolve, 10_000));
         report = await scope.client.getReport(requested.reportId);
       }
+      if (report.processingStatus === 'CANCELLED') {
+        await prisma.amazonReturnImportJob.update({
+          where: { id: job.id },
+          data: { status: 'CANCELLED', activeKey: null, errorMessage: null, finishedAt: new Date() },
+        });
+        return;
+      }
       if (report.processingStatus !== 'DONE' || !report.reportDocumentId) {
         throw new AmazonReturnError(
-          report.processingStatus === 'CANCELLED' || report.processingStatus === 'FATAL'
+          report.processingStatus === 'FATAL'
             ? `Amazon return report ended with ${report.processingStatus}`
             : 'Amazon return report is still processing; retry the import shortly',
           502,
@@ -346,10 +353,12 @@ export class AmazonReturnService {
   }
 
   private serializeJob(job: any) {
+    const cancelled = job.status === 'CANCELLED'
+      || (job.status === 'FAILED' && job.errorMessage === 'Amazon return report ended with CANCELLED');
     return {
-      id: String(job.id), fulfilmentType: job.fulfilmentType, status: job.status,
+      id: String(job.id), fulfilmentType: job.fulfilmentType, status: cancelled ? 'CANCELLED' : job.status,
       fetched: job.fetched, created: job.created, updated: job.updated, unmapped: job.unmapped,
-      errorMessage: job.errorMessage, startedAt: job.startedAt?.toISOString() ?? null,
+      errorMessage: cancelled ? null : job.errorMessage, startedAt: job.startedAt?.toISOString() ?? null,
       finishedAt: job.finishedAt?.toISOString() ?? null,
     };
   }
