@@ -54,6 +54,7 @@ export const ECOMMERCE_PUBLIC_ROUTES = [
     'POST /v1/phonepe/webhook',
     'POST /v1/ekart/webhook/track-status', // Ekart tracking status webhook
     'POST /v1/shipmozo/webhook/track-status',
+    'POST /v1/shipmozo/jobs/tracking-sync', // Cloud Scheduler; checks x-scheduler-secret
 
     // 9. Payment Callback APIs (PhonePe SDK redirects)
     'GET /v1/phonepe/callback/:transactionId',
