@@ -129,6 +129,8 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 | **FIX-2026-10-20-119** | 2026-10-20 | **Shipmozo — Courier Cancellation Moves the Order Back to Ready For Dispatch** | SIT TC-8 (order 188 / NIVAANA-0000000419): after a shipment was cancelled in the Shipmozo panel, Sync Shipmozo Tracking removed the AWB but left the order `in_transit`, so the Inventory badge, Ecom tracking and status history all said In Transit and the order had no shipment actions. A Shipmozo-reported cancellation of a `shipped` / `in_transit` / `out_for_delivery` order now moves the order and its active lines back to `ready_for_dispatch` (history entry, shipdate cleared) so a new shipment can be created. Automatic sync (TC-7) is parked as PLAN-09. | 🟡 Implemented (unit tests) / SIT Pending | — |
 | **FIX-2026-10-20-120** | 2026-10-20 | **Shipmozo — Tracking Auto-Sync via Cloud Scheduler + "Last synced on"** | SIT TC-7: a Shipmozo-panel cancel never reached Nivaana without a manual Sync, because the in-process node-cron does not run reliably on Cloud Run and each order was re-checked only every 60 minutes. New Cloud Scheduler endpoint `POST /v1/shipmozo/jobs/tracking-sync` (secret header) runs one tracking batch; re-check gate now 10 minutes (`SHIPMOZO_TRACKING_RECHECK_MINUTES`); Inventory Order Details shows "Last synced on" for active Shipmozo shipments. Implements PLAN-09. | 🟡 SIT Verified / UAT + Prod config pending | [Future Plans PLAN-09](../Future_Plans.md) |
 | **FIX-2026-10-21-121** | 2026-10-21 | **Inventory — Shipmozo Shown in Prod Again** | The Shipmozo REST API is active again (SIT and UAT tested with FIX-119 / FIX-120), but Prod Inventory still hid Shipmozo under Create Shipment because of the Prod-only check from FIX-115. Inventory `Prod` branch `integrationFeatures.ts` now matches `DEV-NEW` (`shipmozo: true`). | 🟡 Committed on `Prod` (`f6eb718`) / Prod deploy pending | — |
+| **FIX-2026-10-21-122** | 2026-10-21 | **Ecom — Contact Email Changed to ReachUs@nivaana.in** | Footer and policy pages listed support@, info@, privacy@, shipping@ and returns@nivaana.com; all now show ReachUs@nivaana.in (text and mailto links). | 🟡 Committed on Ecom `DEV-NEW` (`ddb0386`) / SIT Pending | — |
+| **FIX-2026-10-21-123** | 2026-10-21 | **Ecom — Company Details Moved to One Config File** | Company name, address, phone, email, website, hours and jurisdiction now come from `src/config/company.config.ts`; policy contact box lines from `CompanyContactLines`. Rendered HTML of all 8 pages unchanged. | 🟡 Committed on Ecom `DEV-NEW` (`ddb0386`) / SIT Pending | — |
 
 ---
 
@@ -1408,3 +1410,22 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Verification:** `npm run build:prod` OK; the Prod bundle renders the Shipmozo menu item without a flag check. Pending: push `Prod`, `npm run deploy:prod`, then Create Shipment shows Ekart and Shipmozo; resume the Prod Cloud Scheduler job if it was paused.
 * **Repository Impacted:**
   - `asset_management_frontend_aromazen` (`Prod` branch, `f6eb718`)
+
+### 2026-10-21: Ecom — Contact Email Changed to ReachUs@nivaana.in (FIX-122)
+* **Issue:** The Ecom footer and policy pages listed several addresses (`support@`, `info@`, `privacy@`, `shipping@`, `returns@nivaana.com`). The business wants a single contact address.
+* **Fix:** Every address replaced with `ReachUs@nivaana.in` (shown text and `mailto:` links) in `Footer.tsx`, `AboutUs.tsx`, `DeleteMyAccount.tsx`, `TermsAndConditions.tsx`, `PrivacyPolicy.tsx`, `CancellationPolicy.tsx`, `ShippingPolicy.tsx`, `ReplacementExchange.tsx`, `ReturnPolicy.tsx`.
+* **Compatibility:** Text only. No other repository (backend, admin, mobile) contained these addresses. FIX-121 is used on the Inventory `Prod` branch, so this is FIX-122.
+* **Verification:** `grep` finds no `@nivaana.com` address left in Ecom `src`; Ecom `tsc --noEmit` clean.
+* **Repository Impacted:**
+  - `Nivaana-Ecom-Web` (`DEV-NEW`)
+
+### 2026-10-21: Ecom — Company Details Moved to One Config File (FIX-123)
+* **Issue:** Company name, address, phone, email, website, service hours and jurisdiction were typed out separately in the footer, About Us, Delete My Account and six policy pages, so one change (FIX-122) meant editing nine files.
+* **Fix:**
+  - New `src/config/company.config.ts` (`company` object + `companyAddressFull`) holds every value.
+  - New `src/components/CompanyContactLines.tsx` renders the identical `<p>` lines used in the grey contact box on Shipping, Privacy, Replacement, Cancellation, Return and Terms pages (`showHours` for the pages with Customer Service Hours). Each page keeps its own wrapper div and classes.
+  - `Footer.tsx`, `AboutUs.tsx`, `DeleteMyAccount.tsx` and the policy pages' header line, body sentences ("At …", Terms company info / IP / liability / jurisdiction, Cancellation "Call … / Email …") read from `company`.
+* **Compatibility:** Text and layout unchanged; no classNames, elements or line splits changed.
+* **Verification:** Ecom `tsc --noEmit` and eslint clean. Local dev server: `document.body.innerHTML` of `/about`, `/terms`, `/privacy`, `/shipping`, `/cancellation`, `/returns`, `/replacement-exchange`, `/delete-my-account` captured before and after the change — identical except Vite's `?t=` cache query on its own script tag.
+* **Repository Impacted:**
+  - `Nivaana-Ecom-Web` (`DEV-NEW`)
