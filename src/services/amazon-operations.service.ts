@@ -116,13 +116,16 @@ export class AmazonOperationsService {
       prisma.amazonOrderImportJob.findFirst({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { createdAt: 'desc' } }),
       prisma.amazonOrderNotification.findFirst({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { eventTime: 'desc' } }),
       Promise.all([
-        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, NOT: { listingStatus: { contains: 'DELETED', mode: 'insensitive' } } } }),
-        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, mappingStatus: { not: 'MAPPED' }, NOT: { listingStatus: { contains: 'DELETED', mode: 'insensitive' } } } }),
+        // Listings / Unmapped count what Seller Central counts: not deleted and priced. Unpriced
+        // ("incomplete") listings are counted separately (counts[6]).
+        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, price: { not: null }, NOT: { listingStatus: { contains: 'DELETED', mode: 'insensitive' } } } }),
+        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, price: { not: null }, mappingStatus: { not: 'MAPPED' }, NOT: { listingStatus: { contains: 'DELETED', mode: 'insensitive' } } } }),
         // Real Amazon orders only, so the number matches Seller Central (test orders exist only in Nivaana)
         prisma.amazonMarketplaceOrder.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, NOT: { amazonOrderId: { startsWith: AMAZON_TEST_ORDER_PREFIX } } } }),
         prisma.amazonOrderFulfillmentException.count({ where: { status: 'OPEN', order: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } } }),
         prisma.amazonRetryJob.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, status: { in: ['QUEUED', 'RUNNING', 'FAILED'] } } }),
         prisma.amazonConnection.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } }),
+        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, price: null, NOT: { listingStatus: { contains: 'DELETED', mode: 'insensitive' } } } }),
       ]),
       this.activity(scope, 20),
       this.failures(scope, 20),
@@ -151,7 +154,7 @@ export class AmazonOperationsService {
         retryWorker: { enabled: env.AMAZON_RETRY_WORKER_ENABLED, cron: env.AMAZON_RETRY_WORKER_CRON },
         rateLimit,
       },
-      counts: { listings: counts[0], unmappedListings: counts[1], orders: counts[2], openFulfillmentExceptions: counts[3], retryQueue: counts[4] },
+      counts: { listings: counts[0], unmappedListings: counts[1], orders: counts[2], openFulfillmentExceptions: counts[3], retryQueue: counts[4], incompleteListings: counts[6] },
       settings: { productionWritesPaused: setting?.productionWritesPaused ?? false, pauseReason: setting?.pauseReason ?? null, pausedAt: iso(setting?.pausedAt) },
       permissions: userId ? await this.permissions(userId) : null,
       activities,

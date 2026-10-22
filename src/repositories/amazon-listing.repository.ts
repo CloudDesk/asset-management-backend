@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
-import { NormalizedAmazonListing } from '../services/amazon-listing-normalizer.js';
+import { NormalizedAmazonListing, isIncompleteAmazonListing } from '../services/amazon-listing-normalizer.js';
 import { buildCatalogWordStats, keyWords, scoreNameMatch, isSameAsin } from '../utils/amazonProductMatch.js';
 import { calculateAmazonTargetQuantity } from '../utils/amazonStockTarget.js';
 
@@ -24,6 +24,7 @@ export type AmazonListingQuery = {
   listingStatus?: string | undefined;
   productId?: string | undefined;
   activeOnly?: boolean | undefined;
+  incomplete?: boolean | undefined;
   page: number;
   limit: number;
 };
@@ -260,6 +261,7 @@ const serializeListing = (
     source: 'AMAZON_READ_ONLY',
   } : null,
   price: listing.price?.toString() ?? null,
+  incomplete: isIncompleteAmazonListing(listing),
   currency: listing.currency,
   amazonLastUpdatedAt: listing.amazonLastUpdatedAt?.toISOString() ?? null,
   productId: listing.productId === null ? null : String(listing.productId),
@@ -574,6 +576,8 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     if (query.listingStatus) {
       where.listingStatus = { contains: query.listingStatus, mode: 'insensitive' };
     }
+    // Incomplete = no offer price on Amazon (see isIncompleteAmazonListing)
+    if (query.incomplete !== undefined) where.price = query.incomplete ? null : { not: null };
     // Default catalogue/mapping requests show current listings. An explicit
     // status filter or activeOnly=false still provides access to history.
     if (query.activeOnly ?? !query.listingStatus) {

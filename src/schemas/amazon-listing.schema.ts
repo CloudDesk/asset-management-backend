@@ -28,6 +28,8 @@ export const amazonListingQuerySchema = z.object({
   // Listings mapped to one Nivaana product (mapping dialog warns about shared products)
   productId: z.string().trim().regex(/^[1-9]\d*$/, 'must be a positive integer identifier').optional(),
   activeOnly: optionalBoolean,
+  // true: only listings without an Amazon price (not for sale yet); false: only priced ones
+  incomplete: optionalBoolean,
   page: positiveInteger(1, 1_000_000),
   limit: positiveInteger(20, 100),
 }).strict();

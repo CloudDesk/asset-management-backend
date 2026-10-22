@@ -6,7 +6,7 @@ import { amazonListingScopeService } from './amazon-listing-scope.service.js';
 import {
   classifyAmazonFulfilment,
   extractAmazonSellerQuantity,
-  isInactiveAmazonListing,
+  isIncompleteAmazonListing, isInactiveAmazonListing,
   normalizeAmazonListingStatus,
 } from './amazon-listing-normalizer.js';
 import { amazonProductionWriteGuardService } from './amazon-production-write-guard.service.js';
@@ -60,6 +60,7 @@ export const resolveAmazonInventoryConfirmation = (
 
 type AmazonInventoryEligibleListing = {
   listingStatus: string;
+  price: unknown;
   mappingStatus: string;
   productId: bigint | number | string | null;
   fulfilmentChannel: string;
@@ -72,6 +73,13 @@ export const assertAmazonInventoryListingEligible = (listing: AmazonInventoryEli
       'Map this Amazon listing before synchronizing stock',
       409,
       'AMAZON_LISTING_NOT_MAPPED'
+    );
+  }
+  if (isIncompleteAmazonListing(listing)) {
+    throw new AmazonProductionInventoryError(
+      'This listing has no price on Amazon yet, so it is not for sale. Set a price in Seller Central first.',
+      409,
+      'AMAZON_LISTING_INCOMPLETE'
     );
   }
   if (isInactiveAmazonListing(listing.listingStatus)) {
@@ -158,6 +166,7 @@ export class AmazonProductionInventoryService {
         lastInventorySyncAt: true,
         lastInventorySyncStatus: true,
         lastSyncedQuantity: true,
+        price: true,
       },
     });
     if (!listing) throw new AmazonProductionInventoryError('Amazon listing was not found', 404, 'AMAZON_LISTING_NOT_FOUND');

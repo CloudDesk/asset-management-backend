@@ -47,3 +47,22 @@ test('GET /listings route schema accepts activeOnly instead of dropping it (FIX-
   assert.equal((await app.inject({ method: 'GET', url: '/api/channels/amazon/listings?activeOnly=false' })).statusCode, 401);
   assert.equal((await app.inject({ method: 'GET', url: '/api/channels/amazon/listings?activeOnly=maybe' })).statusCode, 400);
 });
+
+test('incomplete filter: route accepts it, query parses it, and it reaches the repository', async (t) => {
+  const app = Fastify();
+  app.setErrorHandler(errorHandler);
+  await app.register(amazonChannelRoutes, { prefix: '/api/channels/amazon' });
+  t.after(() => app.close());
+  assert.equal((await app.inject({ method: 'GET', url: '/api/channels/amazon/listings?incomplete=true' })).statusCode, 401);
+  assert.equal((await app.inject({ method: 'GET', url: '/api/channels/amazon/listings?incomplete=maybe' })).statusCode, 400);
+  assert.equal(amazonListingQuerySchema.parse({ incomplete: 'true' }).incomplete, true);
+
+  const calls: unknown[] = [];
+  const service = new AmazonListingImportService({
+    repository: { listListings: async (query: unknown) => { calls.push(query); return { items: [], total: 0 }; } } as never,
+    client: { getSellerId: () => 'SELLER', getMarketplaceId: () => 'MKT' } as never,
+    enabled: true,
+  });
+  await service.listListings({ incomplete: true, page: 1, limit: 20 });
+  assert.equal((calls[0] as { incomplete?: boolean }).incomplete, true);
+});
