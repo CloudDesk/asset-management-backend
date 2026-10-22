@@ -735,6 +735,21 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
     },
   }, controller.setInventorySyncMode);
 
+  fastify.get('/listings/:listingId/inventory/check', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
+    schema: {
+      description: 'Re-read the Amazon quantity and confirm a stock send Amazon accepted but has not applied yet (records nothing new)',
+      tags: ['Amazon Production Inventory'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        required: ['listingId'],
+        properties: { listingId: { type: 'string', pattern: '^[1-9]\\d*$' } },
+        additionalProperties: false,
+      },
+    },
+  }, controller.checkPendingInventorySync);
+
   fastify.get('/listings/:listingId/inventory/history', {
     preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
     schema: {

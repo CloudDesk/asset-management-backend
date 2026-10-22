@@ -304,6 +304,20 @@ export class AmazonProductionInventoryService {
     });
   }
 
+  /**
+   * Re-reads Amazon's quantity and confirms (or times out) a send that Amazon accepted but has not applied yet.
+   * Unlike preview, it records nothing new; the Stock sync dialog calls it every few seconds while waiting.
+   */
+  async checkPendingSend(listingId: string, scope: AmazonListingScope) {
+    const context = await this.loadContext(listingId, scope);
+    const amazonQuantity = await this.getRemoteQuantity(scope, context.listing.sellerSku);
+    await this.reconcileSubmittedAttempt(context.listing.id, amazonQuantity);
+    const pending = await prisma.amazonInventorySyncAttempt.count({
+      where: { listingId: context.listing.id, status: 'SUBMITTED' },
+    });
+    return { amazonQuantity, pending: pending > 0, checkedAt: new Date().toISOString() };
+  }
+
   async preview(listingId: string, scope: AmazonListingScope, actor: AmazonInventoryActor = {}) {
     const context = await this.loadContext(listingId, scope);
     const amazonQuantity = await this.getRemoteQuantity(scope, context.listing.sellerSku);

@@ -361,6 +361,16 @@ export class AmazonListingController {
     }
   };
 
+  checkPendingInventorySync = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const data = await amazonProductionInventoryService.checkPendingSend(listingId, await this.resolveScope(request));
+      return reply.code(200).send(createSuccessResponse('Amazon stock checked', data));
+    } catch (error) { logAmazonFailure(request, error);
+      return inventoryErrorResponse(reply, error);
+    }
+  };
+
   getInventorySyncHistory = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { listingId } = amazonListingParamsSchema.parse(request.params);

@@ -66,3 +66,12 @@ test('incomplete filter: route accepts it, query parses it, and it reaches the r
   await service.listListings({ incomplete: true, page: 1, limit: 20 });
   assert.equal((calls[0] as { incomplete?: boolean }).incomplete, true);
 });
+
+test('GET /listings/:id/inventory/check is registered: login required, bad id rejected (FIX-152)', async (t) => {
+  const app = Fastify();
+  app.setErrorHandler(errorHandler);
+  await app.register(amazonChannelRoutes, { prefix: '/api/channels/amazon' });
+  t.after(() => app.close());
+  assert.equal((await app.inject({ method: 'GET', url: '/api/channels/amazon/listings/12/inventory/check' })).statusCode, 401);
+  assert.equal((await app.inject({ method: 'GET', url: '/api/channels/amazon/listings/abc/inventory/check' })).statusCode, 400);
+});
