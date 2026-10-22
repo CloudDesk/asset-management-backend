@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { env } from '../config/env.js';
 import { prisma } from '../models/prisma.js';
+import { actorKey, resolveActorNames, type ActorRef } from '../utils/amazonActorNames.js';
 import { AMAZON_TEST_ORDER_PREFIX } from '../utils/amazonTestOrder.js';
 import { AmazonListingScope, amazonListingScopeService } from './amazon-listing-scope.service.js';
 import { amazonOrderJobService } from './amazon-order-job.service.js';
@@ -96,6 +97,14 @@ export const summarizeAmazonOperationsError = (
 };
 
 /** User-facing Operations errors (message is safe to show; FIX-135) */
+/** Scheduled order imports of the last 24 hours as one line: how many ran, how many failed, the latest */
+export const summarizeScheduledImports = (jobs: Array<{ status: string; createdAt: Date; finishedAt: Date | null }>) => ({
+  runs: jobs.length,
+  failed: jobs.filter((job) => job.status === 'FAILED').length,
+  lastRunAt: jobs[0] ? (jobs[0].finishedAt ?? jobs[0].createdAt).toISOString() : null,
+  lastStatus: jobs[0]?.status ?? null,
+});
+
 export class AmazonOperationsError extends Error {
   constructor(message: string, readonly statusCode: number, readonly code: string) {
     super(message);
@@ -127,7 +136,7 @@ export class AmazonOperationsService {
         prisma.amazonConnection.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } }),
         prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, price: null, NOT: { listingStatus: { contains: 'DELETED', mode: 'insensitive' } } } }),
       ]),
-      this.activity(scope, 20),
+      this.activity(scope, 20, { realEventsOnly: true }),
       this.failures(scope, 20),
       prisma.amazonRetryJob.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { createdAt: 'desc' }, take: 20 }),
       amazonApiTelemetryService.health(scope.sellerId, scope.marketplaceId),
@@ -158,6 +167,11 @@ export class AmazonOperationsService {
       settings: { productionWritesPaused: setting?.productionWritesPaused ?? false, pauseReason: setting?.pauseReason ?? null, pausedAt: iso(setting?.pausedAt) },
       permissions: userId ? await this.permissions(userId) : null,
       activities,
+      scheduledOrderImports: summarizeScheduledImports(await prisma.amazonOrderImportJob.findMany({
+        where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, trigger: 'SCHEDULED', createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } },
+        orderBy: { createdAt: 'desc' },
+        select: { status: true, createdAt: true, finishedAt: true },
+      })),
       failures,
       retries: retries.map((job) => ({
         ...job,
@@ -206,19 +220,37 @@ export class AmazonOperationsService {
     return { productionWritesPaused: setting.productionWritesPaused, pauseReason: setting.pauseReason, pausedAt: iso(setting.pausedAt) };
   }
 
-  async activity(scope: AmazonListingScope, limit = 50) {
-    const [ops, syncs, imports, audits] = await Promise.all([
+  // options.realEventsOnly (Activity tab): leave out the every-15-minutes order imports (shown as one summary
+  // line) and the per-listing audit rows every listing import writes, and add stock sent to Amazon
+  async activity(scope: AmazonListingScope, limit = 50, options: { realEventsOnly?: boolean } = {}) {
+    const realOnly = options.realEventsOnly === true;
+    const importWhere = realOnly ? { trigger: { not: 'SCHEDULED' } } : {};
+    const auditWhere = realOnly ? { operation: { in: ['MAPPED', 'REMAPPED', 'MAPPING_UPDATED', 'UNMAPPED'] } } : {};
+    const [ops, syncs, imports, audits, stockSends] = await Promise.all([
       prisma.amazonOperationsAudit.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { createdAt: 'desc' }, take: limit }),
       prisma.channelSyncLog.findMany({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { startedAt: 'desc' }, take: limit }),
-      prisma.amazonOrderImportJob.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { createdAt: 'desc' }, take: limit }),
-      prisma.marketplaceListingAudit.findMany({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { createdAt: 'desc' }, take: limit }),
+      prisma.amazonOrderImportJob.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, ...importWhere }, orderBy: { createdAt: 'desc' }, take: limit }),
+      prisma.marketplaceListingAudit.findMany({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, ...auditWhere }, orderBy: { createdAt: 'desc' }, take: limit }),
+      realOnly
+        ? prisma.amazonInventorySyncAttempt.findMany({
+          where: { operation: { not: 'PREVIEW' }, listing: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } },
+          orderBy: { createdAt: 'desc' },
+          take: limit,
+          select: { id: true, status: true, amazonQuantity: true, targetQuantity: true, createdAt: true, requestedByUserId: true, requestedByUserType: true, listing: { select: { sellerSku: true } } },
+        })
+        : Promise.resolve([]),
     ]);
-    return [
+    // Who did it (mappings, stock sends, manual imports store the user)
+    const names = realOnly ? await resolveActorNames([...syncs, ...imports, ...audits, ...stockSends]) : new Map<string, string>();
+    const by = (item: ActorRef) => names.get(actorKey(item) ?? '') ?? null;
+    const rows: Array<{ id: string; category: string; action: string; status: string; message: unknown; occurredAt: string; by?: string | null }> = [
       ...ops.map((item) => ({ id: `operation-${item.id}`, category: 'OPERATIONS', action: item.action, status: item.outcome, message: item.details, occurredAt: item.createdAt.toISOString() })),
-      ...syncs.map((item) => ({ id: `listing-sync-${item.id}`, category: 'LISTINGS', action: item.operation, status: item.status, message: item.errorMessage ? summarizeAmazonOperationsError(item.errorMessage, 'LISTING_IMPORT').userMessage : `${item.totalFetched} fetched`, occurredAt: item.startedAt.toISOString() })),
-      ...imports.map((item) => ({ id: `order-import-${item.id}`, category: 'ORDERS', action: `${item.trigger}_${item.mode}`, status: item.status, message: item.errorMessage ? summarizeAmazonOperationsError(item.errorMessage, 'ORDER_IMPORT').userMessage : `${item.fetched} fetched`, occurredAt: item.createdAt.toISOString() })),
-      ...audits.map((item) => ({ id: `listing-audit-${item.id}`, category: 'LISTINGS', action: item.operation, status: item.operation.includes('FAILED') ? 'FAILED' : 'SUCCESS', message: item.sellerSku, occurredAt: item.createdAt.toISOString() })),
-    ].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, limit);
+      ...syncs.map((item) => ({ id: `listing-sync-${item.id}`, by: by(item), category: 'LISTINGS', action: item.operation, status: item.status, message: item.errorMessage ? summarizeAmazonOperationsError(item.errorMessage, 'LISTING_IMPORT').userMessage : `${item.totalFetched} fetched`, occurredAt: item.startedAt.toISOString() })),
+      ...imports.map((item) => ({ id: `order-import-${item.id}`, by: by(item), category: 'ORDERS', action: `${item.trigger}_${item.mode}`, status: item.status, message: item.errorMessage ? summarizeAmazonOperationsError(item.errorMessage, 'ORDER_IMPORT').userMessage : `${item.fetched} fetched`, occurredAt: item.createdAt.toISOString() })),
+      ...stockSends.map((item) => ({ id: `stock-send-${item.id}`, by: by(item), category: 'STOCK', action: 'STOCK_SENT', status: item.status, message: `${item.listing.sellerSku}: Amazon ${item.amazonQuantity ?? '-'} → ${item.targetQuantity}`, occurredAt: item.createdAt.toISOString() })),
+      ...audits.map((item) => ({ id: `listing-audit-${item.id}`, by: by(item), category: 'LISTINGS', action: item.operation, status: item.operation.includes('FAILED') ? 'FAILED' : 'SUCCESS', message: item.sellerSku, occurredAt: item.createdAt.toISOString() })),
+        ];
+    return rows.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, limit);
   }
 
   async failures(scope: AmazonListingScope, limit = 50) {
