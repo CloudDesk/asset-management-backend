@@ -26,6 +26,23 @@ One place for everything Amazon (SP-API) in Nivaana: how it works, where it is s
 
 ---
 
+## 1a. Environments and Amazon (one live Amazon account, four databases)
+
+| Environment | Database | Data | Amazon reads (import listings / orders) | Amazon writes (stock, price, shipment) | Scheduled order sync |
+| --- | --- | --- | --- | --- | --- |
+| Local | `assetmanagement_dev` | Test data | Manual only (Refresh) | **Never** | **Off** (`AMAZON_ORDER_AUTO_SYNC_ENABLED="false"`) |
+| SIT | `assetmanagement_dev` (**same as local**) | Test data | Yes | **Never** | Cloud Scheduler, hourly (one runner per DB) |
+| UAT | `assetmanagement_uat` | Prod-like copy | Yes — best place to try mapping and stock previews with realistic stock | **One controlled single-listing test only** (below); otherwise never | Cloud Scheduler (optional) |
+| Prod | `railway` | Live | Yes | Yes, after the go-live checklist (5a) | Cloud Scheduler, every 15 min |
+
+Rules that follow:
+- **Writes only from Prod.** Every environment talks to the same live Seller Central account. If UAT (or SIT) also published stock, two systems would overwrite each other's numbers on the same Amazon listings; UAT stock also drifts from Prod after the copy. Keep `AMAZON_PRODUCTION_WRITES_ENABLED="false"` and `AMAZON_ENVIRONMENT` ≠ `PRODUCTION` everywhere except Prod.
+- **UAT single-listing write test (allowed once, before Prod go-live):** proves the write path (token, SP-API role, `patchListingsItem`, submission status) without touching other listings. Steps: (1) credentials fixed, `AMAZON_INTEGRATION_ENABLED: "true"` on UAT, listings imported; (2) pick **one** FBM listing, map it, pack size 1; (3) set the UAT "amazon" platform stock of that product to the quantity Amazon **already shows** (so the published number does not change what customers see); (4) temporarily `AMAZON_ENVIRONMENT: PRODUCTION` + `AMAZON_PRODUCTION_WRITES_ENABLED: "true"`, keep `AMAZON_AUTO_SYNC_ENABLED: "false"`; (5) listing mode **Manual**, preview, Sync stock now, check Seller Central and the sync history; (6) set the listing back to Off and the two write switches back to SANDBOX / false the same day. Never Automatic on UAT.
+- **Local and SIT share one database:** only one of them may run the scheduled order sync (SIT via Cloud Scheduler). Listings imported or mapped on local appear on SIT and the other way round.
+- **Each database keeps its own copy** of listings, orders and **mappings**. Mapping done on local / SIT / UAT does **not** reach Prod. The 172 mappings must be done on Prod (or exported and imported — AMZ-PLAN-23); mapping elsewhere is practice / testing.
+- Orders imported into dev / UAT are copies of real orders: view only, never fulfil them there (shipment confirmation is a write and is blocked by the locks above).
+- Credentials are the same set everywhere (one app, one seller); rotating the secret means updating local `.env` and the GCP secrets of SIT, UAT and Prod together.
+
 ## 2. How it fits together
 
 ### 2.1 Credentials: which Amazon account is used
@@ -76,6 +93,8 @@ Large multi-component files: `AmazonProductionListingsTable.tsx` (1,311 lines, t
 ---
 
 ## 3. Environment variables (backend `src/config/env.ts`)
+
+**Start here: [`amazon.env.example`](amazon.env.example)** — only what an environment needs, grouped by purpose: 4 connection values, 5–6 switches, optional groups (OAuth, notifications, listing publish, other schedules), defaults to leave unset, and 8 variables to remove. Today `.env.sit` / `.env.uat` carry 31 Amazon lines and `cloudbuildprod.yaml` 25; most are defaults or unused (AMZ-PLAN-22). The full table below is the complete list.
 
 | Group | Variables |
 | --- | --- |
@@ -143,7 +162,9 @@ Stock sync writes to the **real** Amazon account (there is no sandbox account wi
 
 ## 6. Known issues
 
-### 6.1 Amazon rejects the app credentials (`invalid_client`) — open, fix planned 2026-10-22 morning
+### 6.1 Amazon rejects the app credentials (`invalid_client`) — **resolved locally 2026-10-22 (FIX-130)**; GCP secrets pending
+
+**2026-10-22 result:** token test failed for both apps (expired secrets), then OK after the new client secret + refresh token went into local `.env`. Listing import 172 / 172 updated, 0 failed. Order catch-up: 46 orders (26 new) since 2026-10-14, total 495 → 521. Remaining: GCP secrets for SIT / UAT / Prod, secret expiry reminder, local order sync off after SIT's Cloud Scheduler job.
 
 **Timeline (dev DB `assetmanagement_dev`, IST = UTC + 5:30)**
 
@@ -198,7 +219,7 @@ So every Amazon number on screen (quantity, price, status) is the **2026-10-14 s
 
 **After the fix, still open:** old FAILED jobs keep the Activity badge red (6.2, AMZ-PLAN-06); Cloud Scheduler jobs not created yet (section 4); writes stay off until the go-live checklist (section 5a).
 
-### 6.2 Activity tab always says "Needs attention" — open
+### 6.2 Activity tab always says "Needs attention" — fixed 2026-10-22 (FIX-132)
 `health.overall` is `ATTENTION` whenever any of the latest failures exist; failed order import jobs have no resolved state, so old failures keep it red even after sync works again (AMZ-PLAN-06).
 
 ### 6.3 Overview "Last order import" shows failed runs as if fine — open
@@ -235,6 +256,12 @@ LWA token failures now report Amazon's own reason (`invalid_client`, `invalid_gr
 - Identifiers column merged into the listing column: `SELLER-SKU | ASIN (| FNSKU)` under the title, each with a hover label; full title on hover. Listing details modal redesigned (markup only): summary card (full title, SKU | ASIN | FNSKU, fulfilment / "Live on Amazon" or problem / mapping badges), 4 figure tiles (Amazon qty, ₹ price, product type in plain case, last imported), Nivaana product card when mapped, FBA tiles, issues with icon + plain-case name + message (red for ERROR), offer form with a label above every field and "Now …" placeholders, Validate button right-aligned with the last submission note, mapping history as a timeline. Row actions are 32px icon buttons with tooltips: Details (eye), Map (link, gold) / Edit mapping (pen, gold), Remove mapping (link-slash, red), Stock sync (rotate, Stock Sync tab only).
 - Backup before the redesign: branch `backup/amazon-ui-before-redesign-2026-10-21` (pushed).
 
+### 2026-10-22: Amazon — "Needs attention" clears after recovery (FIX-132, backend DEV-NEW)
+Order / listing import failures followed by a successful import of the same kind no longer count; dev DB 50 → 0 failures, health HEALTHY.
+
+### 2026-10-22: Amazon — Connection restored (FIX-130) and real connection status (FIX-131)
+FIX-130: new LWA client secret + refresh token in local `.env`; 172 listings imported; 46 orders caught up. FIX-131: `GET /api/channels/amazon/connection-check` (live token + latest imports) drives the Channels badge and the Overview connection card — Connected / Connected · sync failing / Connection failed (since …) / Amazon unreachable / Not configured / Disabled, with Amazon's reason and a Recheck button. The old "Environment configured" label is gone.
+
 ### 2026-10-21: Amazon — Stock Sync shows the real Amazon error (FIX-129, backend DEV-NEW)
 Inventory endpoints now return Amazon credential / API / write-switch errors with their message and `AMAZON_*` code instead of a generic 500 (no logout: the Inventory ignores `AMAZON_*` 401s).
 
@@ -266,7 +293,7 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 ## 9. Future plans (AMZ-PLAN-xx)
 
 ### AMZ-PLAN-01: Fix and rotate the Amazon app credentials
-**Status:** Open, blocking everything else; fix planned 2026-10-22 morning — step-by-step runbook in section 6.1. Get the current LWA client secret (Seller Central → Develop Apps), update `.env` and GCP secrets, re-authorize if `invalid_grant` appears. Write down the secret's expiry date here and add a reminder before the next rotation (Amazon expires LWA client secrets periodically).
+**Status:** Local fixed 2026-10-22 (FIX-130); **left:** GCP secrets for SIT / UAT / Prod, record the new secret's expiry date here and set a reminder. Runbook in section 6.1. Get the current LWA client secret (Seller Central → Develop Apps), update `.env` and GCP secrets, re-authorize if `invalid_grant` appears. Write down the secret's expiry date here and add a reminder before the next rotation (Amazon expires LWA client secrets periodically).
 
 ### AMZ-PLAN-02: SIT on the Prod Amazon account, read-only
 **Status:** Decided in principle 2026-10-21, not started. Sandbox has no useful data.
@@ -286,13 +313,13 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 **Status:** Open. Reports API polling is too long for one request: split into a "request report" job and a "collect finished reports" job (both quick), or keep node-cron for returns on an always-on instance.
 
 ### AMZ-PLAN-06: Failure lifecycle and "Needs attention"
-**Status:** Open. Mark failed order / listing imports as superseded once a later run succeeds (or count only failures after the last success), so the Activity badge turns green again. Add backoff when the same credential error repeats (today 96 failed jobs a day per laptop).
+**Status:** Partly done 2026-10-22 (FIX-132: import failures followed by a success no longer count). Left: backoff on repeated credential errors. Mark failed order / listing imports as superseded once a later run succeeds (or count only failures after the last success), so the Activity badge turns green again. Add backoff when the same credential error repeats (today 96 failed jobs a day per laptop).
 
 ### AMZ-PLAN-07: Overview shows import status, not just time
 **Status:** Open. "Last order import 18:30" should say "Failed" / "Successful" and show the last successful time too.
 
 ### AMZ-PLAN-08: Map the 172 unmapped listings
-**Status:** Open (business task). Stock sync and seller-fulfilled order processing need mapped SKUs. Mappings tab → bulk map.
+**Status:** Open (business task). Do it on **Prod** (or on UAT and move with AMZ-PLAN-23) — mappings do not travel between databases (section 1a). Stock sync and seller-fulfilled order processing need mapped SKUs. Mappings tab → bulk map.
 
 ### AMZ-PLAN-09: Real-time notifications (SQS / EventBridge)
 **Status:** Open. All 5 subscription types show "Setup required"; needs an AWS destination and `AMAZON_NOTIFICATION_*` values. Until then the scheduled sync is the only update path.
@@ -337,6 +364,20 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 ### AMZ-PLAN-21: Missing Amazon fulfilment features
 **Status:** Open (needs backend APIs). Gap U7. Easy Ship cancellation, Amazon shipping document download, product-content editing, listing disable, alert recipients, per-workflow automation controls. These were listed in the old Settings note (removed from the page 2026-10-21).
 
+
+### AMZ-PLAN-22: Trim Amazon environment variables
+**Status:** In progress. Found 2026-10-22. **Done 2026-10-22 (not committed):** `AMAZON_REGION` and the five `AMAZON_SANDBOX_*` lines removed from `.env`, `.env.sit`, `.env.uat`, `.env.prod`, `cloudbuildprod.yaml` (release checklist 4e). **Left:** remove the variables and the sandbox code from `env.ts` / services / routes / Inventory; trim lines equal to defaults; rotate or delete the sandbox app. 43 Amazon variables exist; a deployment needs about 9 (`amazon.env.example`).
+- **Remove from `env.ts` and every env file / trigger:** `AMAZON_SP_API_BASE_URL`, `AMAZON_AWS_IAM_ROLE_ARN`, `AMAZON_REGION` (never read by code).
+- **Security first:** `.env.sit` / `.env.uat` (tracked in git) hold the sandbox app's client secret and refresh token. Remove the lines, then rotate that app's secret or delete the app in Seller Central (git history still has the old values).
+- **Remove the sandbox feature:** `AMAZON_SANDBOX_CLIENT_ID`, `_CLIENT_SECRET`, `_REFRESH_TOKEN`, `_SP_API_BASE_URL`, `AMAZON_SANDBOX_CREDENTIAL_SOURCE`, plus `amazon-sandbox-inventory.service.ts`, the `/v1/amazon/sandbox/*` routes in `amazon.route.ts`, the sandbox section of `amazon-integration-status.service.ts`, the non-production branch of `amazon-inventory-sync.service.ts`, and Inventory `AmazonSandboxInventoryTable.tsx` (panel already removed from the page). Sandbox has no real data and its credentials belong to a different Amazon app.
+- **Trim `.env.sit`, `.env.uat`, `cloudbuildprod.yaml`** to the sample: drop lines equal to the default.
+- **Consider:** rename `AMAZON_AUTO_SYNC_ENABLED` → `AMAZON_STOCK_AUTO_SYNC_ENABLED` (keep the old name as a fallback for one release); keep `AMAZON_ENVIRONMENT` — it is the second lock on writes.
+- **Release:** rows in `RELEASE_SCRIPTS_CHECKLIST.md` 4e for each env file change; tests for env parsing and the removed routes (404).
+
+
+### AMZ-PLAN-23: Move mappings between environments
+**Status:** Open. Found 2026-10-22. Mappings live in each database (`marketplace_listings.productId`, `unitsPerListing`, `inventorySyncMode`), so work done on dev / UAT does not reach Prod. Options: (a) map directly on Prod once it reads Amazon; (b) export from UAT (seller SKU → product PUC, pack size) and import on Prod with a script that matches by seller SKU and PUC, dry-run first, and writes the normal mapping audit rows. Product IDs differ between databases, so match by PUC, never by ID.
+
 ---
 
 ## 10. Gap register (2026-10-22)
@@ -347,11 +388,11 @@ Every known gap across the Amazon modules, in one list. Severity: **Critical** =
 
 | # | Gap | Severity | Plan | Status |
 | --- | --- | --- | --- | --- |
-| P1 | Amazon rejects the app credentials (`invalid_client`) since 2026-10-14; every Amazon call fails | Critical | AMZ-PLAN-01 (runbook 6.1) | Fix planned 2026-10-22 |
-| P2 | No alert when Amazon sync keeps failing — a week of failures went unnoticed | High | AMZ-PLAN-15 | Open |
+| P1 | Amazon rejects the app credentials (`invalid_client`) since 2026-10-14; every Amazon call fails | Critical | AMZ-PLAN-01 (runbook 6.1) | ✅ Local fixed 2026-10-22 (FIX-130); GCP secrets pending |
+| P2 | No alert when Amazon sync keeps failing — a week of failures went unnoticed | High | AMZ-PLAN-15 | Partly done: Channels / Overview now show "Connection failed (since …)" (FIX-131); no push alert yet |
 | P3 | Scheduled work on node-cron: unreliable on Cloud Run, and runs on every developer laptop against the shared dev DB | High | AMZ-PLAN-03, AMZ-PLAN-04 | Endpoints built (FIX-124, not committed); jobs not created |
 | P4 | Returns import has no Cloud Scheduler job (Reports API polling too long for one request) | Medium | AMZ-PLAN-05 | Open |
-| P5 | Failed jobs are never marked resolved; no backoff on repeated credential errors (~96 failed jobs / day / laptop) | Medium | AMZ-PLAN-06 | Open |
+| P5 | Failed jobs are never marked resolved; no backoff on repeated credential errors (~96 failed jobs / day / laptop) | Medium | AMZ-PLAN-06 | Resolved part ✅ (FIX-132: failures before the last success no longer count); backoff still open |
 | P6 | Real-time notifications (SQS / EventBridge) not set up; only the scheduled sync updates data | Medium | AMZ-PLAN-09 | Open |
 | P7 | Stock is not split when one product has several seller-fulfilled listings; sandbox and production paths disagree | High | AMZ-PLAN-14 | Warning added (FIX-127) |
 | P8 | Operations API (`amazon-operations.route.ts` `fail()`) returns any error's raw message with status 400 — unknown errors leak internal text and look like client errors | Medium | AMZ-PLAN-16 | Open |
@@ -359,24 +400,28 @@ Every known gap across the Amazon modules, in one list. Severity: **Critical** =
 | P10 | Local `.env` says `AMAZON_ENVIRONMENT=SANDBOX` while the env fallback uses the production account — confusing, and writes need `PRODUCTION` | Low | Section 5a | Open |
 | P11 | Amazon off on SIT / UAT; SIT on the Prod account read-only not done | Medium | AMZ-PLAN-02 | Decided, not started |
 | P12 | Who may authorize a seller account (OAuth is per user and changes that user's data) | Medium | AMZ-PLAN-10 | Open |
+| P13 | 43 Amazon env variables for one integration (31 lines in `.env.sit`); 3 unused, 5 sandbox-only, most others defaults — hard to deploy and review | Medium | AMZ-PLAN-22 | Sample written (`amazon.env.example`) |
+| P14 | **Secrets committed in git:** `.env.sit` and `.env.uat` (tracked) contain `AMAZON_SANDBOX_CLIENT_SECRET` and `AMAZON_SANDBOX_REFRESH_TOKEN` values (a second Amazon app). Production credentials are not in these files. History keeps them even after removal | High | AMZ-PLAN-22 | Removed from the files 2026-10-22 (not committed); **rotate / delete that app in Seller Central** still open |
 
 ### 10.2 Data
 
 | # | Gap | Severity | Plan | Status |
 | --- | --- | --- | --- | --- |
 | D1 | All Amazon numbers on screen are the 2026-10-14 snapshot; the UI does not say how old they are | High | AMZ-PLAN-18 | Open |
-| D2 | Amazon orders after 2026-10-14 16:51 IST are not in Nivaana | High | AMZ-PLAN-01 (runbook step 5) | Catch-up after the fix |
+| D2 | Amazon orders after 2026-10-14 16:51 IST are not in Nivaana | High | AMZ-PLAN-01 (runbook step 5) | ✅ Caught up 2026-10-22 on the dev DB (46 orders); UAT / Prod when their secrets are updated |
 | D3 | 171 of 172 active listings unmapped | High | AMZ-PLAN-08 | 1 mapped (KRA-0049) |
 | D4 | No ASIN / barcode on Nivaana products, Amazon SKUs ≠ PUCs → no automatic mapping, suggestions max "Possible" | Medium | AMZ-PLAN-17 | Open |
 | D5 | Dev DB stock is test data but the account is real — any write from local / dev would publish test numbers | High | Section 5a, AMZ-PLAN-04 | Writes off |
 | D6 | Nivaana "amazon" platform allocation must be maintained correctly (it is what Stock Sync publishes); e.g. KRA-0049 = 5 vs Amazon 29 | High | Section 5a | Business process |
+| D7 | Mappings are stored per database (local+SIT share one; UAT and Prod separate) — mapping done outside Prod does not reach Prod | High | AMZ-PLAN-23 | Open |
+| D8 | All environments use the same live Amazon account — writes or fulfilment from SIT / UAT would change the real listings | High | Section 1a | Writes off outside Prod |
 
 ### 10.3 Inventory screens
 
 | # | Module | Gap | Severity | Plan | Status |
 | --- | --- | --- | --- | --- | --- |
-| U1 | Overview | "Last order import" shows a failed run's time as if fine | Medium | AMZ-PLAN-07 | Open |
-| U2 | Overview / Activity | "Needs attention" stays red after recovery | Medium | AMZ-PLAN-06 | Open |
+| U1 | Overview | "Last order import" shows a failed run's time as if fine | Medium | AMZ-PLAN-07 | ✅ Fixed 2026-10-22 (FIX-131: ✅ / ❌ per import) |
+| U2 | Overview / Activity | "Needs attention" stays red after recovery | Medium | AMZ-PLAN-06 | ✅ Fixed 2026-10-22 (FIX-132) |
 | U3 | Stock Sync tab | Table shows Mappings columns; no Nivaana stock / target / difference / sync mode per row | High | AMZ-PLAN-19 | Proposed |
 | U4 | Stock Sync dialog | No current-mode indicator, 5 buttons in a row, env variable names shown to users, no reason why "Sync stock now" is disabled, raw history enums, narrow modal | Medium | AMZ-PLAN-19 | Proposed |
 | U5 | Orders tab | Not reviewed in detail yet (layout restyled only) | — | AMZ-PLAN-20 | To review |

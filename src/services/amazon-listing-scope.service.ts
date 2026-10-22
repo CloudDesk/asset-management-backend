@@ -1,6 +1,6 @@
 import { env } from '../config/env.js';
 import { prisma } from '../models/prisma.js';
-import { AmazonLwaTokenService } from './amazon-lwa-token.service.js';
+import { AmazonLwaTokenService, amazonLwaTokenService, type AmazonAccessTokenProvider } from './amazon-lwa-token.service.js';
 import {
   AmazonListingsReadClient,
   AmazonProductionListingsClient,
@@ -13,6 +13,8 @@ export type AmazonListingScope = {
   marketplaceId: string;
   client: AmazonListingsReadClient;
   source: 'OAUTH' | 'ENVIRONMENT_FALLBACK';
+  /** Token source behind `client`; the connection check asks it for a token directly */
+  accessTokenProvider?: AmazonAccessTokenProvider;
 };
 
 export class AmazonListingScopeError extends Error {
@@ -38,6 +40,7 @@ export class AmazonListingScopeService {
         marketplaceId: connection.marketplaceId,
       }),
       source: 'OAUTH',
+      accessTokenProvider,
     };
   }
 
@@ -61,6 +64,7 @@ export class AmazonListingScopeService {
       marketplaceId: amazonProductionListingsClient.getMarketplaceId(),
       client: amazonProductionListingsClient,
       source: 'ENVIRONMENT_FALLBACK',
+      accessTokenProvider: amazonLwaTokenService,
     };
   }
 

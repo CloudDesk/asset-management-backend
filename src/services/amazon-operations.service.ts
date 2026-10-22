@@ -94,6 +94,10 @@ export const summarizeAmazonOperationsError = (
   };
 };
 
+/** Where-clause part: only rows after the last success (none → every row is still open) */
+export const openAfter = <K extends string>(field: K, lastSuccessAt: Date | null | undefined) =>
+  (lastSuccessAt ? { [field]: { gt: lastSuccessAt } } : {}) as Partial<Record<K, { gt: Date }>>;
+
 export class AmazonOperationsService {
   async dashboard(scope: AmazonListingScope, userId?: number) {
     const [writeStatus, setting, latestListing, latestOrder, latestNotification, counts, activities, failures, retries, rateLimit, subscriptions] = await Promise.all([
@@ -205,9 +209,17 @@ export class AmazonOperationsService {
   }
 
   async failures(scope: AmazonListingScope, limit = 50) {
+    const listingScope = { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId };
+    const orderScope = { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId };
+    // An import failure followed by a successful import of the same kind is resolved (FIX-132);
+    // otherwise old failures keep "Needs attention" on after Amazon works again
+    const [lastListingSuccess, lastOrderSuccess] = await Promise.all([
+      prisma.channelSyncLog.findFirst({ where: { ...listingScope, status: 'SUCCESS', failed: 0 }, orderBy: { startedAt: 'desc' }, select: { startedAt: true } }),
+      prisma.amazonOrderImportJob.findFirst({ where: { ...orderScope, status: 'COMPLETED' }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
+    ]);
     const [syncs, imports, inventory, exceptions, audits] = await Promise.all([
-      prisma.channelSyncLog.findMany({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, OR: [{ status: { in: ['FAILED', 'PARTIAL'] } }, { failed: { gt: 0 } }] }, orderBy: { startedAt: 'desc' }, take: limit }),
-      prisma.amazonOrderImportJob.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, status: 'FAILED' }, orderBy: { createdAt: 'desc' }, take: limit }),
+      prisma.channelSyncLog.findMany({ where: { ...listingScope, ...openAfter('startedAt', lastListingSuccess?.startedAt), OR: [{ status: { in: ['FAILED', 'PARTIAL'] } }, { failed: { gt: 0 } }] }, orderBy: { startedAt: 'desc' }, take: limit }),
+      prisma.amazonOrderImportJob.findMany({ where: { ...orderScope, ...openAfter('createdAt', lastOrderSuccess?.createdAt), status: 'FAILED' }, orderBy: { createdAt: 'desc' }, take: limit }),
       prisma.amazonInventorySyncAttempt.findMany({ where: { status: 'FAILED', listing: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, marketplace: 'AMAZON', environment: 'PRODUCTION' } }, include: { listing: { select: { sellerSku: true } } }, orderBy: { createdAt: 'desc' }, take: limit }),
       prisma.amazonOrderFulfillmentException.findMany({ where: { status: 'OPEN', order: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } }, include: { order: { select: { amazonOrderId: true } } }, orderBy: { createdAt: 'desc' }, take: limit }),
       prisma.marketplaceListingAudit.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, operation: { contains: 'FAILED' } }, orderBy: { createdAt: 'desc' }, take: limit }),

@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { AmazonListingController } from '../controllers/amazon-listing.controller.js';
 import { AmazonOrderController } from '../controllers/amazon-order.controller.js';
-import { requireAuthentication } from '../middleware/auth.middleware.js';
+import { AuthenticatedRequest, requireAuthentication } from '../middleware/auth.middleware.js';
 import { requireAmazonChannelPermission } from '../middleware/amazon-channel-permission.middleware.js';
 import { getAmazonIntegrationStatus } from '../services/amazon-integration-status.service.js';
 import { timingSafeEqual } from 'node:crypto';
@@ -11,6 +11,7 @@ import { amazonOrderNotificationService } from '../services/amazon-order-notific
 import { amazonReturnService } from '../services/amazon-return.service.js';
 import { amazonListingScopeService } from '../services/amazon-listing-scope.service.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
+import { amazonConnectionCheckService } from '../services/amazon-connection-check.service.js';
 
 const requireAmazonNotificationSecret = async (request: FastifyRequest, reply: FastifyReply) => {
   const expected = env.AMAZON_NOTIFICATION_INGEST_SECRET;
@@ -40,6 +41,29 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
     message: 'Amazon integration status retrieved successfully',
     data: getAmazonIntegrationStatus(),
   }));
+
+  fastify.get<{ Querystring: { fresh?: boolean } }>('/connection-check', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
+    schema: {
+      description: 'Ask Amazon for an access token with the current credentials and report the latest listing / order imports (no credentials returned)',
+      tags: ['Amazon Integration'],
+      security: [{ bearerAuth: [] }],
+      querystring: {
+        type: 'object',
+        properties: { fresh: { type: 'boolean', default: false } },
+        additionalProperties: false,
+      },
+    },
+  }, async (request, reply) => {
+    const user = (request as AuthenticatedRequest).user;
+    reply.header('Cache-Control', 'no-store');
+    const data = await amazonConnectionCheckService.check({
+      ...(user?.id !== undefined ? { userId: user.id } : {}),
+      ...(user?.userType !== undefined ? { userType: user.userType } : {}),
+      fresh: request.query.fresh === true,
+    });
+    return reply.code(200).send(createSuccessResponse('Amazon connection checked', data));
+  });
 
   fastify.post('/listings/import', {
     preHandler: [requireAuthentication, requireAmazonChannelPermission(['import', 'create'])],
