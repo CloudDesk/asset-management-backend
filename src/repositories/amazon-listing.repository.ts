@@ -66,6 +66,8 @@ export interface AmazonListingMappingPersistence {
 }
 
 export interface AmazonListingPersistence {
+  /** Marks imports left RUNNING by a stopped server as FAILED (optional so test doubles can omit it) */
+  closeInterruptedSyncLogs?(): Promise<number>;
   startSyncLog(input: {
     sellerId: string;
     marketplaceId: string;
@@ -334,12 +336,29 @@ const listingIssues = (listing: any) => {
   return issues;
 };
 
+export const INTERRUPTED_IMPORT_AFTER_MS = 30 * 60 * 1000;
+
 // Mapping suggestions (FIX-126): weaker ones are noise, and the dialog shows a short list
 const SUGGESTION_MIN_SCORE = 25;
 const SUGGESTION_LIMIT = 4;
 const SUGGESTION_CATALOG_LIMIT = 5000;
 
 export class AmazonListingRepository implements AmazonListingPersistence, AmazonListingMappingPersistence {
+  // A listing import takes about a minute; one still RUNNING after this long was cut off by a server restart
+  // or crash and will never finish. Old enough that a run in progress on another instance is not touched.
+  async closeInterruptedSyncLogs(olderThanMs = INTERRUPTED_IMPORT_AFTER_MS): Promise<number> {
+    const result = await prisma.channelSyncLog.updateMany({
+      where: { marketplace: 'AMAZON', status: 'RUNNING', startedAt: { lt: new Date(Date.now() - olderThanMs) } },
+      data: {
+        status: 'FAILED',
+        finishedAt: new Date(),
+        errorCode: 'AMAZON_IMPORT_INTERRUPTED',
+        errorMessage: 'Interrupted: the server stopped during this import. A later import replaces it.',
+      },
+    });
+    return result.count;
+  }
+
   async startSyncLog(input: {
     sellerId: string;
     marketplaceId: string;

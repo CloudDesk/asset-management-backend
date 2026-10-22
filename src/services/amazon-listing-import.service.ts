@@ -140,6 +140,8 @@ export class AmazonListingImportService {
     marketplaceId: string
   ): Promise<AmazonImportSummary> {
     const summary = emptySummary();
+    // Close runs a stopped server left RUNNING, so history never shows a run that will not finish
+    await this.repository.closeInterruptedSyncLogs?.().catch(() => 0);
     const syncLogId = await this.repository.startSyncLog({
       sellerId,
       marketplaceId,

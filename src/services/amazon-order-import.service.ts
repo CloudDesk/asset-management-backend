@@ -260,7 +260,9 @@ export class AmazonOrderImportService {
     });
     const hasUnmappedItems = items.some((item) => item.mappingStatus !== 'MAPPED');
     const buyerRequestedCancellation = items.some((item) => item.cancellationRequester?.toUpperCase() === 'BUYER');
+    // No items: nothing to map or ship (seen on the July 2026 full-history import); never "ready"
     const syncState = classification.isCancelled ? 'CANCELLED'
+      : items.length === 0 ? 'BLOCKED_ITEMS_MISSING'
       : hasUnmappedItems ? 'BLOCKED_UNMAPPED'
         : classification.fulfilmentType === 'FBA' ? 'READ_ONLY_RECONCILIATION'
           : classification.fulfilmentType === 'EASY_SHIP' ? 'EASY_SHIP_READY'
