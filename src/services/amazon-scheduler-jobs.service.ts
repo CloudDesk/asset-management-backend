@@ -5,6 +5,7 @@ import { amazonListingScopeService } from './amazon-listing-scope.service.js';
 import { importConfiguredScopes } from './amazon-listing-scheduler.service.js';
 import { amazonOrderJobService } from './amazon-order-job.service.js';
 import { processDue } from './amazon-retry-scheduler.service.js';
+import { amazonReturnService } from './amazon-return.service.js';
 
 // Cloud Scheduler jobs (FIX-124). Each call runs the same work as the matching node-cron
 // scheduler but waits for it to finish, because Cloud Run throttles CPU once the response is sent.
@@ -71,6 +72,25 @@ export class AmazonSchedulerJobsService {
 
   async runRetryQueue() {
     return { processed: await processDue() };
+  }
+
+  // Returns (P4): one quick step per call per scope and FBA / FBM — request a report, or collect a
+  // finished one. Schedule it every 15–30 minutes so a requested report is collected on a later call.
+  async runReturnSync() {
+    const results: Array<Record<string, unknown>> = [];
+    for (const item of await this.configuredScopes()) {
+      for (const fulfilmentType of ['FBA', 'FBM'] as const) {
+        try {
+          const scope = await amazonListingScopeService.resolveForSeller(item.sellerId, item.marketplaceId);
+          results.push({ sellerId: item.sellerId, marketplaceId: item.marketplaceId, ...await amazonReturnService.runScheduledStep(scope, fulfilmentType) });
+        } catch (error) {
+          results.push({ sellerId: item.sellerId, marketplaceId: item.marketplaceId, fulfilmentType, status: 'FAILED', errorMessage: error instanceof Error ? error.message : 'Amazon return import failed' });
+        }
+      }
+    }
+    const failed = results.filter((result) => result.status === 'FAILED').length;
+    if (failed > 0) logger.error({ results }, 'Scheduled Amazon return import finished with failures (Cloud Scheduler)');
+    return { steps: results.length, failed, results };
   }
 }
 

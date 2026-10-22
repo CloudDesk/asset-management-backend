@@ -97,16 +97,31 @@ export class AmazonReturnError extends Error {
   }
 }
 
+// A job left between scheduled steps longer than this is treated as abandoned (scheduler stopped)
+const STALE_ACTIVE_JOB_MS = 6 * 60 * 60 * 1000;
+
 export class AmazonReturnService {
   private running = new Set<string>();
 
-  async enqueue(scope: AmazonListingScope, fulfilmentType: AmazonReturnFulfilmentType, actor: Actor = {}) {
+  async enqueue(
+    scope: AmazonListingScope,
+    fulfilmentType: AmazonReturnFulfilmentType,
+    actor: Actor = {},
+    options: { background?: boolean } = {},
+  ) {
     if (!scope.client.createReport || !scope.client.getReport || !scope.client.downloadReportDocument) {
       throw new AmazonReturnError('Amazon Reports API client is unavailable', 503, 'AMAZON_REPORTS_UNAVAILABLE');
     }
     const activeKey = `${scope.sellerId}:${scope.marketplaceId}:RETURNS:${fulfilmentType}`;
     const existing = await prisma.amazonReturnImportJob.findUnique({ where: { activeKey } });
-    if (existing) return { job: this.serializeJob(existing), existing: true };
+    if (existing && Date.now() - existing.updatedAt.getTime() > STALE_ACTIVE_JOB_MS && !this.running.has(String(existing.id))) {
+      await prisma.amazonReturnImportJob.update({
+        where: { id: existing.id },
+        data: { status: 'FAILED', activeKey: null, errorMessage: 'Abandoned: no progress for 6 hours', finishedAt: new Date() },
+      });
+    } else if (existing) {
+      return { job: this.serializeJob(existing), existing: true };
+    }
     const job = await prisma.amazonReturnImportJob.create({
       data: {
         sellerId: scope.sellerId,
@@ -119,11 +134,29 @@ export class AmazonReturnService {
         ...(actor.requestedByUserType !== undefined ? { requestedByUserType: actor.requestedByUserType } : {}),
       },
     });
-    queueMicrotask(() => void this.run(job.id));
+    if (options.background !== false) queueMicrotask(() => void this.run(job.id));
     return { job: this.serializeJob(job), existing: false };
   }
 
-  private async run(jobId: bigint) {
+  /**
+   * Cloud Scheduler step (P4 / AMZ-PLAN-05): request the report, or check it once and import it when
+   * Amazon has finished. Never waits for Amazon, so each call stays well inside the Cloud Run timeout;
+   * the next scheduled call continues an unfinished job.
+   */
+  async runScheduledStep(scope: AmazonListingScope, fulfilmentType: AmazonReturnFulfilmentType) {
+    const { job } = await this.enqueue(scope, fulfilmentType, { requestedByUserType: 'SCHEDULER' }, { background: false });
+    await this.run(BigInt(job.id), { waitForReport: false });
+    const after = await prisma.amazonReturnImportJob.findUnique({ where: { id: BigInt(job.id) } });
+    return {
+      fulfilmentType,
+      jobId: job.id,
+      status: after?.status ?? 'UNKNOWN',
+      fetched: after?.fetched ?? 0,
+      errorMessage: after?.errorMessage ?? null,
+    };
+  }
+
+  private async run(jobId: bigint, options: { waitForReport?: boolean } = {}) {
     const key = String(jobId);
     if (this.running.has(key)) return;
     this.running.add(key);
@@ -136,7 +169,7 @@ export class AmazonReturnService {
       }
       await prisma.amazonReturnImportJob.update({
         where: { id: job.id },
-        data: { status: 'REQUESTED', startedAt: job.startedAt ?? new Date(), errorMessage: null },
+        data: { status: job.amazonReportId ? 'PROCESSING' : 'REQUESTED', startedAt: job.startedAt ?? new Date(), errorMessage: null },
       });
       const end = new Date();
       const start = new Date(end);
@@ -155,10 +188,13 @@ export class AmazonReturnService {
         });
       }
       let report = await scope.client.getReport(requested.reportId);
-      for (let attempt = 0; !['DONE', 'CANCELLED', 'FATAL'].includes(report.processingStatus) && attempt < 30; attempt += 1) {
+      const maxPolls = options.waitForReport === false ? 0 : 30;
+      for (let attempt = 0; !['DONE', 'CANCELLED', 'FATAL'].includes(report.processingStatus) && attempt < maxPolls; attempt += 1) {
         await new Promise((resolve) => setTimeout(resolve, 10_000));
         report = await scope.client.getReport(requested.reportId);
       }
+      // Scheduled step: Amazon is still building the report; the job stays PROCESSING for the next call
+      if (options.waitForReport === false && !['DONE', 'CANCELLED', 'FATAL'].includes(report.processingStatus)) return;
       if (report.processingStatus === 'CANCELLED') {
         await prisma.amazonReturnImportJob.update({
           where: { id: job.id },

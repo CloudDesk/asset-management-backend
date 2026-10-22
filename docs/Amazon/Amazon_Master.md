@@ -61,7 +61,7 @@ Access tokens: `src/services/amazon-lwa-token.service.ts` exchanges the refresh 
 | `/api/channels/amazon` | `amazon-channel.route.ts` | status; listings import, list, map / unmap, offer and listing edit preview / apply, inventory preview / sync / history; orders import, jobs, list, fulfillment (pick, pack, shipping, documents, tracking, ship and confirm, Easy Ship slots / schedule), exceptions retry / resolve; returns import / list / receive; order notification ingest |
 | `/api/channels/amazon` | `amazon-listing-publish.route.ts` | publish drafts (catalog search, product type, eligibility, validation, submit, images) |
 | `/api/channels/amazon/operations` | `amazon-operations.route.ts` | dashboard (Activity tab), activity, failures, write pause / resume, retries, notifications configure / refresh, export |
-| `/api/channels/amazon/jobs` | `amazon-scheduler-jobs.route.ts` | **Cloud Scheduler jobs** (FIX-124): `order-sync`, `listing-sync`, `retry-queue`; header `x-scheduler-secret` |
+| `/api/channels/amazon/jobs` | `amazon-scheduler-jobs.route.ts` | **Cloud Scheduler jobs** (FIX-124, FIX-143): `order-sync`, `listing-sync`, `retry-queue`, `return-sync`; header `x-scheduler-secret` |
 
 `/api/channels/amazon/*` is outside the `/v1` smart-auth scope: every route sets its own `preHandler` (login + channel permission), except the scheduler jobs (secret header) and order notification ingest (`x-amazon-notification-secret`).
 
@@ -127,6 +127,7 @@ Then, per environment (same settings as the Shipmozo job, region `asia-south1`, 
 | `amazon-order-sync-<env>` | `/api/channels/amazon/jobs/order-sync` | `*/15 * * * *` (SIT on the Prod account: hourly, AMZ-PLAN-02) | **yes** |
 | `amazon-listing-sync-<env>` | `/api/channels/amazon/jobs/listing-sync` | `0 */6 * * *` | only with `AMAZON_LISTING_IMPORT_ENABLED: "true"` |
 | `amazon-retry-queue-<env>` | `/api/channels/amazon/jobs/retry-queue` | `*/5 * * * *` | optional; only if retries should run without someone pressing Retry |
+| `amazon-return-sync-<env>` | `/api/channels/amazon/jobs/return-sync` | `*/30 * * * *` | optional; FBA / FBM returns import. Each call is one quick step (request the report, or collect it once Amazon finished), so a report is collected on a later call (FIX-143) |
 
 After the first successful run, set the matching node-cron switch to `"false"` in that environment. Prod: create the jobs **paused**. The first 3 Scheduler jobs per billing account are free (Shipmozo already uses one per environment).
 
@@ -256,6 +257,12 @@ LWA token failures now report Amazon's own reason (`invalid_client`, `invalid_gr
 - Identifiers column merged into the listing column: `SELLER-SKU | ASIN (| FNSKU)` under the title, each with a hover label; full title on hover. Listing details modal redesigned (markup only): summary card (full title, SKU | ASIN | FNSKU, fulfilment / "Live on Amazon" or problem / mapping badges), 4 figure tiles (Amazon qty, ₹ price, product type in plain case, last imported), Nivaana product card when mapped, FBA tiles, issues with icon + plain-case name + message (red for ERROR), offer form with a label above every field and "Now …" placeholders, Validate button right-aligned with the last submission note, mapping history as a timeline. Row actions are 32px icon buttons with tooltips: Details (eye), Map (link, gold) / Edit mapping (pen, gold), Remove mapping (link-slash, red), Stock sync (rotate, Stock Sync tab only).
 - Backup before the redesign: branch `backup/amazon-ui-before-redesign-2026-10-21` (pushed).
 
+### 2026-10-22: Amazon — remaining code gaps (FIX-141 – FIX-144, backend + Inventory DEV-NEW)
+- FIX-141 (P7): one Automatic listing per product — `setMode` refuses a second (409 `AMAZON_AUTOMATIC_ALREADY_SET`), remapping an Automatic listing onto such a product drops it to Manual, automatic sync refuses to publish when older data has several. Stock Sync dialog shows the other listings sharing the stock.
+- FIX-142 (P2, P12, U6, U8): connection alert on every Amazon tab and the Dashboard; "Authorize Seller Account" hidden; Esc in the mapping search; dark-mode brand text.
+- FIX-143 (P4): `POST /api/channels/amazon/jobs/return-sync` — one quick step per call (request, or collect when Amazon finished); stale return jobs (6 h without progress) are released.
+- FIX-144 (D7): `npm run amazon:mappings` export / import of mappings between databases by seller SKU + PUC.
+
 ### 2026-10-22: Amazon — ASIN on products, Strong match (FIX-140, backend + Inventory DEV-NEW)
 `product.asin` (nullable, indexed; SQL `20261022_add_product_asin.sql`, applied on SIT 2026-10-22). Product create / edit / detail show "Amazon ASIN" (10 letters/digits, saved upper case, empty clears). Mapping suggestions: same ASIN +90 → HIGH ("Same ASIN"). ASINs still have to be entered per product.
 
@@ -331,7 +338,7 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 **Status:** Open. Local `.env` `AMAZON_ORDER_AUTO_SYNC_ENABLED="false"` for every developer; optionally make node-cron refuse to start when `NODE_ENV=development` unless a separate opt-in flag is set.
 
 ### AMZ-PLAN-05: Returns import on Cloud Scheduler
-**Status:** Open. Reports API polling is too long for one request: split into a "request report" job and a "collect finished reports" job (both quick), or keep node-cron for returns on an always-on instance.
+**Status:** Done 2026-10-22 (FIX-143): step endpoint `/jobs/return-sync`. Before: Open. Reports API polling is too long for one request: split into a "request report" job and a "collect finished reports" job (both quick), or keep node-cron for returns on an always-on instance.
 
 ### AMZ-PLAN-06: Failure lifecycle and "Needs attention"
 **Status:** Done 2026-10-22 (FIX-132 resolved failures, FIX-136 credential backoff). Mark failed order / listing imports as superseded once a later run succeeds (or count only failures after the last success), so the Activity badge turns green again. Add backoff when the same credential error repeats (today 96 failed jobs a day per laptop).
@@ -346,7 +353,7 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 **Status:** Open. All 5 subscription types show "Setup required"; needs an AWS destination and `AMAZON_NOTIFICATION_*` values. Until then the scheduled sync is the only update path.
 
 ### AMZ-PLAN-10: Who may authorize a seller account
-**Status:** Open. OAuth connections are per user and change which account that user sees. Decide: hide Authorize Seller Account, or allow only operations admins (`access.operationsAdmin` instead of `access.manageConnection`).
+**Status:** Done 2026-10-22 (FIX-142): button hidden, shared account only (decision). Before: Open. OAuth connections are per user and change which account that user sees. Decide: hide Authorize Seller Account, or allow only operations admins (`access.operationsAdmin` instead of `access.manageConnection`).
 
 ### AMZ-PLAN-11: Split the large Amazon components
 **Status:** Open. Move the 5 modals out of `AmazonProductionListingsTable.tsx` and the test-order modal / fulfillment panel out of `AmazonOrderHub.tsx` into their own files, no logic change, before further UI work. `AmazonOrderHub` and `AmazonOrderFulfillmentPanel` are also used by Orders and Amazon order detail.
@@ -358,14 +365,14 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 **Status:** Done 2026-10-22 (FIX-138); hook-dependency warnings remain by choice. `AmazonAttributeFields.tsx` uses `Array.prototype.at` (needs `es2022` lib), `AmazonPublishDraftModal.tsx` has an `any`. Not touched during the UI-only restyle.
 
 ### AMZ-PLAN-14: Split stock when one Nivaana product has several seller-fulfilled listings
-**Status:** Open (business decision needed). Found 2026-10-21 (FIX-127).
+**Status:** Done 2026-10-22 (FIX-141): option (a), one Automatic listing per product (decision). Before: Open (business decision needed). Found 2026-10-21 (FIX-127).
 - **Today:** one Nivaana product may be mapped to many Amazon listings. Production automatic stock sync (`amazon-production-inventory.service.ts` → `syncAutomaticPlatformStock`) loops over every mapped FBM / Easy Ship listing with `inventorySyncMode = AUTOMATIC` and publishes `floor(Nivaana Amazon-platform available / pack size)` to **each** — e.g. 10 in stock, single listing shows 10 and pack-of-2 listing shows 5, so up to 20 units can be ordered against 10. The manual preview / sync per listing uses the same full number. The older sandbox path `selectMappedAmazonSellerSku` refuses more than one mapping, so the two paths disagree.
 - **Mitigation now:** mapping dialog warning (FIX-127); orders import reduces Nivaana stock and the next automatic sync corrects Amazon, but the gap is the risk window.
 - **Options:** (a) only one listing per product may be AUTOMATIC, others manual; (b) split by a share per listing (new `stockSharePercent` on the listing); (c) publish the full number to one "primary" listing and 0 / a reserve to the rest; (d) block a second seller-fulfilled mapping (FBA unaffected). Also make the sandbox and production paths follow the same rule.
 - **Touch points:** `marketplace_listings` (new field for b / c), `amazon-production-inventory.service.ts` (`preview`, `syncAutomaticPlatformStock`, `calculateAmazonTargetQuantity`), mapping dialog / Stock Sync tab UI, tests in `amazon-production-inventory*.test.ts`.
 
 ### AMZ-PLAN-15: Alert when Amazon sync keeps failing
-**Status:** Open. Gap P2. Today a credential failure ran for a week unnoticed. Options: after N consecutive FAILED order / listing imports (or any `AMAZON_INVALID_AUTHORIZATION`), notify (email / in-app banner on Channels and Amazon Operations); show a red "Amazon disconnected since …" banner from the latest job status; Cloud Scheduler job failure alert in GCP Monitoring once AMZ-PLAN-03 is live.
+**Status:** Done 2026-10-22 (FIX-142): in-app alert on Amazon tabs + Dashboard; no email (decision). Before: Open. Gap P2. Today a credential failure ran for a week unnoticed. Options: after N consecutive FAILED order / listing imports (or any `AMAZON_INVALID_AUTHORIZATION`), notify (email / in-app banner on Channels and Amazon Operations); show a red "Amazon disconnected since …" banner from the latest job status; Cloud Scheduler job failure alert in GCP Monitoring once AMZ-PLAN-03 is live.
 
 ### AMZ-PLAN-16: Amazon API error and schema hygiene
 **Status:** Done 2026-10-22 (FIX-135). Gaps P8, P9. `amazon-operations.route.ts` `fail()` should pass through only known Amazon errors (as `inventoryErrorResponse` does since FIX-129) and answer a generic 500 otherwise. Add `activeOnly` to the `GET /listings` route querystring. Test through Fastify inject (route schemas strip unlisted fields).
@@ -377,10 +384,10 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 **Status:** Done 2026-10-22 (FIX-133) for Mappings and Stock Sync. Possible later: the same bar on the Orders / Fulfillment tabs (order import time). Gap D1. Show "Amazon data as of <last successful import>" on Mappings / Stock Sync / Listing details, amber when older than the schedule (e.g. > 12 h), red with the last error when imports are failing.
 
 ### AMZ-PLAN-19: Stock Sync tab and dialog redesign
-**Status:** Done 2026-10-22 (FIX-134), except verifying Esc in the mapping dialog's product search (U8). Gaps U3, U4, U8. Table columns for the Stock Sync tab: Amazon qty, Nivaana (Amazon platform) stock, target, difference, sync mode badge (backend adds the platform stock to the listing list response). Dialog: wide, three figure tiles, Off / Manual / Automatic segmented switch with the current mode, plain-language reason when publishing is blocked (no env names), friendly history. Sync rules unchanged. Also verify Esc handling in the mapping dialog's product search.
+**Status:** Done 2026-10-22 (FIX-134, Esc FIX-142). Before: Done 2026-10-22 (FIX-134), except verifying Esc in the mapping dialog's product search (U8). Gaps U3, U4, U8. Table columns for the Stock Sync tab: Amazon qty, Nivaana (Amazon platform) stock, target, difference, sync mode badge (backend adds the platform stock to the listing list response). Dialog: wide, three figure tiles, Off / Manual / Automatic segmented switch with the current mode, plain-language reason when publishing is blocked (no env names), friendly history. Sync rules unchanged. Also verify Esc handling in the mapping dialog's product search.
 
 ### AMZ-PLAN-20: Review Orders and Fulfillment tabs
-**Status:** To review. Gaps U5, U6. Same review as Overview / Mappings / Stock Sync: purpose, data sources, UI gaps, theme leftovers in `AmazonOrderHub.tsx` and `AmazonOrderDetailPage.tsx`, error handling.
+**Status:** Partly done 2026-10-22: colours / dark mode (FIX-142); full review of data and errors still open. Before: To review. Gaps U5, U6. Same review as Overview / Mappings / Stock Sync: purpose, data sources, UI gaps, theme leftovers in `AmazonOrderHub.tsx` and `AmazonOrderDetailPage.tsx`, error handling.
 
 ### AMZ-PLAN-21: Missing Amazon fulfilment features
 **Status:** Open (needs backend APIs). Gap U7. Easy Ship cancellation, Amazon shipping document download, product-content editing, listing disable, alert recipients, per-workflow automation controls. These were listed in the old Settings note (removed from the page 2026-10-21).
@@ -397,7 +404,7 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 
 
 ### AMZ-PLAN-23: Move mappings between environments
-**Status:** Open. Found 2026-10-22. Mappings live in each database (`marketplace_listings.productId`, `unitsPerListing`, `inventorySyncMode`), so work done on dev / UAT does not reach Prod. Options: (a) map directly on Prod once it reads Amazon; (b) export from UAT (seller SKU → product PUC, pack size) and import on Prod with a script that matches by seller SKU and PUC, dry-run first, and writes the normal mapping audit rows. Product IDs differ between databases, so match by PUC, never by ID.
+**Status:** Done 2026-10-22 (FIX-144): `npm run amazon:mappings` (option b). Before: Open. Found 2026-10-22. Mappings live in each database (`marketplace_listings.productId`, `unitsPerListing`, `inventorySyncMode`), so work done on dev / UAT does not reach Prod. Options: (a) map directly on Prod once it reads Amazon; (b) export from UAT (seller SKU → product PUC, pack size) and import on Prod with a script that matches by seller SKU and PUC, dry-run first, and writes the normal mapping audit rows. Product IDs differ between databases, so match by PUC, never by ID.
 
 ---
 
@@ -410,17 +417,17 @@ Every known gap across the Amazon modules, in one list. Severity: **Critical** =
 | # | Gap | Severity | Plan | Status |
 | --- | --- | --- | --- | --- |
 | P1 | Amazon rejects the app credentials (`invalid_client`) since 2026-10-14; every Amazon call fails | Critical | AMZ-PLAN-01 (runbook 6.1) | ✅ Local fixed 2026-10-22 (FIX-130); GCP secrets pending |
-| P2 | No alert when Amazon sync keeps failing — a week of failures went unnoticed | High | AMZ-PLAN-15 | Partly done: Channels / Overview now show "Connection failed (since …)" (FIX-131); no push alert yet |
+| P2 | No alert when Amazon sync keeps failing — a week of failures went unnoticed | High | AMZ-PLAN-15 | ✅ Fixed 2026-10-22: "Amazon disconnected / sync failing since …" alert on every Amazon tab and the Dashboard (FIX-142); push / email alert not wanted (decision 2026-10-22); GCP Scheduler failure alerts come with P3 |
 | P3 | Scheduled work on node-cron: unreliable on Cloud Run, and runs on every developer laptop against the shared dev DB | High | AMZ-PLAN-03, AMZ-PLAN-04 | Endpoints built (FIX-124, not committed); jobs not created |
-| P4 | Returns import has no Cloud Scheduler job (Reports API polling too long for one request) | Medium | AMZ-PLAN-05 | Open |
+| P4 | Returns import has no Cloud Scheduler job (Reports API polling too long for one request) | Medium | AMZ-PLAN-05 | ✅ Fixed 2026-10-22 (FIX-143): `POST …/jobs/return-sync`, one step per call; job `amazon-return-sync-<env>` still to create in GCP |
 | P5 | Failed jobs are never marked resolved; no backoff on repeated credential errors (~96 failed jobs / day / laptop) | Medium | AMZ-PLAN-06 | ✅ Fixed 2026-10-22 (FIX-132 resolved failures; FIX-136 backoff 15 → 360 min) |
 | P6 | Real-time notifications (SQS / EventBridge) not set up; only the scheduled sync updates data | Medium | AMZ-PLAN-09 | Open |
-| P7 | Stock is not split when one product has several seller-fulfilled listings; sandbox and production paths disagree | High | AMZ-PLAN-14 | Warning added (FIX-127) |
+| P7 | Stock is not split when one product has several seller-fulfilled listings; sandbox and production paths disagree | High | AMZ-PLAN-14 | ✅ Fixed 2026-10-22 (FIX-141): only one Automatic listing per product (decision: option a); Stock Sync dialog warns when other listings share the stock; Manual publishing still shows the full number on each listing |
 | P8 | Operations API (`amazon-operations.route.ts` `fail()`) returns any error's raw message with status 400 — unknown errors leak internal text and look like client errors | Medium | AMZ-PLAN-16 | ✅ Fixed 2026-10-22 (FIX-135) |
 | P9 | `GET /listings` route schema has no `activeOnly`, so Fastify drops it silently (default behaviour happens to match) | Low | AMZ-PLAN-16 | ✅ Fixed 2026-10-22 (FIX-135) |
-| P10 | Local `.env` says `AMAZON_ENVIRONMENT=SANDBOX` while the env fallback uses the production account — confusing, and writes need `PRODUCTION` | Low | Section 5a | Open |
+| P10 | Local `.env` says `AMAZON_ENVIRONMENT=SANDBOX` while the env fallback uses the production account — confusing, and writes need `PRODUCTION` | Low | Section 5a | ✅ Documented 2026-10-22: `AMAZON_ENVIRONMENT=SANDBOX` is the read-only value (anything but PRODUCTION blocks writes; reads use the production account). See `amazon.env.example` |
 | P11 | Amazon off on SIT / UAT; SIT on the Prod account read-only not done | Medium | AMZ-PLAN-02 | Decided, not started |
-| P12 | Who may authorize a seller account (OAuth is per user and changes that user's data) | Medium | AMZ-PLAN-10 | Open |
+| P12 | Who may authorize a seller account (OAuth is per user and changes that user's data) | Medium | AMZ-PLAN-10 | ✅ Fixed 2026-10-22 (FIX-142): "Authorize Seller Account" hidden — everyone uses the shared account (decision); Disconnect kept for users who authorized earlier |
 | P13 | 43 Amazon env variables for one integration (31 lines in `.env.sit`); 3 unused, 5 sandbox-only, most others defaults — hard to deploy and review | Medium | AMZ-PLAN-22 | ✅ Fixed 2026-10-22 (env files trimmed; FIX-137 removed sandbox code and 8 variables, 43 → 35) |
 | P14 | **Secrets committed in git:** `.env.sit` and `.env.uat` (tracked) contain `AMAZON_SANDBOX_CLIENT_SECRET` and `AMAZON_SANDBOX_REFRESH_TOKEN` values (a second Amazon app). Production credentials are not in these files. History keeps them even after removal | High | AMZ-PLAN-22 | Removed from the files 2026-10-22 (not committed); **rotate / delete that app in Seller Central** still open |
 
@@ -434,7 +441,7 @@ Every known gap across the Amazon modules, in one list. Severity: **Critical** =
 | D4 | No ASIN / barcode on Nivaana products, Amazon SKUs ≠ PUCs → no automatic mapping, suggestions max "Possible" | Medium | AMZ-PLAN-17 | ✅ Fixed 2026-10-22 (FIX-140); ASINs still to be entered per product; SQL on UAT / Prod pending |
 | D5 | Dev DB stock is test data but the account is real — any write from local / dev would publish test numbers | High | Section 5a, AMZ-PLAN-04 | Writes off |
 | D6 | Nivaana "amazon" platform allocation must be maintained correctly (it is what Stock Sync publishes); e.g. KRA-0049 = 5 vs Amazon 29 | High | Section 5a | Business process |
-| D7 | Mappings are stored per database (local+SIT share one; UAT and Prod separate) — mapping done outside Prod does not reach Prod | High | AMZ-PLAN-23 | Open |
+| D7 | Mappings are stored per database (local+SIT share one; UAT and Prod separate) — mapping done outside Prod does not reach Prod | High | AMZ-PLAN-23 | ✅ Tool ready 2026-10-22 (FIX-144): `npm run amazon:mappings -- export <env>` / `import <env> --file=…` (dry run, then `--apply --confirm=NIVAANA_AMAZON_MAPPINGS`); matches by seller SKU + PUC |
 | D8 | All environments use the same live Amazon account — writes or fulfilment from SIT / UAT would change the real listings | High | Section 1a | Writes off outside Prod |
 
 ### 10.3 Inventory screens
@@ -445,10 +452,10 @@ Every known gap across the Amazon modules, in one list. Severity: **Critical** =
 | U2 | Overview / Activity | "Needs attention" stays red after recovery | Medium | AMZ-PLAN-06 | ✅ Fixed 2026-10-22 (FIX-132) |
 | U3 | Stock Sync tab | Table shows Mappings columns; no Nivaana stock / target / difference / sync mode per row | High | AMZ-PLAN-19 | ✅ Fixed 2026-10-22 (FIX-134) |
 | U4 | Stock Sync dialog | No current-mode indicator, 5 buttons in a row, env variable names shown to users, no reason why "Sync stock now" is disabled, raw history enums, narrow modal | Medium | AMZ-PLAN-19 | ✅ Fixed 2026-10-22 (FIX-134) |
-| U5 | Orders tab | Not reviewed in detail yet (layout restyled only) | — | AMZ-PLAN-20 | To review |
-| U6 | Fulfillment tab / Amazon order detail | Not reviewed in detail; remaining non-theme colours in `AmazonOrderHub.tsx`, `AmazonOrderDetailPage.tsx` | — | AMZ-PLAN-20 | To review |
+| U5 | Orders tab | Not reviewed in detail yet (layout restyled only) | — | AMZ-PLAN-20 | Colour / dark-mode check done 2026-10-22 (FIX-142); a full review of data sources and error handling is still open |
+| U6 | Fulfillment tab / Amazon order detail | Not reviewed in detail; remaining non-theme colours in `AmazonOrderHub.tsx`, `AmazonOrderDetailPage.tsx` | — | AMZ-PLAN-20 | ✅ 2026-10-22 (FIX-142): remaining hex colours are the brand colours from `uiTheme`; 4 brand-blue texts got a dark-mode colour |
 | U7 | Fulfillment | Not available: Easy Ship cancellation, Amazon document download, product-content editing, listing disable, alert recipients, per-workflow automation controls (no backend APIs) | Medium | AMZ-PLAN-21 | Open |
-| U8 | Mapping dialog | Esc in the product search may also close the dialog (not verified) | Low | AMZ-PLAN-19 | To verify |
+| U8 | Mapping dialog | Esc in the product search may also close the dialog (not verified) | Low | AMZ-PLAN-19 | ✅ Fixed 2026-10-22 (FIX-142): first Esc closes the product list, the next closes the dialog (before, Esc in the search never closed the dialog) |
 | U9 | Mapping | Bulk map applies one product to every selected listing — only right for variants of the same item | Low | — | Tooltip explains it |
 | U10 | Channels page | Shipmozo row makes a live Shipmozo call on every page open; its service does not log out on a portal 401 | Low | — | 401 handling ✅ (FIX-138); the live Shipmozo call on page open is kept — it is what makes the status real |
 | U11 | Code | Large multi-component files (`AmazonProductionListingsTable` ~1,680 lines, `AmazonOrderHub` ~1,070) | Low | AMZ-PLAN-11 | Open |
@@ -458,5 +465,5 @@ Every known gap across the Amazon modules, in one list. Severity: **Critical** =
 
 | # | Gap | Status |
 | --- | --- | --- |
-| H1 | Work from 2026-10-21 not committed: backend FIX-124 – FIX-129 + docs; Inventory Channels / Amazon Operations UI | Commit to `DEV-NEW` (per commit workflow) before further changes |
+| H1 | Work from 2026-10-21 not committed: backend FIX-124 – FIX-129 + docs; Inventory Channels / Amazon Operations UI | ✅ Committed 2026-10-22 (backend `ff24126`, Inventory `3d8da3a`; FIX-124 – FIX-140) |
 | H2 | Inventory UI backup branch `backup/amazon-ui-before-redesign-2026-10-21` (pushed) | Keep until the redesign is released |

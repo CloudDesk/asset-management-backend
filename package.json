@@ -14,6 +14,7 @@
     "db:studio": "prisma studio",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:sql": "npx tsx scripts/run-sql-migrations.ts",
+    "amazon:mappings": "npx tsx scripts/move-amazon-mappings.ts",
     "verify:amazon-inventory": "npx tsx scripts/verify-amazon-inventory-handoff.ts",
     "test": "tsx --test src/**/*.test.ts tests/**/*.test.ts",
     "verify:return-module": "npm run test && npx prisma validate && npm run build -- --pretty false",

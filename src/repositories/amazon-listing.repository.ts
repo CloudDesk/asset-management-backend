@@ -835,6 +835,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           mappingStatus: true,
           unitsPerListing: true,
           mappedAt: true,
+          inventorySyncMode: true,
         },
       });
 
@@ -857,6 +858,21 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
         } as const;
       }
 
+      // P7: an Automatic listing moved to a product that already has an Automatic listing drops to Manual
+      const automaticConflict = listing.inventorySyncMode === 'AUTOMATIC'
+        && listing.productId !== product.id
+        && await transaction.marketplaceListing.count({
+          where: {
+            marketplace: 'AMAZON',
+            environment: 'PRODUCTION',
+            productId: product.id,
+            mappingStatus: 'MAPPED',
+            fulfilmentChannel: { in: ['MFN', 'EASY_SHIP'] },
+            inventorySyncMode: 'AUTOMATIC',
+            id: { not: listing.id },
+          },
+        }) > 0;
+
       const mapped = await transaction.marketplaceListing.update({
         where: { id: BigInt(input.listingId) },
         data: {
@@ -864,6 +880,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           mappingStatus: 'MAPPED',
           unitsPerListing: input.unitsPerListing,
           mappedAt: new Date(),
+          ...(automaticConflict ? { inventorySyncMode: 'MANUAL' as const } : {}),
         },
         include: {
           product: {
@@ -878,12 +895,14 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
         mappingStatus: listing.mappingStatus,
         unitsPerListing: listing.unitsPerListing,
         mappedAt: listing.mappedAt?.toISOString() ?? null,
+        inventorySyncMode: listing.inventorySyncMode,
       };
       const after = {
         productId: String(product.id),
         mappingStatus: mapped.mappingStatus,
         unitsPerListing: mapped.unitsPerListing,
         mappedAt: mapped.mappedAt?.toISOString() ?? null,
+        inventorySyncMode: mapped.inventorySyncMode,
       };
       const changedFields = changedSnapshotFields(before, after);
       await transaction.marketplaceListingAudit.create({

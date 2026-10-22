@@ -12,3 +12,4 @@ build
 scripts/dryrun-logs/product-name-backup-*.json
 scripts/dryrun-logs/production-taxonomy-backup-*.json
 .codex-*.log
+scripts/dryrun-logs/amazon-mappings-*.json

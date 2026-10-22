@@ -64,4 +64,13 @@ export async function amazonSchedulerJobsRoutes(fastify: FastifyInstance) {
     logger.info(result, 'Scheduled Amazon retry queue completed (Cloud Scheduler)');
     return reply.send(createSuccessResponse('Amazon retry queue completed', result));
   });
+
+  fastify.post('/return-sync', {
+    preHandler: requireSchedulerSecret,
+    schema: jobSchema('Cloud Scheduler job: one step of the Amazon returns import — request or collect the FBA / FBM return reports (x-scheduler-secret required)'),
+  }, async (_request, reply) => {
+    const result = await amazonSchedulerJobsService.runReturnSync();
+    logger.info({ steps: result.steps, failed: result.failed }, 'Scheduled Amazon return import step completed (Cloud Scheduler)');
+    return reply.send(createSuccessResponse('Amazon return import step completed', result));
+  });
 }

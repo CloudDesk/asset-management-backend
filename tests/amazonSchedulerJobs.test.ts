@@ -7,6 +7,8 @@ import { errorHandler } from '../src/utils/errorHandler.ts';
 import { amazonSchedulerJobsRoutes } from '../src/routes/amazon-scheduler-jobs.route.ts';
 import { amazonSchedulerJobsService } from '../src/services/amazon-scheduler-jobs.service.ts';
 import { amazonOrderJobService } from '../src/services/amazon-order-job.service.ts';
+import { amazonReturnService } from '../src/services/amazon-return.service.ts';
+import { amazonListingScopeService } from '../src/services/amazon-listing-scope.service.ts';
 
 const SECRET = 'sit-amazon-scheduler-secret-0123456789';
 const PREFIX = '/api/channels/amazon/jobs';
@@ -14,6 +16,7 @@ const JOBS = [
   { path: 'order-sync', method: 'runOrderSync' as const, result: { scopes: 1, failed: 0, results: [] } },
   { path: 'listing-sync', method: 'runListingSync' as const, result: { skipped: false } },
   { path: 'retry-queue', method: 'runRetryQueue' as const, result: { processed: 3 } },
+  { path: 'return-sync', method: 'runReturnSync' as const, result: { steps: 2, failed: 0, results: [] } },
 ];
 
 async function buildApp(t: test.TestContext, secret: string | undefined) {
@@ -112,3 +115,17 @@ test('order sync skips a scope during credential backoff without creating a job 
   assert.match(result.results[0].errorMessage ?? '', /3 in a row/);
 });
 
+
+test('return sync runs one FBA and one FBM step per seller and reports a failing step without stopping', async (t) => {
+  t.after(() => mock.restoreAll());
+  mock.method(amazonSchedulerJobsService, 'configuredScopes', async () => [{ sellerId: 'S1', marketplaceId: 'M1' }]);
+  mock.method(amazonListingScopeService, 'resolveForSeller', async (sellerId: string, marketplaceId: string) => ({ sellerId, marketplaceId }) as never);
+  const steps = mock.method(amazonReturnService, 'runScheduledStep', async (_scope: unknown, fulfilmentType: string) => {
+    if (fulfilmentType === 'FBM') throw new Error('Amazon Reports API client is unavailable');
+    return { fulfilmentType, jobId: '9', status: 'PROCESSING', fetched: 0, errorMessage: null };
+  });
+  const result = await amazonSchedulerJobsService.runReturnSync();
+  assert.equal(steps.mock.callCount(), 2);
+  assert.deepEqual(result.results.map((step) => [step.fulfilmentType, step.status]), [['FBA', 'PROCESSING'], ['FBM', 'FAILED']]);
+  assert.equal(result.failed, 1);
+});

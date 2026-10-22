@@ -305,9 +305,12 @@ export class AmazonProductionInventoryService {
         ...this.actorData(actor),
       },
     });
+    const others = await this.otherSellerFulfilledListings(context.listing.productId!, context.listing.id);
     return {
       ...serializeAttempt(attempt),
       sellerSku: context.listing.sellerSku,
+      // Same product, same stock: the UI warns that publishing here does not reduce what they show
+      sharedStockListings: others.map((other) => ({ sellerSku: other.sellerSku, inventorySyncMode: other.inventorySyncMode })),
       unitsPerListing: context.listing.unitsPerListing,
       difference: context.targetQuantity - amazonQuantity,
       mismatch: context.targetQuantity !== amazonQuantity,
@@ -430,8 +433,37 @@ export class AmazonProductionInventoryService {
     }
   }
 
+  // Other mapped seller-fulfilled listings of the same product (P7 / AMZ-PLAN-14). They all publish
+  // from one Nivaana "amazon" stock, so at most one of them may sync automatically.
+  async otherSellerFulfilledListings(productId: bigint, excludeListingId: bigint) {
+    return prisma.marketplaceListing.findMany({
+      where: {
+        marketplace: 'AMAZON',
+        environment: 'PRODUCTION',
+        productId,
+        mappingStatus: 'MAPPED',
+        fulfilmentChannel: { in: ['MFN', 'EASY_SHIP'] },
+        id: { not: excludeListingId },
+      },
+      select: { sellerSku: true, inventorySyncMode: true },
+      orderBy: { sellerSku: 'asc' },
+    });
+  }
+
+  async assertOnlyAutomaticListing(productId: bigint, listingId: bigint) {
+    const others = await this.otherSellerFulfilledListings(productId, listingId);
+    const automatic = others.filter((other) => other.inventorySyncMode === 'AUTOMATIC');
+    if (automatic.length > 0) {
+      throw new AmazonProductionInventoryError(
+        `Only one Amazon listing per product can sync automatically. ${automatic.map((other) => other.sellerSku).join(', ')} already does; set it to Manual or Off first.`,
+        409,
+        'AMAZON_AUTOMATIC_ALREADY_SET'
+      );
+    }
+  }
+
   async setMode(listingId: string, mode: 'DISABLED' | 'MANUAL' | 'AUTOMATIC', scope: AmazonListingScope) {
-    await this.loadContext(listingId, scope);
+    const context = await this.loadContext(listingId, scope);
     if (mode === 'AUTOMATIC' && (
       !env.AMAZON_AUTO_SYNC_ENABLED
       || !env.AMAZON_PRODUCTION_WRITES_ENABLED
@@ -443,6 +475,7 @@ export class AmazonProductionInventoryService {
         'AMAZON_AUTOMATIC_SYNC_GLOBALLY_DISABLED'
       );
     }
+    if (mode === 'AUTOMATIC') await this.assertOnlyAutomaticListing(context.listing.productId!, context.listing.id);
     const listing = await prisma.marketplaceListing.update({
       where: { id: BigInt(listingId) },
       data: { inventorySyncMode: mode },
@@ -571,6 +604,14 @@ export class AmazonProductionInventoryService {
     });
     if (listings.length === 0) {
       return { status: 'SKIPPED' as const, reason: 'No automatic seller-fulfilled listing is mapped to this stock' };
+    }
+    // P7: publishing the full stock to several listings oversells; setMode prevents this, older data may not
+    if (listings.length > 1) {
+      return {
+        status: 'FAILED' as const,
+        reason: `Several automatic listings share this product (${listings.map((listing) => listing.sellerSku).join(', ')}); keep one Automatic and set the others to Manual or Off`,
+        results: [],
+      };
     }
 
     const results: Array<Record<string, unknown>> = [];

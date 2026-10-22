@@ -25,44 +25,24 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import pg from 'pg';
+import { ENVIRONMENTS, assertExpectedDatabase, backendRoot, parseEnvName, readDatabaseUrl } from './lib/release-environments.js';
 
-const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const migrationsDir = path.join(backendRoot, 'scripts/migrations');
 const PROD_CONFIRMATION = 'NIVAANA_PROD_SQL';
-
-const ENVIRONMENTS = {
-  sit: { envFile: '.env.sit', database: 'assetmanagement_dev' }, // Dev and SIT share this DB
-  uat: { envFile: '.env.uat', database: 'assetmanagement_uat' },
-  prod: { envFile: '.env.prod', database: 'railway' },
-} as const;
-type EnvName = keyof typeof ENVIRONMENTS;
 
 const LOG_TABLE = 'release_ops.sql_script_log';
 
 function parseArgs(argv: string[]) {
   const positional = argv.filter((a) => !a.startsWith('--'));
   const flag = (name: string) => argv.find((a) => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=');
-  const env = (positional[0] ?? 'sit').toLowerCase();
-  if (!(env in ENVIRONMENTS)) throw new Error(`Unknown environment "${env}". Use sit, uat or prod.`);
   return {
-    env: env as EnvName,
+    env: parseEnvName(positional[0]),
     apply: argv.includes('--apply'),
     confirm: flag('confirm'),
     file: flag('file'),
     markApplied: flag('mark-applied'),
   };
-}
-
-function readDatabaseUrl(envFile: string): string {
-  const content = fs.readFileSync(path.resolve(backendRoot, envFile), 'utf8');
-  const match = content.match(/^DATABASE_URL\s*[:=]\s*"?([^"\n]+)"?/m);
-  if (!match) throw new Error(`DATABASE_URL not found in ${envFile}`);
-  return match[1]
-    .trim()
-    .replace(/&?(connection_limit|pool_timeout)=\d+/g, '')
-    .replace('sslmode=require', 'sslmode=no-verify');
 }
 
 const checksum = (text: string) => crypto.createHash('sha256').update(text).digest('hex');
@@ -127,9 +107,7 @@ async function main() {
   try {
     const db = (await client.query<{ db: string }>('SELECT current_database() AS db')).rows[0].db;
     console.log(`Environment: ${args.env}  (${target.envFile})  →  database: ${db}`);
-    if (db !== target.database) {
-      throw new Error(`Expected database ${target.database} for ${args.env}, connected to ${db}. Stopped.`);
-    }
+    assertExpectedDatabase(args.env, db);
 
     const log = await readLog(client);
 
