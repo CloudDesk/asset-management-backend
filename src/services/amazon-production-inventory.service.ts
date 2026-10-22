@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { env } from '../config/env.js';
 import { prisma } from '../models/prisma.js';
+import { actorKey, resolveActorNames } from '../utils/amazonActorNames.js';
 import { AmazonListingScope } from './amazon-listing-scope.service.js';
 import { amazonListingScopeService } from './amazon-listing-scope.service.js';
 import {
@@ -106,6 +107,12 @@ export const assertAmazonInventoryListingEligible = (listing: AmazonInventoryEli
     );
   }
 };
+
+/** Adds the name of who sent it ("by Harish Raja"); automatic sends have no user */
+export const withActorNames = (
+  attempts: Array<ReturnType<typeof serializeAttempt>>,
+  names: Map<string, string>,
+) => attempts.map((attempt) => ({ ...attempt, requestedByName: names.get(actorKey(attempt) ?? '') ?? null }));
 
 const serializeAttempt = (attempt: any) => ({
   id: String(attempt.id),
@@ -342,13 +349,10 @@ export class AmazonProductionInventoryService {
       throw new AmazonProductionInventoryError('Amazon production writes are disabled by the global kill switch', 409, 'AMAZON_PRODUCTION_WRITES_DISABLED');
     }
     const context = await this.loadContext(listingId, scope);
-    const requiredMode = operation === 'AUTOMATIC' ? 'AUTOMATIC' : 'MANUAL';
-    if (context.listing.inventorySyncMode !== requiredMode) {
-      throw new AmazonProductionInventoryError(
-        requiredMode === 'AUTOMATIC' ? 'Automatic sync is not enabled for this listing' : 'Enable manual sync for this listing before publishing',
-        409,
-        requiredMode === 'AUTOMATIC' ? 'AMAZON_AUTOMATIC_SYNC_DISABLED' : 'AMAZON_MANUAL_SYNC_DISABLED'
-      );
+    // A person pressing "Sync stock now" (single, bulk or retry) needs no per-listing mode (2026-10-22: the
+    // Off / Manual / Automatic choice was removed from the screen). Automatic sends still need AUTOMATIC.
+    if (operation === 'AUTOMATIC' && context.listing.inventorySyncMode !== 'AUTOMATIC') {
+      throw new AmazonProductionInventoryError('Automatic sync is not enabled for this listing', 409, 'AMAZON_AUTOMATIC_SYNC_DISABLED');
     }
     if (operation === 'AUTOMATIC' && (!env.AMAZON_AUTO_SYNC_ENABLED || env.AMAZON_ENVIRONMENT !== 'PRODUCTION')) {
       throw new AmazonProductionInventoryError('Amazon automatic sync is disabled globally', 409, 'AMAZON_AUTOMATIC_SYNC_DISABLED');
@@ -493,14 +497,16 @@ export class AmazonProductionInventoryService {
     return { listingId: String(listing.id), inventorySyncMode: listing.inventorySyncMode };
   }
 
+  // Stock actually sent to Amazon (manual, bulk, automatic, retry), newest first, with the person's name.
+  // Previews (one per dialog open) stay in the table for audit but are not listed.
   async history(listingId: string, scope: AmazonListingScope) {
     await this.loadContext(listingId, scope);
     const attempts = await prisma.amazonInventorySyncAttempt.findMany({
-      where: { listingId: BigInt(listingId) },
+      where: { listingId: BigInt(listingId), operation: { not: 'PREVIEW' } },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 100,
     });
-    return attempts.map(serializeAttempt);
+    return withActorNames(attempts.map(serializeAttempt), await resolveActorNames(attempts));
   }
 
   async bulkPreview(listingIds: string[], scope: AmazonListingScope, actor: AmazonInventoryActor = {}) {

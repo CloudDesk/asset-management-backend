@@ -257,6 +257,9 @@ LWA token failures now report Amazon's own reason (`invalid_client`, `invalid_gr
 - Identifiers column merged into the listing column: `SELLER-SKU | ASIN (| FNSKU)` under the title, each with a hover label; full title on hover. Listing details modal redesigned (markup only): summary card (full title, SKU | ASIN | FNSKU, fulfilment / "Live on Amazon" or problem / mapping badges), 4 figure tiles (Amazon qty, ₹ price, product type in plain case, last imported), Nivaana product card when mapped, FBA tiles, issues with icon + plain-case name + message (red for ERROR), offer form with a label above every field and "Now …" placeholders, Validate button right-aligned with the last submission note, mapping history as a timeline. Row actions are 32px icon buttons with tooltips: Details (eye), Map (link, gold) / Edit mapping (pen, gold), Remove mapping (link-slash, red), Stock sync (rotate, Stock Sync tab only).
 - Backup before the redesign: branch `backup/amazon-ui-before-redesign-2026-10-21` (pushed).
 
+### 2026-10-22: Amazon — Stock Sync: mapped only, no sync-mode choice, history of real sends (FIX-151, backend + Inventory DEV-NEW)
+Stock Sync tab lists mapped listings only (mapping filter removed). The Off / Manual / Automatic choice is removed from the screen (decision): "Sync stock now" works for any mapped self-ship listing once writes are on; automatic sending is not offered for now (AMAZON_AUTO_SYNC_ENABLED has no effect until a way to enable it per listing returns — see AMZ-PLAN-24). Table column "Sync mode" → "Last sent". Bulk "Preview stock (N)" and the Stock Sync checkboxes hidden (`BULK_STOCK_SYNC_ENABLED = false`): stock is sent one listing at a time. History shows only stock actually sent to Amazon: "Amazon 29 → 5 · Synced by <name> · Confirmed · Today, 15:47"; previews are no longer listed (still stored). Amazon does not record which Nivaana user changed a quantity, so the name is kept in Nivaana.
+
 ### 2026-10-22: Amazon — Bulk map hidden (FIX-150, Inventory DEV-NEW, UI only)
 "Map (N)" bulk mapping applied one product and one pack size to every selected listing; each Amazon listing is its own product / pack, so mapping is one at a time (decision 2026-10-22). Button and the Mappings checkbox column hidden (`BULK_MAPPING_ENABLED = false`); Stock Sync keeps its checkboxes for "Preview stock". Backend `POST /listings/bulk-map` unchanged.
 
@@ -420,6 +423,9 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 - **Consider:** rename `AMAZON_AUTO_SYNC_ENABLED` → `AMAZON_STOCK_AUTO_SYNC_ENABLED` (keep the old name as a fallback for one release); keep `AMAZON_ENVIRONMENT` — it is the second lock on writes.
 - **Release:** rows in `RELEASE_SCRIPTS_CHECKLIST.md` 4e for each env file change; tests for env parsing and the removed routes (404).
 
+
+### AMZ-PLAN-24: Automatic stock sending (after go-live)
+**Status:** Open (parked 2026-10-22). The per-listing Off / Manual / Automatic choice was removed from the Stock sync dialog (FIX-151) because it confused users; only "Sync stock now" remains. When automatic sending is wanted, decide how to switch it on (one global setting for all mapped self-ship listings, or a per-listing toggle in the table) and keep the one-automatic-listing-per-product rule (FIX-141).
 
 ### AMZ-PLAN-23: Move mappings between environments
 **Status:** Done 2026-10-22 (FIX-144): `npm run amazon:mappings` (option b). Before: Open. Found 2026-10-22. Mappings live in each database (`marketplace_listings.productId`, `unitsPerListing`, `inventorySyncMode`), so work done on dev / UAT does not reach Prod. Options: (a) map directly on Prod once it reads Amazon; (b) export from UAT (seller SKU → product PUC, pack size) and import on Prod with a script that matches by seller SKU and PUC, dry-run first, and writes the normal mapping audit rows. Product IDs differ between databases, so match by PUC, never by ID.
