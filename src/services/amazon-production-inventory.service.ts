@@ -27,8 +27,8 @@ export class AmazonProductionInventoryError extends Error {
   }
 }
 
-export const calculateAmazonTargetQuantity = (availableQuantity: number, unitsPerListing: number) =>
-  Math.floor(Math.max(0, Math.trunc(availableQuantity)) / Math.max(1, Math.trunc(unitsPerListing)));
+import { calculateAmazonTargetQuantity } from '../utils/amazonStockTarget.js';
+export { calculateAmazonTargetQuantity };
 
 export function assertAmazonInventorySubmissionAccepted(result: { status: string; issues: unknown[] }) {
   if (result.status === 'ACCEPTED') return;

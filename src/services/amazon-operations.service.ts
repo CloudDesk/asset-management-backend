@@ -94,6 +94,14 @@ export const summarizeAmazonOperationsError = (
   };
 };
 
+/** User-facing Operations errors (message is safe to show; FIX-135) */
+export class AmazonOperationsError extends Error {
+  constructor(message: string, readonly statusCode: number, readonly code: string) {
+    super(message);
+    this.name = 'AmazonOperationsError';
+  }
+}
+
 /** Where-clause part: only rows after the last success (none → every row is still open) */
 export const openAfter = <K extends string>(field: K, lastSuccessAt: Date | null | undefined) =>
   (lastSuccessAt ? { [field]: { gt: lastSuccessAt } } : {}) as Partial<Record<K, { gt: Date }>>;
@@ -248,7 +256,7 @@ export class AmazonOperationsService {
 
   async enqueueRetry(scope: AmazonListingScope, input: { type: string; resourceId: string; listingId?: string; orderId?: string }, actor: Actor) {
     const supported = ['ORDER_IMPORT', 'INVENTORY_SYNC', 'FULFILLMENT_EXCEPTION'];
-    if (!supported.includes(input.type)) throw new Error('This failure requires a fresh preview or manual correction and cannot be queued.');
+    if (!supported.includes(input.type)) throw new AmazonOperationsError('This failure requires a fresh preview or manual correction and cannot be queued.', 400, 'AMAZON_RETRY_NOT_SUPPORTED');
     const job = await prisma.$transaction(async (transaction) => {
       const key = JSON.stringify([scope.sellerId, scope.marketplaceId, input.type, input.resourceId]);
       await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
@@ -269,7 +277,7 @@ export class AmazonOperationsService {
 
   async runRetry(scope: AmazonListingScope, jobId: string) {
     const job = await prisma.amazonRetryJob.findFirst({ where: { id: BigInt(jobId), sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } });
-    if (!job) throw new Error('Retry job was not found');
+    if (!job) throw new AmazonOperationsError('Retry job was not found', 404, 'AMAZON_RETRY_NOT_FOUND');
     if (!['QUEUED', 'FAILED'].includes(job.status)) return { id: jobId, status: job.status };
     const claim = await prisma.amazonRetryJob.updateMany({ where: { id: job.id,
       status: { in: ['QUEUED', 'FAILED'] } }, data: { status: 'RUNNING', attempts: { increment: 1 }, startedAt: new Date(), lastError: null } });
@@ -291,7 +299,7 @@ export class AmazonOperationsService {
       } else if (job.operation === 'FULFILLMENT_EXCEPTION' && payload.orderId) {
         const { amazonOrderFulfillmentService } = await import('./amazon-order-fulfillment.service.js');
         await amazonOrderFulfillmentService.retryException(payload.orderId, job.resourceId, scope, fulfillmentActor);
-      } else throw new Error('Retry job payload is incomplete');
+      } else throw new AmazonOperationsError('Retry job payload is incomplete', 422, 'AMAZON_RETRY_PAYLOAD_INCOMPLETE');
       await prisma.amazonRetryJob.update({ where: { id: job.id }, data: { status: 'SUCCEEDED', finishedAt: new Date() } });
       return { id: jobId, status: 'SUCCEEDED' };
     } catch (error) {
@@ -316,7 +324,7 @@ export class AmazonOperationsService {
       const rows = await prisma.amazonMarketplaceOrder.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, include: { items: true }, orderBy: { purchaseDate: 'desc' } });
       return csv(['Amazon order ID', 'Purchased', 'Status', 'Fulfilment', 'Sync state', 'Items', 'Quantity'], rows.map((x) => [x.amazonOrderId, x.purchaseDate.toISOString(), x.orderStatus, x.fulfilmentType, x.syncState, x.items.length, x.items.reduce((sum, item) => sum + item.quantityOrdered, 0)]));
     }
-    throw new Error('Export type must be listings, mappings, inventory, or orders');
+    throw new AmazonOperationsError('Export type must be listings, mappings, inventory, or orders', 400, 'AMAZON_EXPORT_TYPE_INVALID');
   }
 }
 

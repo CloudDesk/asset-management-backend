@@ -1,7 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
 import { NormalizedAmazonListing } from '../services/amazon-listing-normalizer.js';
-import { buildCatalogWordStats, keyWords, scoreNameMatch } from '../utils/amazonProductMatch.js';
+import { buildCatalogWordStats, keyWords, scoreNameMatch, isSameAsin } from '../utils/amazonProductMatch.js';
+import { calculateAmazonTargetQuantity } from '../utils/amazonStockTarget.js';
 
 export type AmazonListingUpsertResult = {
   outcome: 'CREATED' | 'UPDATED' | 'UNCHANGED';
@@ -607,10 +608,27 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     const fbaAccounting = await getFbaOrderAccounting(
       items.filter((item) => item.fulfilmentChannel === 'FBA').map((item) => item.id)
     );
+    // Stock Sync columns: Nivaana "amazon" platform stock and the quantity a sync would publish
+    const sellerFulfilledProductIds = [...new Set(items.flatMap((item) =>
+      item.productId !== null && item.mappingStatus === 'MAPPED' && item.fulfilmentChannel !== 'FBA' ? [item.productId] : []))];
+    const platformStocks = sellerFulfilledProductIds.length === 0 ? [] : await prisma.platformStock.findMany({
+      where: { productid: { in: sellerFulfilledProductIds }, platform: { equals: 'amazon', mode: 'insensitive' } },
+      select: { productid: true, availableqty: true },
+    });
+    const amazonStockByProduct = new Map(platformStocks.map((stock) => [String(stock.productid), Math.max(0, Math.trunc(stock.availableqty))]));
     const totalPages = Math.ceil(total / query.limit);
 
     return {
-      data: items.map((item) => serializeListing(item, fbaAccounting.get(String(item.id)))),
+      data: items.map((item) => {
+        const available = item.productId === null ? undefined : amazonStockByProduct.get(String(item.productId));
+        return {
+          ...serializeListing(item, fbaAccounting.get(String(item.id))),
+          nivaanaStock: available === undefined ? null : {
+            available,
+            target: calculateAmazonTargetQuantity(available, item.unitsPerListing),
+          },
+        };
+      }),
       pagination: {
         page: query.page,
         limit: query.limit,
@@ -673,7 +691,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     )];
     // Whole catalogue: word frequencies need every product name, and every product can be scored
     const products = await prisma.product.findMany({
-      select: { id: true, puc: true, name: true, productstatus: true },
+      select: { id: true, puc: true, name: true, productstatus: true, asin: true },
       orderBy: { id: 'asc' },
       take: SUGGESTION_CATALOG_LIMIT,
     });
@@ -687,6 +705,11 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
         if (product.id === listing.productId) {
           score += 100;
           reasons.push('Current mapping');
+        }
+        // Same ASIN on the product (D4): the strongest signal, enough for HIGH on its own
+        if (isSameAsin(product.asin, listing.asin)) {
+          score += 90;
+          reasons.push('Same ASIN');
         }
         if (product.puc.toLowerCase() === listing.sellerSku.toLowerCase()) {
           score += 80;

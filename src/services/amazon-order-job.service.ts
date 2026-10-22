@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
 import { amazonListingScopeService } from './amazon-listing-scope.service.js';
 import { amazonOrderImportService } from './amazon-order-import.service.js';
+import { credentialBackoff } from '../utils/amazonCredentialBackoff.js';
 
 export type AmazonOrderJobTrigger = 'MANUAL' | 'SCHEDULED' | 'NOTIFICATION';
 
@@ -131,6 +132,17 @@ export class AmazonOrderJobService {
     } finally {
       this.running.delete(key);
     }
+  }
+
+  /** Whether a SCHEDULED run should wait because Amazon keeps rejecting the credentials (FIX-136) */
+  async scheduledBackoff(sellerId: string, marketplaceId: string, now = new Date()) {
+    const recent = await prisma.amazonOrderImportJob.findMany({
+      where: { sellerId, marketplaceId, status: { in: ['COMPLETED', 'FAILED'] } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 12,
+      select: { status: true, errorMessage: true, createdAt: true },
+    });
+    return credentialBackoff(recent, now);
   }
 
   async getJob(jobId: string, sellerId: string, marketplaceId: string) {

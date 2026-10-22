@@ -84,12 +84,15 @@ Apply with `DATABASE_URL="$TARGET_DB_URL" npx prisma migrate deploy` after a bac
 
 ### 4b. SQL scripts (`scripts/migrations`)
 
-Run with `psql` (or the Railway console) inside the file's own transaction. Without `psql`: `DATABASE_URL="$TARGET_DB_URL" npx prisma db execute --file scripts/migrations/<file>.sql --schema prisma/schema.prisma` (prints only "Script executed successfully"; run the count query separately). Validate counts after each environment (runbook section 6). **Run before the backend deploy.**
+**Runner (2026-10-22):** `npm run db:sql -- <sit|uat|prod>` shows which scripts are pending in that database (default `sit`, status only). Add `--apply` to run the pending ones in date order; Prod also needs `--confirm=NIVAANA_PROD_SQL` (backup first). It stops if the connected database is not the expected one (sit → `assetmanagement_dev`, uat → `assetmanagement_uat`, prod → `railway`) and records each run in `release_ops.sql_script_log` (own schema, so Prisma never sees it), so a script never runs twice. A script run by hand earlier: `npm run db:sql -- <env> --mark-applied=<file>`. Superseded scripts are in `scripts/migrations/superseded/` and are never picked up.
+
+Manual alternative: run with `psql` (or the Railway console) inside the file's own transaction. Without `psql`: `DATABASE_URL="$TARGET_DB_URL" npx prisma db execute --file scripts/migrations/<file>.sql --schema prisma/schema.prisma` (prints only "Script executed successfully"; run the count query separately). Validate counts after each environment (runbook section 6). **Run before the backend deploy.**
 
 | Script | Purpose | Dev / SIT DB | UAT DB | Prod DB |
 | --- | --- | --- | --- | --- |
 | `20261006_sync_authoritative_product_tax.sql` | Product / mapping HSN and GST from the approved table. Expected: 77 products both set, 11 decor blank HSN + 18%, 1 peaceful_nights both blank (89 products). Creates `product.hsn_code` / `gst_rate` if missing: **the backend fails on every product query without them** | ❓ | ✅ columns present (90 products: 78 HSN, 89 GST on 2026-10-14) | ✅ 2026-10-14 (89 products: 77 HSN, 88 GST; ran after the backend deploy, see top note) |
-| `20260930_add_product_hsn_gst_backfill.sql` | Earlier HSN/GST backfill that enforces NOT NULL. The runbook names `20261006` as the source; treat this as superseded and do not run after `20261006` (confirm with the team) | ❓ | ➖ | ➖ |
+| `20261022_add_product_asin.sql` | Amazon gap D4 / AMZ-PLAN-17: adds nullable `product.asin` VARCHAR(20) + index `product_asin_idx`. No data change (every product starts NULL). Idempotent. Run before the backend that has `asin` in the Prisma schema, or every product query fails. Verify: column + index queries at the end of the file, `products_with_asin = 0`. Code: FIX-140 | ✅ 2026-10-22 (`db:sql`) | ⬜ | ⬜ (backup first) |
+| `superseded/20260930_add_product_hsn_gst_backfill.sql` | Earlier HSN/GST backfill that enforces NOT NULL. Moved to `superseded/` 2026-10-22 so `db:sql` skips it. The runbook names `20261006` as the source; treat this as superseded and do not run after `20261006` (confirm with the team) | ❓ | ➖ | ➖ |
 
 ### 4c. One-time data scripts (`scripts/*.ts`)
 
@@ -142,7 +145,7 @@ Dev and SIT share a database, so database steps done on dev are already done her
 - [ ] Section 4e: environment config changes for SIT are in `.env.sit` on `SIT`
 - [ ] Compare branches: `git diff --stat origin/SIT origin/DEV-NEW -- prisma/migrations scripts`; every new file has a row in section 4
 - [ ] `npx prisma migrate status` (dev `.env`): only the known Flipkart / empty-folder differences (section 3)
-- [ ] Run any section 4 row marked ⬜ or ❓ for Dev / SIT DB; save logs
+- [ ] Run any section 4 row marked ⬜ or ❓ for Dev / SIT DB; save logs (4b: `npm run db:sql -- sit`, then `--apply`)
 - [ ] Deploy SIT (runbook section 12), then smoke tests
 - [ ] Update this file and Master.md
 
@@ -154,7 +157,7 @@ Dev and SIT share a database, so database steps done on dev are already done her
 - [ ] Backup / snapshot `assetmanagement_uat`
 - [ ] `DATABASE_URL="$TARGET_DB_URL" npx prisma migrate status` with `.env.uat`; confirm DB name `assetmanagement_uat`; record which section 4a rows are applied
 - [ ] `npx prisma migrate deploy` for pending migrations; re-run `migrate status`
-- [ ] SQL scripts (4b) marked ⬜ / ❓ for UAT; validate HSN/GST counts
+- [ ] SQL scripts (4b): `npm run db:sql -- uat`, then `--apply`; run each file's verification queries
 - [ ] Data scripts (4c) for UAT in table order: dry run, review, apply
 - [ ] Deploy UAT (file upload → backend → inventory → ecom), smoke tests
 - [ ] Update this file and Master.md
@@ -170,7 +173,7 @@ Released 2026-10-14 (all database rows in section 4 done for Prod). Next time ke
 - [ ] Confirm the target DB from the deployed service (runbook section 2); `migrate status` shows `railway`
 - [ ] Review row-impact of data migrations: `20260922090000`, `20260924110000`, `20260927100000`, `20261008195500`
 - [ ] `npx prisma migrate deploy`; re-run `migrate status`
-- [ ] SQL scripts (4b) for Prod; validate HSN/GST counts
+- [ ] SQL scripts (4b): `npm run db:sql -- prod`, then `--apply --confirm=NIVAANA_PROD_SQL` (after the backup); run each file's verification queries
 - [ ] Check nothing is missing: `npx prisma migrate diff --from-url "$TARGET_DB_URL" --to-schema-datamodel prisma/schema.prisma --script | grep -E 'CREATE TABLE|ADD COLUMN'` (known old drift only: `quotes`, `picklist_backup`)
 - [ ] Data scripts (4c) for Prod in table order: dry run, review, apply; `retire-stale-cart-rule-versions.ts` right after the PLAN-107 backend deploy
 - [ ] PLAN-107: list active promotions of old type `PERCENT_OFF_ITEM` / `FIXED_AMOUNT_OFF_ITEM` with no product / category / subcategory scope and no published V2 rule (whole-cart offers such as FESTIVE SALE). Change each in admin to "Percent of entire cart value" / "Fixed amount of entire cart value" and re-enter the value. UAT 2026-10-13: #1 FESTIVE SALE was `PERCENT_OFF_ITEM` and applied 10% to the whole cart until changed.

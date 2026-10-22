@@ -256,6 +256,27 @@ LWA token failures now report Amazon's own reason (`invalid_client`, `invalid_gr
 - Identifiers column merged into the listing column: `SELLER-SKU | ASIN (| FNSKU)` under the title, each with a hover label; full title on hover. Listing details modal redesigned (markup only): summary card (full title, SKU | ASIN | FNSKU, fulfilment / "Live on Amazon" or problem / mapping badges), 4 figure tiles (Amazon qty, ₹ price, product type in plain case, last imported), Nivaana product card when mapped, FBA tiles, issues with icon + plain-case name + message (red for ERROR), offer form with a label above every field and "Now …" placeholders, Validate button right-aligned with the last submission note, mapping history as a timeline. Row actions are 32px icon buttons with tooltips: Details (eye), Map (link, gold) / Edit mapping (pen, gold), Remove mapping (link-slash, red), Stock sync (rotate, Stock Sync tab only).
 - Backup before the redesign: branch `backup/amazon-ui-before-redesign-2026-10-21` (pushed).
 
+### 2026-10-22: Amazon — ASIN on products, Strong match (FIX-140, backend + Inventory DEV-NEW)
+`product.asin` (nullable, indexed; SQL `20261022_add_product_asin.sql`, applied on SIT 2026-10-22). Product create / edit / detail show "Amazon ASIN" (10 letters/digits, saved upper case, empty clears). Mapping suggestions: same ASIN +90 → HIGH ("Same ASIN"). ASINs still have to be entered per product.
+
+### 2026-10-22: Amazon / Shipmozo — lint, types, expired login (FIX-138, Inventory DEV-NEW)
+Amazon Inventory files: 0 type / lint errors (two attribute-JSON `any` kept with a scoped exception). Shipmozo service logs out on a portal 401.
+
+### 2026-10-22: Amazon — sandbox removed (FIX-137, backend + Inventory DEV-NEW)
+Sandbox service, routes, status section and stock-sync branch removed; 8 env variables gone (43 → 35); Inventory sandbox table and 4 unused Amazon files deleted. Outside PRODUCTION, stock sync skips.
+
+### 2026-10-22: Amazon — credential backoff for scheduled order sync (FIX-136, backend DEV-NEW)
+After consecutive credential failures, scheduled order runs wait 15 → 30 → 60 … ≤ 360 minutes; manual sync never blocked. Outage replay for one runner: 744 → 35 failed jobs.
+
+### 2026-10-22: Amazon — Operations API error hygiene (FIX-135, backend DEV-NEW)
+Operations errors: Amazon error classes and validation pass through, anything else is a generic 500; four plain user errors became `AmazonOperationsError`. `/listings` accepts `activeOnly`.
+
+### 2026-10-22: Amazon — Stock Sync tab and dialog (FIX-134, backend + Inventory DEV-NEW)
+Rows show Nivaana "amazon" stock, target, difference and sync mode (backend adds `nivaanaStock` to mapped seller-fulfilled rows; target formula shared in `utils/amazonStockTarget.ts`). Dialog: three figures, Off / Manual / Automatic switch, plain reason when publishing is blocked, friendly history.
+
+### 2026-10-22: Amazon — data freshness bar (FIX-133, Inventory DEV-NEW)
+Mappings and Stock Sync show "Amazon data as of …" from the last listing import: plain, amber after 12 h, red when the latest refresh failed; updates after Refresh.
+
 ### 2026-10-22: Amazon — "Needs attention" clears after recovery (FIX-132, backend DEV-NEW)
 Order / listing import failures followed by a successful import of the same kind no longer count; dev DB 50 → 0 failures, health HEALTHY.
 
@@ -313,7 +334,7 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 **Status:** Open. Reports API polling is too long for one request: split into a "request report" job and a "collect finished reports" job (both quick), or keep node-cron for returns on an always-on instance.
 
 ### AMZ-PLAN-06: Failure lifecycle and "Needs attention"
-**Status:** Partly done 2026-10-22 (FIX-132: import failures followed by a success no longer count). Left: backoff on repeated credential errors. Mark failed order / listing imports as superseded once a later run succeeds (or count only failures after the last success), so the Activity badge turns green again. Add backoff when the same credential error repeats (today 96 failed jobs a day per laptop).
+**Status:** Done 2026-10-22 (FIX-132 resolved failures, FIX-136 credential backoff). Mark failed order / listing imports as superseded once a later run succeeds (or count only failures after the last success), so the Activity badge turns green again. Add backoff when the same credential error repeats (today 96 failed jobs a day per laptop).
 
 ### AMZ-PLAN-07: Overview shows import status, not just time
 **Status:** Open. "Last order import 18:30" should say "Failed" / "Successful" and show the last successful time too.
@@ -331,10 +352,10 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 **Status:** Open. Move the 5 modals out of `AmazonProductionListingsTable.tsx` and the test-order modal / fulfillment panel out of `AmazonOrderHub.tsx` into their own files, no logic change, before further UI work. `AmazonOrderHub` and `AmazonOrderFulfillmentPanel` are also used by Orders and Amazon order detail.
 
 ### AMZ-PLAN-12: Remove unused Amazon frontend files
-**Status:** Open. `AmazonAccordionContent.tsx`, `AmazonIntegrationContent.tsx`, `AmazonChannelPage.tsx`, `pages/amazon/AmazonPage.tsx` are not imported anywhere; confirm and delete. Sandbox panel component (`AmazonSandboxInventoryTable`) kept for developers.
+**Status:** Done 2026-10-22 (FIX-137). `AmazonAccordionContent.tsx`, `AmazonIntegrationContent.tsx`, `AmazonChannelPage.tsx`, `pages/amazon/AmazonPage.tsx` are not imported anywhere; confirm and delete. Sandbox panel component (`AmazonSandboxInventoryTable`) kept for developers.
 
 ### AMZ-PLAN-13: Pre-existing lint / type errors in Amazon frontend
-**Status:** Open. `AmazonAttributeFields.tsx` uses `Array.prototype.at` (needs `es2022` lib), `AmazonPublishDraftModal.tsx` has an `any`. Not touched during the UI-only restyle.
+**Status:** Done 2026-10-22 (FIX-138); hook-dependency warnings remain by choice. `AmazonAttributeFields.tsx` uses `Array.prototype.at` (needs `es2022` lib), `AmazonPublishDraftModal.tsx` has an `any`. Not touched during the UI-only restyle.
 
 ### AMZ-PLAN-14: Split stock when one Nivaana product has several seller-fulfilled listings
 **Status:** Open (business decision needed). Found 2026-10-21 (FIX-127).
@@ -347,16 +368,16 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 **Status:** Open. Gap P2. Today a credential failure ran for a week unnoticed. Options: after N consecutive FAILED order / listing imports (or any `AMAZON_INVALID_AUTHORIZATION`), notify (email / in-app banner on Channels and Amazon Operations); show a red "Amazon disconnected since …" banner from the latest job status; Cloud Scheduler job failure alert in GCP Monitoring once AMZ-PLAN-03 is live.
 
 ### AMZ-PLAN-16: Amazon API error and schema hygiene
-**Status:** Open. Gaps P8, P9. `amazon-operations.route.ts` `fail()` should pass through only known Amazon errors (as `inventoryErrorResponse` does since FIX-129) and answer a generic 500 otherwise. Add `activeOnly` to the `GET /listings` route querystring. Test through Fastify inject (route schemas strip unlisted fields).
+**Status:** Done 2026-10-22 (FIX-135). Gaps P8, P9. `amazon-operations.route.ts` `fail()` should pass through only known Amazon errors (as `inventoryErrorResponse` does since FIX-129) and answer a generic 500 otherwise. Add `activeOnly` to the `GET /listings` route querystring. Test through Fastify inject (route schemas strip unlisted fields).
 
 ### AMZ-PLAN-17: ASIN on Nivaana products for automatic mapping
-**Status:** Open. Gap D4. Add an optional `asin` (and optionally EAN) to `product` (migration + product form). On listing import, a listing whose ASIN equals a product's ASIN is suggested as a **Strong** match (or auto-mapped with pack size 1 after confirmation). Mapping table stays — Amazon orders and stock updates are keyed by seller SKU, and one product can have several listings.
+**Status:** Done 2026-10-22 (FIX-140): `product.asin` + form field + "Same ASIN" Strong suggestion. Not done: EAN, auto-map; ASINs must be filled per product (SQL on UAT / Prod still to run). Original plan: Gap D4. Add an optional `asin` (and optionally EAN) to `product` (migration + product form). On listing import, a listing whose ASIN equals a product's ASIN is suggested as a **Strong** match (or auto-mapped with pack size 1 after confirmation). Mapping table stays — Amazon orders and stock updates are keyed by seller SKU, and one product can have several listings.
 
 ### AMZ-PLAN-18: Show data freshness
-**Status:** Open. Gap D1. Show "Amazon data as of <last successful import>" on Mappings / Stock Sync / Listing details, amber when older than the schedule (e.g. > 12 h), red with the last error when imports are failing.
+**Status:** Done 2026-10-22 (FIX-133) for Mappings and Stock Sync. Possible later: the same bar on the Orders / Fulfillment tabs (order import time). Gap D1. Show "Amazon data as of <last successful import>" on Mappings / Stock Sync / Listing details, amber when older than the schedule (e.g. > 12 h), red with the last error when imports are failing.
 
 ### AMZ-PLAN-19: Stock Sync tab and dialog redesign
-**Status:** Proposed 2026-10-21, not started. Gaps U3, U4, U8. Table columns for the Stock Sync tab: Amazon qty, Nivaana (Amazon platform) stock, target, difference, sync mode badge (backend adds the platform stock to the listing list response). Dialog: wide, three figure tiles, Off / Manual / Automatic segmented switch with the current mode, plain-language reason when publishing is blocked (no env names), friendly history. Sync rules unchanged. Also verify Esc handling in the mapping dialog's product search.
+**Status:** Done 2026-10-22 (FIX-134), except verifying Esc in the mapping dialog's product search (U8). Gaps U3, U4, U8. Table columns for the Stock Sync tab: Amazon qty, Nivaana (Amazon platform) stock, target, difference, sync mode badge (backend adds the platform stock to the listing list response). Dialog: wide, three figure tiles, Off / Manual / Automatic segmented switch with the current mode, plain-language reason when publishing is blocked (no env names), friendly history. Sync rules unchanged. Also verify Esc handling in the mapping dialog's product search.
 
 ### AMZ-PLAN-20: Review Orders and Fulfillment tabs
 **Status:** To review. Gaps U5, U6. Same review as Overview / Mappings / Stock Sync: purpose, data sources, UI gaps, theme leftovers in `AmazonOrderHub.tsx` and `AmazonOrderDetailPage.tsx`, error handling.
@@ -366,7 +387,7 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 
 
 ### AMZ-PLAN-22: Trim Amazon environment variables
-**Status:** In progress. Found 2026-10-22. **Done 2026-10-22 (not committed):** `AMAZON_REGION` and the five `AMAZON_SANDBOX_*` lines removed from `.env`, `.env.sit`, `.env.uat`, `.env.prod`, `cloudbuildprod.yaml` (release checklist 4e). **Left:** remove the variables and the sandbox code from `env.ts` / services / routes / Inventory; trim lines equal to defaults; rotate or delete the sandbox app. 43 Amazon variables exist; a deployment needs about 9 (`amazon.env.example`).
+**Status:** Done 2026-10-22 (env files: FIX-130 commit; code: FIX-137). Only left: rotate or delete the sandbox app in Seller Central (P14). Found 2026-10-22. **Done 2026-10-22 (not committed):** `AMAZON_REGION` and the five `AMAZON_SANDBOX_*` lines removed from `.env`, `.env.sit`, `.env.uat`, `.env.prod`, `cloudbuildprod.yaml` (release checklist 4e). **Left:** remove the variables and the sandbox code from `env.ts` / services / routes / Inventory; trim lines equal to defaults; rotate or delete the sandbox app. 43 Amazon variables exist; a deployment needs about 9 (`amazon.env.example`).
 - **Remove from `env.ts` and every env file / trigger:** `AMAZON_SP_API_BASE_URL`, `AMAZON_AWS_IAM_ROLE_ARN`, `AMAZON_REGION` (never read by code).
 - **Security first:** `.env.sit` / `.env.uat` (tracked in git) hold the sandbox app's client secret and refresh token. Remove the lines, then rotate that app's secret or delete the app in Seller Central (git history still has the old values).
 - **Remove the sandbox feature:** `AMAZON_SANDBOX_CLIENT_ID`, `_CLIENT_SECRET`, `_REFRESH_TOKEN`, `_SP_API_BASE_URL`, `AMAZON_SANDBOX_CREDENTIAL_SOURCE`, plus `amazon-sandbox-inventory.service.ts`, the `/v1/amazon/sandbox/*` routes in `amazon.route.ts`, the sandbox section of `amazon-integration-status.service.ts`, the non-production branch of `amazon-inventory-sync.service.ts`, and Inventory `AmazonSandboxInventoryTable.tsx` (panel already removed from the page). Sandbox has no real data and its credentials belong to a different Amazon app.
@@ -392,25 +413,25 @@ Every known gap across the Amazon modules, in one list. Severity: **Critical** =
 | P2 | No alert when Amazon sync keeps failing — a week of failures went unnoticed | High | AMZ-PLAN-15 | Partly done: Channels / Overview now show "Connection failed (since …)" (FIX-131); no push alert yet |
 | P3 | Scheduled work on node-cron: unreliable on Cloud Run, and runs on every developer laptop against the shared dev DB | High | AMZ-PLAN-03, AMZ-PLAN-04 | Endpoints built (FIX-124, not committed); jobs not created |
 | P4 | Returns import has no Cloud Scheduler job (Reports API polling too long for one request) | Medium | AMZ-PLAN-05 | Open |
-| P5 | Failed jobs are never marked resolved; no backoff on repeated credential errors (~96 failed jobs / day / laptop) | Medium | AMZ-PLAN-06 | Resolved part ✅ (FIX-132: failures before the last success no longer count); backoff still open |
+| P5 | Failed jobs are never marked resolved; no backoff on repeated credential errors (~96 failed jobs / day / laptop) | Medium | AMZ-PLAN-06 | ✅ Fixed 2026-10-22 (FIX-132 resolved failures; FIX-136 backoff 15 → 360 min) |
 | P6 | Real-time notifications (SQS / EventBridge) not set up; only the scheduled sync updates data | Medium | AMZ-PLAN-09 | Open |
 | P7 | Stock is not split when one product has several seller-fulfilled listings; sandbox and production paths disagree | High | AMZ-PLAN-14 | Warning added (FIX-127) |
-| P8 | Operations API (`amazon-operations.route.ts` `fail()`) returns any error's raw message with status 400 — unknown errors leak internal text and look like client errors | Medium | AMZ-PLAN-16 | Open |
-| P9 | `GET /listings` route schema has no `activeOnly`, so Fastify drops it silently (default behaviour happens to match) | Low | AMZ-PLAN-16 | Open |
+| P8 | Operations API (`amazon-operations.route.ts` `fail()`) returns any error's raw message with status 400 — unknown errors leak internal text and look like client errors | Medium | AMZ-PLAN-16 | ✅ Fixed 2026-10-22 (FIX-135) |
+| P9 | `GET /listings` route schema has no `activeOnly`, so Fastify drops it silently (default behaviour happens to match) | Low | AMZ-PLAN-16 | ✅ Fixed 2026-10-22 (FIX-135) |
 | P10 | Local `.env` says `AMAZON_ENVIRONMENT=SANDBOX` while the env fallback uses the production account — confusing, and writes need `PRODUCTION` | Low | Section 5a | Open |
 | P11 | Amazon off on SIT / UAT; SIT on the Prod account read-only not done | Medium | AMZ-PLAN-02 | Decided, not started |
 | P12 | Who may authorize a seller account (OAuth is per user and changes that user's data) | Medium | AMZ-PLAN-10 | Open |
-| P13 | 43 Amazon env variables for one integration (31 lines in `.env.sit`); 3 unused, 5 sandbox-only, most others defaults — hard to deploy and review | Medium | AMZ-PLAN-22 | Sample written (`amazon.env.example`) |
+| P13 | 43 Amazon env variables for one integration (31 lines in `.env.sit`); 3 unused, 5 sandbox-only, most others defaults — hard to deploy and review | Medium | AMZ-PLAN-22 | ✅ Fixed 2026-10-22 (env files trimmed; FIX-137 removed sandbox code and 8 variables, 43 → 35) |
 | P14 | **Secrets committed in git:** `.env.sit` and `.env.uat` (tracked) contain `AMAZON_SANDBOX_CLIENT_SECRET` and `AMAZON_SANDBOX_REFRESH_TOKEN` values (a second Amazon app). Production credentials are not in these files. History keeps them even after removal | High | AMZ-PLAN-22 | Removed from the files 2026-10-22 (not committed); **rotate / delete that app in Seller Central** still open |
 
 ### 10.2 Data
 
 | # | Gap | Severity | Plan | Status |
 | --- | --- | --- | --- | --- |
-| D1 | All Amazon numbers on screen are the 2026-10-14 snapshot; the UI does not say how old they are | High | AMZ-PLAN-18 | Open |
+| D1 | All Amazon numbers on screen are the 2026-10-14 snapshot; the UI does not say how old they are | High | AMZ-PLAN-18 | ✅ Fixed 2026-10-22 (FIX-133: "Amazon data as of …" bar on Mappings / Stock Sync); data refreshed the same day |
 | D2 | Amazon orders after 2026-10-14 16:51 IST are not in Nivaana | High | AMZ-PLAN-01 (runbook step 5) | ✅ Caught up 2026-10-22 on the dev DB (46 orders); UAT / Prod when their secrets are updated |
 | D3 | 171 of 172 active listings unmapped | High | AMZ-PLAN-08 | 1 mapped (KRA-0049) |
-| D4 | No ASIN / barcode on Nivaana products, Amazon SKUs ≠ PUCs → no automatic mapping, suggestions max "Possible" | Medium | AMZ-PLAN-17 | Open |
+| D4 | No ASIN / barcode on Nivaana products, Amazon SKUs ≠ PUCs → no automatic mapping, suggestions max "Possible" | Medium | AMZ-PLAN-17 | ✅ Fixed 2026-10-22 (FIX-140); ASINs still to be entered per product; SQL on UAT / Prod pending |
 | D5 | Dev DB stock is test data but the account is real — any write from local / dev would publish test numbers | High | Section 5a, AMZ-PLAN-04 | Writes off |
 | D6 | Nivaana "amazon" platform allocation must be maintained correctly (it is what Stock Sync publishes); e.g. KRA-0049 = 5 vs Amazon 29 | High | Section 5a | Business process |
 | D7 | Mappings are stored per database (local+SIT share one; UAT and Prod separate) — mapping done outside Prod does not reach Prod | High | AMZ-PLAN-23 | Open |
@@ -422,16 +443,16 @@ Every known gap across the Amazon modules, in one list. Severity: **Critical** =
 | --- | --- | --- | --- | --- | --- |
 | U1 | Overview | "Last order import" shows a failed run's time as if fine | Medium | AMZ-PLAN-07 | ✅ Fixed 2026-10-22 (FIX-131: ✅ / ❌ per import) |
 | U2 | Overview / Activity | "Needs attention" stays red after recovery | Medium | AMZ-PLAN-06 | ✅ Fixed 2026-10-22 (FIX-132) |
-| U3 | Stock Sync tab | Table shows Mappings columns; no Nivaana stock / target / difference / sync mode per row | High | AMZ-PLAN-19 | Proposed |
-| U4 | Stock Sync dialog | No current-mode indicator, 5 buttons in a row, env variable names shown to users, no reason why "Sync stock now" is disabled, raw history enums, narrow modal | Medium | AMZ-PLAN-19 | Proposed |
+| U3 | Stock Sync tab | Table shows Mappings columns; no Nivaana stock / target / difference / sync mode per row | High | AMZ-PLAN-19 | ✅ Fixed 2026-10-22 (FIX-134) |
+| U4 | Stock Sync dialog | No current-mode indicator, 5 buttons in a row, env variable names shown to users, no reason why "Sync stock now" is disabled, raw history enums, narrow modal | Medium | AMZ-PLAN-19 | ✅ Fixed 2026-10-22 (FIX-134) |
 | U5 | Orders tab | Not reviewed in detail yet (layout restyled only) | — | AMZ-PLAN-20 | To review |
 | U6 | Fulfillment tab / Amazon order detail | Not reviewed in detail; remaining non-theme colours in `AmazonOrderHub.tsx`, `AmazonOrderDetailPage.tsx` | — | AMZ-PLAN-20 | To review |
 | U7 | Fulfillment | Not available: Easy Ship cancellation, Amazon document download, product-content editing, listing disable, alert recipients, per-workflow automation controls (no backend APIs) | Medium | AMZ-PLAN-21 | Open |
 | U8 | Mapping dialog | Esc in the product search may also close the dialog (not verified) | Low | AMZ-PLAN-19 | To verify |
 | U9 | Mapping | Bulk map applies one product to every selected listing — only right for variants of the same item | Low | — | Tooltip explains it |
-| U10 | Channels page | Shipmozo row makes a live Shipmozo call on every page open; its service does not log out on a portal 401 | Low | — | Open |
+| U10 | Channels page | Shipmozo row makes a live Shipmozo call on every page open; its service does not log out on a portal 401 | Low | — | 401 handling ✅ (FIX-138); the live Shipmozo call on page open is kept — it is what makes the status real |
 | U11 | Code | Large multi-component files (`AmazonProductionListingsTable` ~1,680 lines, `AmazonOrderHub` ~1,070) | Low | AMZ-PLAN-11 | Open |
-| U12 | Code | Unused Amazon files; old lint / type errors (`.at()`, `any`, useless try/catch in `amazonService.ts`) | Low | AMZ-PLAN-12, AMZ-PLAN-13 | Open |
+| U12 | Code | Unused Amazon files; old lint / type errors (`.at()`, `any`, useless try/catch in `amazonService.ts`) | Low | AMZ-PLAN-12, AMZ-PLAN-13 | ✅ Fixed 2026-10-22 (FIX-137 unused files; FIX-138 type / lint errors — hook-dependency warnings left on purpose) |
 
 ### 10.4 Housekeeping
 

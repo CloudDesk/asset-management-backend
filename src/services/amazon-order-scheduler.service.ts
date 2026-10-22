@@ -20,6 +20,12 @@ const enqueueConfiguredScopes = async () => {
     // Stored OAuth scopes can still be scheduled when no environment fallback exists.
   }
   for (const scope of scopes.values()) {
+    const backoff = await amazonOrderJobService.scheduledBackoff(scope.sellerId, scope.marketplaceId);
+    if (backoff.skip) {
+      logger.warn({ sellerId: scope.sellerId, streak: backoff.streak, retryAfter: backoff.retryAfter },
+        'Scheduled Amazon order sync skipped: Amazon keeps rejecting the credentials (backoff)');
+      continue;
+    }
     await amazonOrderJobService.enqueue({
       sellerId: scope.sellerId,
       marketplaceId: scope.marketplaceId,

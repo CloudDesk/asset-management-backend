@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildCatalogWordStats, keyWords, scoreNameMatch } from './amazonProductMatch.ts';
+import { buildCatalogWordStats, isSameAsin, keyWords, scoreNameMatch } from './amazonProductMatch.ts';
 
 // Shaped like the real catalogue: many NIVAANA incense products, a smaller KRAFTELLA decor range
 const CATALOG = [
@@ -83,4 +83,12 @@ test('no shared key word gives no name score', () => {
 test('a small catalogue only drops stop words', () => {
   const small = buildCatalogWordStats(['NIVAANA - Rose', 'NIVAANA - Kasturi']);
   assert.ok(keyWords('NIVAANA Rose', small).has('nivaana'));
+});
+
+test('same ASIN ignores case and spaces; a product without ASIN never matches', () => {
+  assert.equal(isSameAsin('b0abc12345', ' B0ABC12345 '), true);
+  assert.equal(isSameAsin('B0ABC12345', 'B0ABC99999'), false);
+  assert.equal(isSameAsin(null, 'B0ABC12345'), false);
+  assert.equal(isSameAsin('', ''), false);
+  assert.equal(isSameAsin(undefined, null), false);
 });

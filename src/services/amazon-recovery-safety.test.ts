@@ -5,7 +5,6 @@ import { AmazonListingScopeService } from './amazon-listing-scope.service.js';
 import { amazonProductionListingsClient } from './amazon-production-listings.client.js';
 import { amazonTokenCryptoService } from './amazon-token-crypto.service.js';
 import { AmazonOrderImportService } from './amazon-order-import.service.js';
-import { AmazonInventorySyncService } from './amazon-inventory-sync.service.js';
 import { normalizeAmazonListing } from './amazon-listing-normalizer.js';
 
 test('a user without a personal connection retains the configured shared-account scope', async () => {
@@ -78,21 +77,6 @@ test('a broken order does not prevent subsequent orders from being imported', as
     }), /1 failed orders out of 2/);
     assert.deepEqual(seen, ['BAD', 'GOOD']);
   } finally { prisma.amazonMarketplaceOrder.findFirst = original; }
-});
-
-test('an uncertain sandbox depletion is not repeated', async () => {
-  let depletions = 0;
-  const service = new AmazonInventorySyncService({ enabled: true, environment: 'SANDBOX',
-    loadContext: async () => ({ platformStockId: '1', productId: '1', platform: 'amazon',
-      sellerSku: 'SKU', productName: 'Product', targetQuantity: 3 }),
-    client: {
-      getInventorySummaries: async () => ({ items: [{ sellerSku: 'SKU', fulfillableQuantity: 5 }], nextToken: null }) as any,
-      createInventoryItem: async () => {}, addInventory: async () => {},
-      depleteInventory: async () => { ++depletions; throw new Error('timeout after acceptance'); },
-    },
-  });
-  await assert.rejects(() => service.syncPlatformStockById('1'), /timeout/);
-  assert.equal(depletions, 1);
 });
 
 test('FBA total stock is not advertised as sellable stock', () => {

@@ -68,6 +68,7 @@ test('Amazon scheduler jobs answer 503 when the secret is not configured', async
 test('order sync enqueues without the background start and waits for the job result', async (t) => {
   t.after(() => mock.restoreAll());
   mock.method(amazonSchedulerJobsService, 'configuredScopes', async () => [{ sellerId: 'SELLER', marketplaceId: 'MKT' }]);
+  mock.method(amazonOrderJobService, 'scheduledBackoff', async () => ({ skip: false, streak: 0 }));
   const enqueue = mock.method(amazonOrderJobService, 'enqueue', async () => ({ job: { id: '42', status: 'QUEUED' }, existing: false }));
   const run = mock.method(amazonOrderJobService, 'run', async () => undefined);
   mock.method(amazonOrderJobService, 'getJob', async () => ({ id: '42', status: 'FAILED', fetched: 0, errorMessage: 'invalid_client' }));
@@ -84,6 +85,7 @@ test('order sync enqueues without the background start and waits for the job res
 test('order sync does not start a second run when a job is already active', async (t) => {
   t.after(() => mock.restoreAll());
   mock.method(amazonSchedulerJobsService, 'configuredScopes', async () => [{ sellerId: 'SELLER', marketplaceId: 'MKT' }]);
+  mock.method(amazonOrderJobService, 'scheduledBackoff', async () => ({ skip: false, streak: 0 }));
   mock.method(amazonOrderJobService, 'enqueue', async () => ({ job: { id: '7', status: 'RUNNING' }, existing: true }));
   const run = mock.method(amazonOrderJobService, 'run', async () => undefined);
 
@@ -93,3 +95,20 @@ test('order sync does not start a second run when a job is already active', asyn
   assert.equal(result.results[0].skipped, true);
   assert.equal(result.failed, 0);
 });
+
+test('order sync skips a scope during credential backoff without creating a job (FIX-136)', async (t) => {
+  t.after(() => mock.restoreAll());
+  mock.method(amazonSchedulerJobsService, 'configuredScopes', async () => [{ sellerId: 'SELLER', marketplaceId: 'MKT' }]);
+  mock.method(amazonOrderJobService, 'scheduledBackoff', async () => ({
+    skip: true, streak: 3, waitMinutes: 60, retryAfter: new Date('2026-10-22T07:00:00Z'),
+  }));
+  const enqueue = mock.method(amazonOrderJobService, 'enqueue', async () => { throw new Error('must not enqueue'); });
+
+  const result = await amazonSchedulerJobsService.runOrderSync();
+
+  assert.equal(enqueue.mock.callCount(), 0);
+  assert.equal(result.results[0].status, 'BACKOFF');
+  assert.equal(result.results[0].skipped, true);
+  assert.match(result.results[0].errorMessage ?? '', /3 in a row/);
+});
+

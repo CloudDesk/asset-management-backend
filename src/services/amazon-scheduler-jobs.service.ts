@@ -29,6 +29,13 @@ export class AmazonSchedulerJobsService {
   async runOrderSync() {
     const results = [];
     for (const scope of await this.configuredScopes()) {
+      const backoff = await amazonOrderJobService.scheduledBackoff(scope.sellerId, scope.marketplaceId);
+      if (backoff.skip) {
+        // Credentials keep failing: no new FAILED job until the backoff window passes (FIX-136)
+        results.push({ sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, jobId: null, status: 'BACKOFF', skipped: true,
+          errorMessage: `Amazon keeps rejecting the credentials (${backoff.streak} in a row); next scheduled try after ${backoff.retryAfter.toISOString()}` });
+        continue;
+      }
       const { job, existing } = await amazonOrderJobService.enqueue({
         sellerId: scope.sellerId,
         marketplaceId: scope.marketplaceId,

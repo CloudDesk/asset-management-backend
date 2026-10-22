@@ -32,7 +32,7 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
   fastify.get('/status', {
     preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
     schema: {
-      description: 'Report the configured Amazon production and sandbox modes without exposing credentials',
+      description: 'Report the configured Amazon production and OAuth setup without exposing credentials',
       tags: ['Amazon Integration'],
       security: [{ bearerAuth: [] }],
     },
@@ -461,6 +461,7 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
           fulfilmentChannel: { type: 'string', enum: ['MFN', 'EASY_SHIP', 'FBA', 'UNKNOWN'] },
           listingStatus: { type: 'string', minLength: 1, maxLength: 255 },
           productId: { type: 'string', pattern: '^[1-9][0-9]*$' },
+          activeOnly: { type: 'boolean' },
           page: { type: 'integer', minimum: 1, default: 1 },
           limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
         },

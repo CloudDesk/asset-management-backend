@@ -6,6 +6,7 @@ import { amazonListingScopeService } from '../services/amazon-listing-scope.serv
 import { amazonOperationsService } from '../services/amazon-operations.service.js';
 import { amazonNotificationSubscriptionService } from '../services/amazon-notification-subscription.service.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
+import { ZodError } from 'zod';
 
 const scopeFor = (request: FastifyRequest) => {
   const user = (request as AuthenticatedRequest).user;
@@ -18,10 +19,26 @@ const actorFor = (request: FastifyRequest) => {
     ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
   };
 };
-const fail = (reply: FastifyReply, error: unknown) => {
-  const item = error as { statusCode?: number; code?: string; message?: string };
-  return reply.code(item.statusCode || 400).send({ success: false, message: item.message || 'Amazon operations request failed', code: item.code || 'AMAZON_OPERATIONS_REQUEST_FAILED' });
+
+// Amazon error classes (Amazon…Error with an HTTP status) carry messages meant for users; anything
+// else (database, programming errors) must not leak, so it gets a generic 500 (FIX-135)
+export const isUserFacingAmazonError = (error: unknown): error is Error & { statusCode: number; code?: string } => {
+  if (!(error instanceof Error)) return false;
+  const statusCode = (error as { statusCode?: unknown }).statusCode;
+  return /^Amazon[A-Za-z]*Error$/.test(error.constructor.name)
+    && typeof statusCode === 'number' && statusCode >= 400 && statusCode < 600;
 };
+
+export const operationsErrorResponse = (reply: FastifyReply, error: unknown) => {
+  if (error instanceof ZodError) {
+    return reply.code(400).send({ success: false, message: 'Invalid Amazon operations request', code: 'VALIDATION_ERROR' });
+  }
+  if (isUserFacingAmazonError(error)) {
+    return reply.code(error.statusCode).send({ success: false, message: error.message, code: error.code || 'AMAZON_OPERATIONS_REQUEST_FAILED' });
+  }
+  return reply.code(500).send({ success: false, message: 'Amazon operations request failed', code: 'AMAZON_OPERATIONS_REQUEST_FAILED' });
+};
+const fail = operationsErrorResponse;
 
 export async function amazonOperationsRoutes(fastify: FastifyInstance) {
   const read = [requireAuthentication, requireAmazonChannelPermission(['read'])];

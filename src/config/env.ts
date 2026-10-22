@@ -376,15 +376,7 @@ const envSchema = z.object({
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) ? Math.min(5, Math.max(0, parsed)) : 3;
   }),
-  AMAZON_SANDBOX_CREDENTIAL_SOURCE: z.enum(["SANDBOX", "PRODUCTION"]).optional().default("SANDBOX"),
   AMAZON_MARKETPLACE_ID: z.string().optional().default("A21TJRUUN4KGV"), // Fixed for India
-  AMAZON_SP_API_BASE_URL: z.string().optional(),
-  AMAZON_SANDBOX_CLIENT_ID: z.string().optional(),
-  AMAZON_SANDBOX_CLIENT_SECRET: z.string().optional(),
-  AMAZON_SANDBOX_REFRESH_TOKEN: z.string().optional(),
-  AMAZON_SANDBOX_SP_API_BASE_URL: z.string().optional().default('https://sandbox.sellingpartnerapi-eu.amazon.com'),
-  AMAZON_AWS_IAM_ROLE_ARN: z.string().optional(),
-  AMAZON_REGION: z.string().optional().default("eu-west-1"),
   AMAZON_SELLER_CENTRAL_URL: z
     .string()
     .optional()

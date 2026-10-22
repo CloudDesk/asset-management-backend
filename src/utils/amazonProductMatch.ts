@@ -60,3 +60,9 @@ export const scoreNameMatch = (productName: string, listingWords: Set<string>, s
   const evidence = matched.filter((word) => !isNumber(word)).length >= 2 ? 1 : SINGLE_WORD_FACTOR;
   return { score: Math.round(NAME_MATCH_MAX_SCORE * (matchedWeight / totalWeight) * evidence), matched, total: productWords.length };
 };
+
+// ASIN stored on the Nivaana product (gap D4) equals the listing's ASIN; case and spaces ignored
+export const isSameAsin = (productAsin?: string | null, listingAsin?: string | null) => {
+  const left = (productAsin ?? '').trim().toUpperCase();
+  return left.length > 0 && left === (listingAsin ?? '').trim().toUpperCase();
+};

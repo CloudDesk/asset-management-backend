@@ -38,3 +38,12 @@ test('GET /listings route schema allows productId (validation runs before login)
   const invalid = await app.inject({ method: 'GET', url: '/api/channels/amazon/listings?productId=abc' });
   assert.equal(invalid.statusCode, 400);
 });
+
+test('GET /listings route schema accepts activeOnly instead of dropping it (FIX-135)', async (t) => {
+  const app = Fastify();
+  app.setErrorHandler(errorHandler);
+  await app.register(amazonChannelRoutes, { prefix: '/api/channels/amazon' });
+  t.after(() => app.close());
+  assert.equal((await app.inject({ method: 'GET', url: '/api/channels/amazon/listings?activeOnly=false' })).statusCode, 401);
+  assert.equal((await app.inject({ method: 'GET', url: '/api/channels/amazon/listings?activeOnly=maybe' })).statusCode, 400);
+});
