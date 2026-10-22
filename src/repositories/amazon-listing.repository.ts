@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
 import { NormalizedAmazonListing } from '../services/amazon-listing-normalizer.js';
+import { buildCatalogWordStats, keyWords, scoreNameMatch } from '../utils/amazonProductMatch.js';
 
 export type AmazonListingUpsertResult = {
   outcome: 'CREATED' | 'UPDATED' | 'UNCHANGED';
@@ -20,6 +21,7 @@ export type AmazonListingQuery = {
   mappingStatus?: string | undefined;
   fulfilmentChannel?: string | undefined;
   listingStatus?: string | undefined;
+  productId?: string | undefined;
   activeOnly?: boolean | undefined;
   page: number;
   limit: number;
@@ -329,9 +331,10 @@ const listingIssues = (listing: any) => {
   return issues;
 };
 
-const normalizedWords = (value?: string | null) => new Set(
-  (value ?? '').toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length >= 3)
-);
+// Mapping suggestions (FIX-126): weaker ones are noise, and the dialog shows a short list
+const SUGGESTION_MIN_SCORE = 25;
+const SUGGESTION_LIMIT = 4;
+const SUGGESTION_CATALOG_LIMIT = 5000;
 
 export class AmazonListingRepository implements AmazonListingPersistence, AmazonListingMappingPersistence {
   async startSyncLog(input: {
@@ -566,6 +569,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
 
     if (query.mappingStatus) where.mappingStatus = query.mappingStatus;
     if (query.fulfilmentChannel) where.fulfilmentChannel = query.fulfilmentChannel;
+    if (query.productId) where.productId = BigInt(query.productId);
     if (query.listingStatus) {
       where.listingStatus = { contains: query.listingStatus, mode: 'insensitive' };
     }
@@ -652,7 +656,6 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     });
     if (!listing) return null;
 
-    const titleWords = [...normalizedWords(listing.title)].slice(0, 6);
     const relatedMappings = await prisma.marketplaceListing.findMany({
       where: {
         marketplace: 'AMAZON',
@@ -668,19 +671,14 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     const historicalIds = [...new Set(
       relatedMappings.flatMap((item) => item.productId === null ? [] : [item.productId])
     )];
-    const candidateFilters: Prisma.ProductWhereInput[] = [
-      { puc: { equals: listing.sellerSku, mode: 'insensitive' } },
-      { puc: { contains: listing.sellerSku, mode: 'insensitive' } },
-      ...titleWords.map((word): Prisma.ProductWhereInput => ({ name: { contains: word, mode: 'insensitive' } })),
-      ...(historicalIds.length > 0 ? [{ id: { in: historicalIds } }] : []),
-      ...(listing.productId ? [{ id: listing.productId }] : []),
-    ];
+    // Whole catalogue: word frequencies need every product name, and every product can be scored
     const products = await prisma.product.findMany({
-      where: { OR: candidateFilters },
       select: { id: true, puc: true, name: true, productstatus: true },
-      take: 30,
+      orderBy: { id: 'asc' },
+      take: SUGGESTION_CATALOG_LIMIT,
     });
-    const listingWords = normalizedWords(`${listing.sellerSku} ${listing.title ?? ''}`);
+    const catalogStats = buildCatalogWordStats(products.map((product) => product.name));
+    const listingWords = keyWords(`${listing.sellerSku} ${listing.title ?? ''}`, catalogStats);
 
     return products
       .map((product) => {
@@ -704,11 +702,10 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           score += 35;
           reasons.push('Previously mapped signal');
         }
-        const productWords = normalizedWords(product.name);
-        const overlap = [...productWords].filter((word) => listingWords.has(word)).length;
-        if (overlap > 0) {
-          score += Math.min(40, overlap * 10);
-          reasons.push(`${overlap} title word${overlap === 1 ? '' : 's'} matched`);
+        const nameMatch = scoreNameMatch(product.name, listingWords, catalogStats);
+        if (nameMatch.score > 0) {
+          score += nameMatch.score;
+          reasons.push(`Name match ${nameMatch.matched.length}/${nameMatch.total}: ${nameMatch.matched.join(', ')}`);
         }
         return {
           product: { id: String(product.id), puc: product.puc, name: product.name, status: product.productstatus },
@@ -717,9 +714,12 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           reasons,
         };
       })
-      .filter((suggestion) => suggestion.score > 0)
-      .sort((left, right) => right.score - left.score || left.product.name.localeCompare(right.product.name))
-      .slice(0, 8);
+      .filter((suggestion) => suggestion.score >= SUGGESTION_MIN_SCORE)
+      // Equal scores: the shorter (more specific) product name first
+      .sort((left, right) => right.score - left.score
+        || left.product.name.length - right.product.name.length
+        || left.product.name.localeCompare(right.product.name))
+      .slice(0, SUGGESTION_LIMIT);
   }
 
   async listMappingAudits(input: { listingId: string; sellerId: string; marketplaceId: string }) {
@@ -742,6 +742,28 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 100,
     });
+    // Names for the history: who changed it (Inventory staff or Ecom user) and which products
+    const userIds = (type: 'inventory' | 'ecommerce') => [...new Set(audits.flatMap((audit) =>
+      audit.requestedByUserId !== null && (audit.requestedByUserType ?? 'inventory') === type ? [audit.requestedByUserId] : []))];
+    const productIds = [...new Set(audits.flatMap((audit) =>
+      [audit.previousProductId, audit.productId].filter((id): id is bigint => id !== null)))];
+    const [inventoryUsers, ecommerceUsers, products] = await Promise.all([
+      userIds('inventory').length
+        ? prisma.inventoryusers.findMany({ where: { id: { in: userIds('inventory') } }, select: { id: true, firstname: true, lastname: true } })
+        : [],
+      userIds('ecommerce').length
+        ? prisma.users.findMany({ where: { id: { in: userIds('ecommerce') } }, select: { id: true, firstname: true, lastname: true } })
+        : [],
+      productIds.length
+        ? prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, puc: true, name: true } })
+        : [],
+    ]);
+    const fullName = (user: { firstname: string | null; lastname: string | null }) =>
+      [user.firstname, user.lastname].map((part) => part?.trim()).filter(Boolean).join(' ') || null;
+    const inventoryNames = new Map(inventoryUsers.map((user) => [user.id, fullName(user)]));
+    const ecommerceNames = new Map(ecommerceUsers.map((user) => [user.id, fullName(user)]));
+    const productById = new Map(products.map((product) => [product.id, { id: String(product.id), puc: product.puc, name: product.name }]));
+
     return audits.map((audit) => ({
       id: String(audit.id),
       operation: audit.operation,
@@ -750,8 +772,12 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
       afterValues: audit.afterValues,
       previousProductId: audit.previousProductId === null ? null : String(audit.previousProductId),
       productId: audit.productId === null ? null : String(audit.productId),
+      previousProduct: audit.previousProductId === null ? null : productById.get(audit.previousProductId) ?? null,
+      product: audit.productId === null ? null : productById.get(audit.productId) ?? null,
       requestedByUserId: audit.requestedByUserId,
       requestedByUserType: audit.requestedByUserType,
+      requestedByName: audit.requestedByUserId === null ? null
+        : ((audit.requestedByUserType ?? 'inventory') === 'ecommerce' ? ecommerceNames : inventoryNames).get(audit.requestedByUserId) ?? null,
       createdAt: audit.createdAt.toISOString(),
     }));
   }

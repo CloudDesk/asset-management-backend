@@ -8,8 +8,9 @@ import { amazonOperationsService } from './amazon-operations.service.js';
 let task: ScheduledTask | null = null;
 let running = false;
 
-const processDue = async () => {
-  if (running) return;
+// Returns how many due retry jobs were picked up (0 when a run is already in progress)
+export const processDue = async () => {
+  if (running) return 0;
   running = true;
   try {
     const jobs = await prisma.amazonRetryJob.findMany({ where: { status: 'QUEUED', nextAttemptAt: { lte: new Date() } }, orderBy: { nextAttemptAt: 'asc' }, take: 10 });
@@ -21,6 +22,7 @@ const processDue = async () => {
         logger.warn({ error, retryJobId: String(job.id) }, 'Amazon retry job failed');
       }
     }
+    return jobs.length;
   } finally { running = false; }
 };
 

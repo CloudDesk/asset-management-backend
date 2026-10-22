@@ -25,6 +25,8 @@ export const amazonListingQuerySchema = z.object({
   mappingStatus: optionalUppercaseEnum(['UNMAPPED', 'MAPPED', 'CONFLICT']),
   fulfilmentChannel: optionalUppercaseEnum(['MFN', 'EASY_SHIP', 'FBA', 'UNKNOWN']),
   listingStatus: optionalTrimmed(255),
+  // Listings mapped to one Nivaana product (mapping dialog warns about shared products)
+  productId: z.string().trim().regex(/^[1-9]\d*$/, 'must be a positive integer identifier').optional(),
   activeOnly: optionalBoolean,
   page: positiveInteger(1, 1_000_000),
   limit: positiveInteger(20, 100),

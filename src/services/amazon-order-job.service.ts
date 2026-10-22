@@ -36,7 +36,7 @@ export class AmazonOrderJobService {
     trigger: AmazonOrderJobTrigger;
     requestedByUserId?: number;
     requestedByUserType?: string;
-  }) {
+  }, options: { background?: boolean } = {}) {
     const activeKey = `${input.sellerId}:${input.marketplaceId}`;
     const existing = await prisma.amazonOrderImportJob.findUnique({ where: { activeKey } });
     if (existing) return { job: serializeJob(existing), existing: true };
@@ -54,7 +54,8 @@ export class AmazonOrderJobService {
           ...(input.requestedByUserType !== undefined ? { requestedByUserType: input.requestedByUserType } : {}),
         },
       });
-      queueMicrotask(() => void this.run(job.id));
+      // background: false lets the caller await run() itself (Cloud Scheduler job endpoint)
+      if (options.background !== false) queueMicrotask(() => void this.run(job.id));
       return { job: serializeJob(job), existing: false };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {

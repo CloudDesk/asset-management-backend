@@ -436,6 +436,7 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
           mappingStatus: { type: 'string', enum: ['UNMAPPED', 'MAPPED', 'CONFLICT'] },
           fulfilmentChannel: { type: 'string', enum: ['MFN', 'EASY_SHIP', 'FBA', 'UNKNOWN'] },
           listingStatus: { type: 'string', minLength: 1, maxLength: 255 },
+          productId: { type: 'string', pattern: '^[1-9][0-9]*$' },
           page: { type: 'integer', minimum: 1, default: 1 },
           limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
         },

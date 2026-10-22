@@ -37,7 +37,7 @@ import {
 import { AmazonOfferUpdateError, amazonOfferUpdateService } from '../services/amazon-offer-update.service.js';
 import { AmazonListingEditError, amazonListingEditService } from '../services/amazon-listing-edit.service.js';
 import { AmazonSpApiError } from '../services/amazon-production-listings.client.js';
-import { AmazonAuthorizationError } from '../services/amazon-lwa-token.service.js';
+import { AmazonAuthorizationError, AmazonTokenRequestError } from '../services/amazon-lwa-token.service.js';
 import { AmazonProductionWriteDisabledError } from '../services/amazon-production-write-guard.service.js';
 
 const validationErrorResponse = (reply: FastifyReply, error: ZodError) => reply.code(400).send({
@@ -71,7 +71,11 @@ const mappingErrorResponse = (reply: FastifyReply, error: unknown) => {
 
 const inventoryErrorResponse = (reply: FastifyReply, error: unknown) => {
   if (error instanceof ZodError) return validationErrorResponse(reply, error);
-  if (error instanceof AmazonProductionInventoryError || error instanceof AmazonListingScopeError) {
+  // Amazon credential / API / write-switch errors carry a user-safe message and an AMAZON_* code
+  // (the Inventory does not log out on an AMAZON_* 401), so pass them through like offer errors
+  if (error instanceof AmazonProductionInventoryError || error instanceof AmazonListingScopeError
+    || error instanceof AmazonAuthorizationError || error instanceof AmazonTokenRequestError
+    || error instanceof AmazonSpApiError || error instanceof AmazonProductionWriteDisabledError) {
     return reply.code(error.statusCode).send({
       success: false,
       message: error.message,

@@ -355,6 +355,8 @@ const envSchema = z.object({
   AMAZON_LISTING_SYNC_CRON: z.string().optional().default("0 */6 * * *"),
   AMAZON_RETRY_WORKER_ENABLED: z.enum(["true", "false"]).optional().default("false").transform((value) => value === "true"),
   AMAZON_RETRY_WORKER_CRON: z.string().optional().default("*/5 * * * *"),
+  // Shared secret Cloud Scheduler sends in `x-scheduler-secret` to run the Amazon job endpoints.
+  AMAZON_SCHEDULER_SECRET: z.string().trim().min(16).optional(),
   AMAZON_NOTIFICATION_INGEST_SECRET: z.string().trim().min(32).optional(),
   AMAZON_NOTIFICATION_DESTINATION_ID: z.string().trim().optional(),
   AMAZON_NOTIFICATION_SQS_DESTINATION_ID: z.string().trim().optional(),
