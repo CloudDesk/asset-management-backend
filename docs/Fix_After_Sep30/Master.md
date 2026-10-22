@@ -2,6 +2,9 @@
 
 This master log tracks all critical bug fixes, security enhancements, and performance optimizations implemented after September 30, 2026 across the Nivaana platform repositories.
 
+
+> **Amazon, 21–22 Oct 2026 (FIX-2026-10-21-124 – FIX-2026-10-22-158):** one before → after summary of all of them, with decisions, commits and open items, is in [Amazon_Changes_2026-10.md](../Amazon/Amazon_Changes_2026-10.md).
+
 ---
 
 ## Quick Reference Summary Table

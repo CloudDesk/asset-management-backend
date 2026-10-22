@@ -10,19 +10,21 @@ One place for everything Amazon (SP-API) in Nivaana: how it works, where it is s
 
 ---
 
-## 1. Current status (2026-10-21)
+## 1. Current status (updated 2026-10-22 evening)
 
-| Item | Local / dev DB | SIT | UAT | Prod |
+**Full before → after record of the 21–22 Oct work (FIX-124 – FIX-158), decisions, commits and open items: [Amazon_Changes_2026-10.md](Amazon_Changes_2026-10.md).**
+
+| Item | Local / dev DB (shared with SIT) | SIT | UAT | Prod |
 | --- | --- | --- | --- | --- |
-| Backend Amazon routes (`AMAZON_INTEGRATION_ENABLED`) | on (default `true`) | **off** (`.env.sit`) | **off** (`.env.uat`) | not set up |
-| Inventory Amazon UI (`integrationFeatures.amazon = !isSitEnvironment`) | shown | hidden | shown (backend off → errors) | shown (backend off → errors) |
-| `AMAZON_ENVIRONMENT` | `SANDBOX` (value in `.env`; production account credentials used through the env fallback) | `SANDBOX` | `SANDBOX` | — |
-| Production writes (`AMAZON_PRODUCTION_WRITES_ENABLED`) | off | off | off | — |
-| Order auto-sync (node-cron) | **on** (`.env` `AMAZON_ORDER_AUTO_SYNC_ENABLED="true"`) | off | off | — |
-| Cloud Scheduler jobs | none | none | none | none |
-| Amazon credentials | **rejected by Amazon since 2026-10-14 13:00 UTC** (`invalid_client`, section 6) | — | — | — |
+| Amazon credentials | **working** (new LWA secret + refresh token in `.env`, FIX-130) | old GCP secret | old GCP secret | old GCP secret |
+| Backend Amazon routes (`AMAZON_INTEGRATION_ENABLED`) | on (default) | off (`.env.sit`) | off (`.env.uat`) | on |
+| Inventory Amazon UI (`integrationFeatures.amazon = !isSitEnvironment`) | shown | hidden | shown | shown |
+| Writes (`AMAZON_ENVIRONMENT` + `AMAZON_PRODUCTION_WRITES_ENABLED`) | **on for the stock test — set back to `SANDBOX` / `"false"`** | off | off | `PRODUCTION` |
+| Order auto-sync (node-cron, `AMAZON_ORDER_AUTO_SYNC_ENABLED`) | **on — should be `"false"` on a laptop** | off | off | — |
+| Cloud Scheduler jobs | — | none | none | none |
+| ASIN column (`20261022_add_product_asin.sql`) | applied | applied (same DB) | ⬜ | ⬜ |
 
-**Data on the dev DB (`assetmanagement_dev`):** 172 listings (all 172 unmapped), 495 orders, 1,102 FAILED and 1,076 COMPLETED order import jobs; last successful order import 2026-10-14 12:45 UTC.
+**Data on the dev DB (`assetmanagement_dev`, 22 Oct):** 172 listings (171 priced + 1 incomplete), 1 mapped (KRA-0049); 518 real Amazon orders (235 without items from the July import — fix with Activity → Import all orders again) + 3 test orders. First live stock send 22 Oct 16:28 IST (KRAFT-PARROTPAIR-HOMEDECOR 29 → 5, applied by Amazon).
 
 ---
 
