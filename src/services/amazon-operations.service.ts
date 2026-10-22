@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { env } from '../config/env.js';
 import { prisma } from '../models/prisma.js';
+import { AMAZON_TEST_ORDER_PREFIX } from '../utils/amazonTestOrder.js';
 import { AmazonListingScope, amazonListingScopeService } from './amazon-listing-scope.service.js';
 import { amazonOrderJobService } from './amazon-order-job.service.js';
 import { amazonProductionInventoryService } from './amazon-production-inventory.service.js';
@@ -117,7 +118,8 @@ export class AmazonOperationsService {
       Promise.all([
         prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, NOT: { listingStatus: { contains: 'DELETED', mode: 'insensitive' } } } }),
         prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, mappingStatus: { not: 'MAPPED' }, NOT: { listingStatus: { contains: 'DELETED', mode: 'insensitive' } } } }),
-        prisma.amazonMarketplaceOrder.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } }),
+        // Real Amazon orders only, so the number matches Seller Central (test orders exist only in Nivaana)
+        prisma.amazonMarketplaceOrder.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, NOT: { amazonOrderId: { startsWith: AMAZON_TEST_ORDER_PREFIX } } } }),
         prisma.amazonOrderFulfillmentException.count({ where: { status: 'OPEN', order: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } } }),
         prisma.amazonRetryJob.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, status: { in: ['QUEUED', 'RUNNING', 'FAILED'] } } }),
         prisma.amazonConnection.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } }),
