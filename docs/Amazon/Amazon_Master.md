@@ -17,12 +17,12 @@ One place for everything Amazon (SP-API) in Nivaana: how it works, where it is s
 
 | Item | Local / dev DB (shared with SIT) | SIT | UAT | Prod |
 | --- | --- | --- | --- | --- |
-| Amazon credentials | **working** (new LWA secret + refresh token in `.env`, FIX-130) | old Secret Manager versions (14 Aug) — update with `update-amazon-secrets.mjs` (4a.3) | old GCP secret | old GCP secret |
-| Backend Amazon routes (`AMAZON_INTEGRATION_ENABLED`) | on (default) | on in `.env.sit` (2026-10-23, not deployed yet) | off (`.env.uat`) | on |
-| Inventory Amazon UI (`integrationFeatures.amazon = !isSitEnvironment`) | shown | hidden | shown | shown |
+| Amazon credentials | **working** (new LWA secret + refresh token in `.env`, FIX-130) | ✅ Secret Manager version 4 (2026-10-23, same as local), deployed revision `nivaana-dev-00275` | old GCP secret | old GCP secret |
+| Backend Amazon routes (`AMAZON_INTEGRATION_ENABLED`) | on (default) | on (deployed 2026-10-23) | off (`.env.uat`) | on |
+| Inventory Amazon UI (`integrationFeatures.amazon = true` since 2026-10-23; was hidden on SIT) | shown | shown (after the next Inventory SIT deploy) | shown | shown |
 | Writes (`AMAZON_ENVIRONMENT` + `AMAZON_PRODUCTION_WRITES_ENABLED`) | off (set back 2026-10-23) | off | off | `PRODUCTION` |
 | Order auto-sync (node-cron, `AMAZON_ORDER_AUTO_SYNC_ENABLED`) | off (2026-10-23) | off | off | — |
-| Cloud Scheduler jobs | — | none yet (secret in `.env.sit`, `--timeout 900`; create after deploy, 4a.3) | none | none |
+| Cloud Scheduler jobs | — | ✅ 2026-10-23 `amazon-order-sync-sit` (hourly) and `amazon-listing-sync-sit` (6-hourly) created, test runs succeeded | none | none |
 | ASIN column (`20261022_add_product_asin.sql`) | applied | applied (same DB) | ⬜ | ⬜ |
 
 **Data on the dev DB (`assetmanagement_dev`, 22 Oct):** 172 listings (171 priced + 1 incomplete), 1 mapped (KRA-0049); 518 real Amazon orders (235 without items from the July import — fix with Activity → Import all orders again) + 3 test orders. First live stock send 22 Oct 16:28 IST (KRAFT-PARROTPAIR-HOMEDECOR 29 → 5, applied by Amazon).
