@@ -17,7 +17,7 @@ One place for everything Amazon (SP-API) in Nivaana: how it works, where it is s
 
 | Item | Local / dev DB (shared with SIT) | SIT | UAT | Prod |
 | --- | --- | --- | --- | --- |
-| Amazon credentials | **working** (new LWA secret + refresh token in `.env`, FIX-130) | to be copied into `.env.sit` (2026-10-23; no Secret Manager) | old GCP secret | old GCP secret |
+| Amazon credentials | **working** (new LWA secret + refresh token in `.env`, FIX-130) | old Secret Manager versions (14 Aug) — update with `update-amazon-secrets.mjs` (4a.3) | old GCP secret | old GCP secret |
 | Backend Amazon routes (`AMAZON_INTEGRATION_ENABLED`) | on (default) | on in `.env.sit` (2026-10-23, not deployed yet) | off (`.env.uat`) | on |
 | Inventory Amazon UI (`integrationFeatures.amazon = !isSitEnvironment`) | shown | hidden | shown | shown |
 | Writes (`AMAZON_ENVIRONMENT` + `AMAZON_PRODUCTION_WRITES_ENABLED`) | off (set back 2026-10-23) | off | off | `PRODUCTION` |
@@ -145,17 +145,17 @@ Follow these steps in order for each environment (SIT first, then UAT, then Prod
 | --- | --- | --- | --- |
 | Deploy file | `cloudbuildsit.yaml` (service `nivaana-dev`) | `cloudbuilduat.yaml` on the `UAT` branch (service `nivaana-uat`) | `cloudbuildprod.yaml` + trigger `nivaana-production` substitutions (service `nivaana`) |
 | Plain settings | `.env.sit` (tracked in git) | `.env.uat` (tracked in git) | trigger substitutions `_AMAZON_*` → `cloudbuildprod.yaml` |
-| **Credentials** (client ID, client secret, refresh token) | **`.env.sit`**, like every other SIT setting (decided 2026-10-23). `cloudbuildsit.yaml` uses `--clear-secrets` to drop the old Secret Manager references; secrets `nivaana-sit-amazon-*` are no longer read | Secret Manager (create `nivaana-uat-amazon-*` + `config/amazon-secrets.uat.json`) or the same `--set-secrets` pattern | trigger substitutions `_AMAZON_CLIENT_ID`, `_AMAZON_CLIENT_SECRET`, `_AMAZON_REFRESH_TOKEN` |
+| **Credentials** (client ID, client secret, refresh token) | Secret Manager `nivaana-sit-amazon-client-id / -client-secret / -refresh-token`, passed with `--set-secrets` (2026-10-23: putting them in `.env.sit` was tried and **GitHub push protection blocked the push** — never commit them) | Secret Manager (create `nivaana-uat-amazon-*` + `config/amazon-secrets.uat.json`) or the same `--set-secrets` pattern | trigger substitutions `_AMAZON_CLIENT_ID`, `_AMAZON_CLIENT_SECRET`, `_AMAZON_REFRESH_TOKEN` |
 | Scheduler secret | `.env.sit` (`AMAZON_SCHEDULER_SECRET`, like `SHIPMOZO_SCHEDULER_SECRET`) | `.env.uat` (new value) | add `_AMAZON_SCHEDULER_SECRET` to `cloudbuildprod.yaml` + trigger (not mapped yet) |
 | Request timeout | `--timeout 900` ✅ (2026-10-23) | add `--timeout 900` | add `--timeout 900` |
 
-**One source per key:** a key set both in `--env-vars-file` and `--set-secrets` makes the deploy fail, and switching a key from a Secret Manager reference to a plain value needs `--clear-secrets` (or `--remove-secrets`) on that deploy. SIT keeps the credentials in `.env.sit` (tracked in git, same as the Shipmozo and other SIT secrets): anyone with repo access can read them, and when the LWA secret is rotated `.env.sit` must be edited and SIT redeployed. Watch YAML syntax in the env files: `KEY: value` (colon right after the key, then one space); `KEY :value` breaks the whole file.
+**One source per key:** a key set both in `--env-vars-file` and `--set-secrets` makes the deploy fail, and switching a key from a Secret Manager reference to a plain value needs `--clear-secrets` (or `--remove-secrets`) on that deploy. Amazon credentials never go in `.env.sit` / `.env.uat`: GitHub secret scanning blocks the push ("Login with Amazon OAuth Client Secret"); do not press Bypass. Watch YAML syntax in the env files: `KEY: value` (colon right after the key, then one space); `KEY :value` breaks the whole file.
 
 ### 4a.2 Amazon lines per environment (only these; everything else is a code default)
 
 | Variable | Local `.env` | SIT `.env.sit` | UAT `.env.uat` | Prod |
 | --- | --- | --- | --- | --- |
-| `AMAZON_CLIENT_ID`, `AMAZON_CLIENT_SECRET`, `AMAZON_REFRESH_TOKEN` | in `.env` (not tracked) | in `.env.sit` (same values as local) | `.env.uat` or Secret Manager (decide with the UAT deploy) | trigger |
+| `AMAZON_CLIENT_ID`, `AMAZON_CLIENT_SECRET`, `AMAZON_REFRESH_TOKEN` | in `.env` (not tracked) | Secret Manager (`nivaana-sit-amazon-*`) | Secret Manager (`nivaana-uat-amazon-*`) | trigger |
 | `AMAZON_SELLER_ID` | `APCBEZW09ZM60` | same | same | same |
 | `AMAZON_TOKEN_ENCRYPTION_KEY` | set | **same as local** (shared dev DB: stored connections are encrypted with it) | own value (own DB) | own value |
 | `AMAZON_LISTING_IMPORT_ENABLED` | `"true"` | `"true"` | `"true"` | `"true"` |
@@ -173,8 +173,8 @@ Removed from `.env.sit` on 2026-10-23 because they equal the code default or are
 ### 4a.3 Steps
 
 1. **Env file / trigger:** set the lines in 4a.2. Generate the scheduler secret with `openssl rand -hex 24` (a new value per environment; do not reuse or tweak the Shipmozo secret).
-2. **Credentials:** put the working LWA client ID, client secret and refresh token into that environment's store. SIT: copy the three lines from local `.env` into `.env.sit` in YAML form (`AMAZON_CLIENT_ID: "..."`). Secret Manager (if an environment uses it): `node scripts/update-amazon-secrets.mjs --from-env .env --dry-run`, then without `--dry-run`; other environments: copy the config file with that environment's project / service / secret names and pass `--config <file> --confirm-target <project/service>`. When the LWA secret is rotated, update **every** environment the same day (section 6.1).
-3. **Build file:** `--timeout 900` on `gcloud run deploy` (above the 10-minute scheduler deadline). SIT: `--clear-secrets` (credentials in `.env.sit`). For credentials from Secret Manager instead, `--set-secrets AMAZON_CLIENT_ID=<secret>:latest,...`, and the service account needs `roles/secretmanager.secretAccessor` on those secrets.
+2. **Credentials:** put the working LWA client ID, client secret and refresh token into that environment's store. SIT: `node scripts/update-amazon-secrets.mjs --from-env .env --dry-run`, then without `--dry-run` (uses `config/amazon-secrets.sit.json`; `--redeploy` also redeploys `nivaana-dev`). Other environments: copy the config file with that environment's project / service / secret names and pass `--config <file> --confirm-target <project/service>`. When the LWA secret is rotated, update **every** environment the same day (section 6.1).
+3. **Build file:** `--timeout 900` on `gcloud run deploy` (above the 10-minute scheduler deadline). For credentials from Secret Manager, `--set-secrets AMAZON_CLIENT_ID=<secret>:latest,...`, and the service account needs `roles/secretmanager.secretAccessor` on those secrets.
 4. **Database:** run the pending Amazon migrations for that DB (release checklist 4a, e.g. `20261022_add_product_asin.sql`).
 5. **Deploy**, then check: `GET /api/channels/amazon/status` (or Inventory → Channels → Amazon) shows connected; Activity → Refresh imports orders without `invalid_client`.
 6. **Cloud Scheduler jobs** (section 4 table). Service URLs: SIT `https://nivaana-dev-715569764663.asia-south1.run.app`, UAT `https://nivaana-uat-715569764663.asia-south1.run.app`, Prod `https://nivaana-715569764663.asia-south1.run.app`. Example (SIT, hourly order sync and 6-hourly listing sync):
@@ -310,7 +310,7 @@ The time shown is the latest job, whatever its status (AMZ-PLAN-07).
 ## 8. Change log
 
 ### 2026-10-23: Amazon — SIT ready for Cloud Scheduler; env files cleaned; deployment runbook (FIX-159, backend DEV-NEW, config + docs)
-`.env.sit`: Amazon on (`AMAZON_LISTING_IMPORT_ENABLED: "true"`, `AMAZON_SCHEDULER_SECRET` set, integration default `true`), writes off, credentials kept in `.env.sit` like other SIT settings (decided 2026-10-23; `cloudbuildsit.yaml` `--set-secrets` replaced by `--clear-secrets`; the earlier malformed `AMAZON_REFRESH_TOKEN :` line would have broken the deploy), defaults and the unused OAuth trio removed — 8 Amazon lines left. Local `.env`: writes, stock auto-sync and order auto-sync off; defaults removed. `cloudbuildsit.yaml`: `--timeout 900`, `--clear-secrets` instead of `--set-secrets`. New section 4a: per-environment settings, credentials, build flags, scheduler commands, error table. Open: new random SIT scheduler secret, paste the 3 credentials into `.env.sit`, commit, deploy, create jobs.
+`.env.sit`: Amazon on (`AMAZON_LISTING_IMPORT_ENABLED: "true"`, `AMAZON_SCHEDULER_SECRET` set, integration default `true`), writes off, credentials stay in Secret Manager (`--set-secrets`; a try with them in `.env.sit` was blocked by GitHub push protection; the earlier malformed `AMAZON_REFRESH_TOKEN :` line would have broken the deploy); unused `ACCESSKEYID`, `SECRETACCESSKEY`, `REGION`, `PROTOCOL`, `POSTGRES__DATABASE`, `PROD_DATABASE_URL` removed; Shipmozo node-cron off, defaults and the unused OAuth trio removed — 8 Amazon lines left. Local `.env`: writes, stock auto-sync and order auto-sync off; defaults removed. `cloudbuildsit.yaml`: `--timeout 900`. New section 4a: per-environment settings, credentials, build flags, scheduler commands, error table. Open: update the SIT Secret Manager versions, commit, deploy, create jobs.
 
 ### 2026-10-13: Inventory — Amazon Integration UI Ported from Dev (FIX-108)
 Full Amazon UI ported to Inventory `DEV-NEW` (branch `feature/amazon-ui-port`); hidden at first, then shown except on SIT (2026-10-14). Details: `Fix_After_Sep30/Master.md`.
