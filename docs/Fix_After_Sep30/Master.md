@@ -1616,3 +1616,11 @@ This master log tracks all critical bug fixes, security enhancements, and perfor
 * **Repository Impacted:**
   - `asset_management_frontend_aromazen` (`DEV-NEW`)
 
+
+### 2026-10-23: Amazon — SIT Ready for Cloud Scheduler; Env Files Cleaned; Deployment Runbook (FIX-159)
+* **Issue:** SIT had Amazon switched off and no scheduler secret; the Amazon client ID, client secret and refresh token had been pasted into the tracked `.env.sit` (also set by `--set-secrets`, and the `AMAZON_REFRESH_TOKEN :` line was malformed YAML that would stop the deploy); local `.env` still had writes, stock auto-sync and order auto-sync on against the shared dev DB; Cloud Run used the default 300 s request timeout, below the 10-minute scheduler deadline.
+* **Fix (config):** `.env.sit` keeps only 8 Amazon lines (seller ID, encryption key, listing import on, scheduler secret, SANDBOX, writes off, stock auto-sync off, order node-cron off); credentials in `.env.sit` like other SIT settings (decided 2026-10-23). Local `.env`: writes and both auto-syncs off, defaults removed. `cloudbuildsit.yaml`: `--timeout 900`, `--clear-secrets` replaces `--set-secrets`.
+* **Docs:** `docs/Amazon/Amazon_Master.md` section 4a (per-environment deployment runbook), status table, change log; release checklist 4e rows.
+* **Open:** new random SIT scheduler secret, paste the 3 credentials into `.env.sit`, commit, deploy, create jobs.
+* **Repository Impacted:**
+  - `asset-management-backend` (`DEV-NEW`)

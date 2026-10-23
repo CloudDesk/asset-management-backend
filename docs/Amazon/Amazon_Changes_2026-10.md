@@ -147,7 +147,7 @@ and the running log in [`Amazon_Master.md`](Amazon_Master.md) section 8. Branch:
 | Stock split: only one Automatic listing per product (option a) | 141 |
 | Alerts: in-app banner only (no email) | 142 |
 | Authorize Seller Account hidden | 142 |
-| Bulk map and bulk stock send hidden | 150, 151 |
+| Bulk map and bulk stock send hidden. 23 Oct: bulk map briefly re-enabled, then kept hidden after a data check — the repeated-title groups are different fragrances (13 + 13 sachets) or different pack sizes (incense holder pack of 2 / 3 / 4), which need one mapping each | 150, 151 |
 | No per-listing sync mode on screen; automatic sending parked | 151, AMZ-PLAN-24 |
 | Listings without a price count as "Incomplete", like Seller Central | 146 |
 | Amazon orders live only in Amazon Operations → Orders; Orders module = Nivaana orders | 157, 158 |

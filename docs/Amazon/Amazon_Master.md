@@ -6,22 +6,23 @@ One place for everything Amazon (SP-API) in Nivaana: how it works, where it is s
 - Every Amazon fix gets an entry in section 8 here **and** the usual entry in `docs/Fix_After_Sep30/Master.md` (same FIX number).
 - Every Amazon env / script / Cloud Scheduler change also gets a row in `docs/RELEASE_SCRIPTS_CHECKLIST.md` section 4e.
 - Amazon plans live in section 9 here as `AMZ-PLAN-xx` (not in `docs/Future_Plans.md`).
-- Last updated: 2026-10-22. Full gap list: section 10.
+- Last updated: 2026-10-23. Full gap list: section 10. **Deploying Amazon to SIT / UAT / Prod: section 4a.**
+- Order fulfilment flow (FBA / Easy Ship / Self Ship), what exists, gaps and plan: [`Amazon_Order_Fulfillment.md`](Amazon_Order_Fulfillment.md) (AMZ-PLAN-25).
 
 ---
 
-## 1. Current status (updated 2026-10-22 evening)
+## 1. Current status (updated 2026-10-23)
 
 **Full before → after record of the 21–22 Oct work (FIX-124 – FIX-158), decisions, commits and open items: [Amazon_Changes_2026-10.md](Amazon_Changes_2026-10.md).**
 
 | Item | Local / dev DB (shared with SIT) | SIT | UAT | Prod |
 | --- | --- | --- | --- | --- |
-| Amazon credentials | **working** (new LWA secret + refresh token in `.env`, FIX-130) | old GCP secret | old GCP secret | old GCP secret |
-| Backend Amazon routes (`AMAZON_INTEGRATION_ENABLED`) | on (default) | off (`.env.sit`) | off (`.env.uat`) | on |
+| Amazon credentials | **working** (new LWA secret + refresh token in `.env`, FIX-130) | to be copied into `.env.sit` (2026-10-23; no Secret Manager) | old GCP secret | old GCP secret |
+| Backend Amazon routes (`AMAZON_INTEGRATION_ENABLED`) | on (default) | on in `.env.sit` (2026-10-23, not deployed yet) | off (`.env.uat`) | on |
 | Inventory Amazon UI (`integrationFeatures.amazon = !isSitEnvironment`) | shown | hidden | shown | shown |
-| Writes (`AMAZON_ENVIRONMENT` + `AMAZON_PRODUCTION_WRITES_ENABLED`) | **on for the stock test — set back to `SANDBOX` / `"false"`** | off | off | `PRODUCTION` |
-| Order auto-sync (node-cron, `AMAZON_ORDER_AUTO_SYNC_ENABLED`) | **on — should be `"false"` on a laptop** | off | off | — |
-| Cloud Scheduler jobs | — | none | none | none |
+| Writes (`AMAZON_ENVIRONMENT` + `AMAZON_PRODUCTION_WRITES_ENABLED`) | off (set back 2026-10-23) | off | off | `PRODUCTION` |
+| Order auto-sync (node-cron, `AMAZON_ORDER_AUTO_SYNC_ENABLED`) | off (2026-10-23) | off | off | — |
+| Cloud Scheduler jobs | — | none yet (secret in `.env.sit`, `--timeout 900`; create after deploy, 4a.3) | none | none |
 | ASIN column (`20261022_add_product_asin.sql`) | applied | applied (same DB) | ⬜ | ⬜ |
 
 **Data on the dev DB (`assetmanagement_dev`, 22 Oct):** 172 listings (171 priced + 1 incomplete), 1 mapped (KRA-0049); 518 real Amazon orders (235 without items from the July import — fix with Activity → Import all orders again) + 3 test orders. First live stock send 22 Oct 16:28 IST (KRAFT-PARROTPAIR-HOMEDECOR 29 → 5, applied by Amazon).
@@ -133,6 +134,71 @@ Then, per environment (same settings as the Shipmozo job, region `asia-south1`, 
 
 After the first successful run, set the matching node-cron switch to `"false"` in that environment. Prod: create the jobs **paused**. The first 3 Scheduler jobs per billing account are free (Shipmozo already uses one per environment).
 
+
+## 4a. Deploying Amazon to an environment (runbook, 2026-10-23)
+
+Follow these steps in order for each environment (SIT first, then UAT, then Prod). SIT was prepared this way on 2026-10-23 (FIX-159). Reference values: [`amazon.env.example`](amazon.env.example).
+
+### 4a.1 Where each kind of setting lives
+
+| Kind | SIT | UAT | Prod |
+| --- | --- | --- | --- |
+| Deploy file | `cloudbuildsit.yaml` (service `nivaana-dev`) | `cloudbuilduat.yaml` on the `UAT` branch (service `nivaana-uat`) | `cloudbuildprod.yaml` + trigger `nivaana-production` substitutions (service `nivaana`) |
+| Plain settings | `.env.sit` (tracked in git) | `.env.uat` (tracked in git) | trigger substitutions `_AMAZON_*` → `cloudbuildprod.yaml` |
+| **Credentials** (client ID, client secret, refresh token) | **`.env.sit`**, like every other SIT setting (decided 2026-10-23). `cloudbuildsit.yaml` uses `--clear-secrets` to drop the old Secret Manager references; secrets `nivaana-sit-amazon-*` are no longer read | Secret Manager (create `nivaana-uat-amazon-*` + `config/amazon-secrets.uat.json`) or the same `--set-secrets` pattern | trigger substitutions `_AMAZON_CLIENT_ID`, `_AMAZON_CLIENT_SECRET`, `_AMAZON_REFRESH_TOKEN` |
+| Scheduler secret | `.env.sit` (`AMAZON_SCHEDULER_SECRET`, like `SHIPMOZO_SCHEDULER_SECRET`) | `.env.uat` (new value) | add `_AMAZON_SCHEDULER_SECRET` to `cloudbuildprod.yaml` + trigger (not mapped yet) |
+| Request timeout | `--timeout 900` ✅ (2026-10-23) | add `--timeout 900` | add `--timeout 900` |
+
+**One source per key:** a key set both in `--env-vars-file` and `--set-secrets` makes the deploy fail, and switching a key from a Secret Manager reference to a plain value needs `--clear-secrets` (or `--remove-secrets`) on that deploy. SIT keeps the credentials in `.env.sit` (tracked in git, same as the Shipmozo and other SIT secrets): anyone with repo access can read them, and when the LWA secret is rotated `.env.sit` must be edited and SIT redeployed. Watch YAML syntax in the env files: `KEY: value` (colon right after the key, then one space); `KEY :value` breaks the whole file.
+
+### 4a.2 Amazon lines per environment (only these; everything else is a code default)
+
+| Variable | Local `.env` | SIT `.env.sit` | UAT `.env.uat` | Prod |
+| --- | --- | --- | --- | --- |
+| `AMAZON_CLIENT_ID`, `AMAZON_CLIENT_SECRET`, `AMAZON_REFRESH_TOKEN` | in `.env` (not tracked) | in `.env.sit` (same values as local) | `.env.uat` or Secret Manager (decide with the UAT deploy) | trigger |
+| `AMAZON_SELLER_ID` | `APCBEZW09ZM60` | same | same | same |
+| `AMAZON_TOKEN_ENCRYPTION_KEY` | set | **same as local** (shared dev DB: stored connections are encrypted with it) | own value (own DB) | own value |
+| `AMAZON_LISTING_IMPORT_ENABLED` | `"true"` | `"true"` | `"true"` | `"true"` |
+| `AMAZON_SCHEDULER_SECRET` | — | set (own value) | set (own value) | set (own value) |
+| `AMAZON_ORDER_AUTO_SYNC_ENABLED` | `"false"` | `"false"` | `"false"` | `"false"` (Cloud Scheduler runs it) |
+| `AMAZON_ENVIRONMENT` | `"SANDBOX"` | `"SANDBOX"` | `"SANDBOX"` | `"PRODUCTION"` |
+| `AMAZON_PRODUCTION_WRITES_ENABLED` | `"false"` | `"false"` | `"false"` | `"true"` after checklist 5a |
+| `AMAZON_AUTO_SYNC_ENABLED` (stock) | `"false"` | `"false"` | `"false"` | `"false"` until AMZ-PLAN-24 |
+| OAuth button (`AMAZON_SP_API_APP_ID`, `AMAZON_OAUTH_VERSION`, `AMAZON_REDIRECT_URI`) | kept (local UI shows the button) | removed (UI hidden on SIT) | only if the button is used; redirect must be **that** environment's Inventory host | same rule |
+
+Removed from `.env.sit` on 2026-10-23 because they equal the code default or are unused there: `AMAZON_INTEGRATION_ENABLED` (default `true`), `AMAZON_MARKETPLACE_ID`, `AMAZON_SELLER_CENTRAL_URL`, `AMAZON_PRODUCTION_SP_API_BASE_URL`, `AMAZON_LISTING_IMPORT_PAGE_SIZE`, `AMAZON_LISTING_IMPORT_MAX_RETRIES`, the three `*_CRON` values, `AMAZON_LISTING_AUTO_SYNC_ENABLED`, `AMAZON_RETRY_WORKER_ENABLED`, the three empty `AMAZON_NOTIFICATION_*` IDs, and the OAuth trio. `.env.uat` still has all of them plus `AMAZON_INTEGRATION_ENABLED: "false"`: trim it the same way with the `SIT` → `UAT` merge.
+
+**Local `.env` (2026-10-23):** writes and both auto-syncs set back to off (`SANDBOX` / `"false"`). Local shares the dev DB with SIT, so only SIT's Cloud Scheduler may run the scheduled order sync, and test stock must never be sent to the live listings.
+
+### 4a.3 Steps
+
+1. **Env file / trigger:** set the lines in 4a.2. Generate the scheduler secret with `openssl rand -hex 24` (a new value per environment; do not reuse or tweak the Shipmozo secret).
+2. **Credentials:** put the working LWA client ID, client secret and refresh token into that environment's store. SIT: copy the three lines from local `.env` into `.env.sit` in YAML form (`AMAZON_CLIENT_ID: "..."`). Secret Manager (if an environment uses it): `node scripts/update-amazon-secrets.mjs --from-env .env --dry-run`, then without `--dry-run`; other environments: copy the config file with that environment's project / service / secret names and pass `--config <file> --confirm-target <project/service>`. When the LWA secret is rotated, update **every** environment the same day (section 6.1).
+3. **Build file:** `--timeout 900` on `gcloud run deploy` (above the 10-minute scheduler deadline). SIT: `--clear-secrets` (credentials in `.env.sit`). For credentials from Secret Manager instead, `--set-secrets AMAZON_CLIENT_ID=<secret>:latest,...`, and the service account needs `roles/secretmanager.secretAccessor` on those secrets.
+4. **Database:** run the pending Amazon migrations for that DB (release checklist 4a, e.g. `20261022_add_product_asin.sql`).
+5. **Deploy**, then check: `GET /api/channels/amazon/status` (or Inventory → Channels → Amazon) shows connected; Activity → Refresh imports orders without `invalid_client`.
+6. **Cloud Scheduler jobs** (section 4 table). Service URLs: SIT `https://nivaana-dev-715569764663.asia-south1.run.app`, UAT `https://nivaana-uat-715569764663.asia-south1.run.app`, Prod `https://nivaana-715569764663.asia-south1.run.app`. Example (SIT, hourly order sync and 6-hourly listing sync):
+
+```bash
+gcloud scheduler jobs create http amazon-order-sync-sit --location=asia-south1 --schedule="0 * * * *" --time-zone="Asia/Kolkata" --uri="https://nivaana-dev-715569764663.asia-south1.run.app/api/channels/amazon/jobs/order-sync" --http-method=POST --headers="x-scheduler-secret=<SIT_AMAZON_SCHEDULER_SECRET>" --attempt-deadline=600s
+gcloud scheduler jobs create http amazon-listing-sync-sit --location=asia-south1 --schedule="0 */6 * * *" --time-zone="Asia/Kolkata" --uri="https://nivaana-dev-715569764663.asia-south1.run.app/api/channels/amazon/jobs/listing-sync" --http-method=POST --headers="x-scheduler-secret=<SIT_AMAZON_SCHEDULER_SECRET>" --attempt-deadline=600s
+```
+
+   Replace `-sit`, the URL and the secret for UAT / Prod; order sync `*/15 * * * *` on Prod; Prod jobs are created with `--paused` until Amazon is live there.
+7. **Test once:** `gcloud scheduler jobs run amazon-order-sync-<env> --location=asia-south1`, then read the Cloud Run logs:
+
+| Result | Meaning |
+| --- | --- |
+| 200, log "Scheduled Amazon order sync completed" | Working |
+| 401 "Invalid scheduler secret" | Header value ≠ `AMAZON_SCHEDULER_SECRET` |
+| 503 "Scheduler job is not configured" | `AMAZON_SCHEDULER_SECRET` missing or under 16 characters |
+| 404 | Amazon routes not loaded (`AMAZON_INTEGRATION_ENABLED: "false"`) or wrong URL path |
+| 200 with `skipped: AMAZON_LISTING_IMPORT_ENABLED is off` | Listing job runs but the switch is off |
+| Job FAILED with `invalid_client` / `invalid_grant` | Credentials in that environment's store are old (step 2) |
+| Deadline exceeded / 504 | `--timeout` missing (default 300 s) |
+
+8. **Record it:** tick the rows in `docs/RELEASE_SCRIPTS_CHECKLIST.md` section 4e and update the section 1 table here.
+
 ---
 
 ## 5. Safety rules
@@ -242,6 +308,9 @@ The time shown is the latest job, whatever its status (AMZ-PLAN-07).
 ---
 
 ## 8. Change log
+
+### 2026-10-23: Amazon — SIT ready for Cloud Scheduler; env files cleaned; deployment runbook (FIX-159, backend DEV-NEW, config + docs)
+`.env.sit`: Amazon on (`AMAZON_LISTING_IMPORT_ENABLED: "true"`, `AMAZON_SCHEDULER_SECRET` set, integration default `true`), writes off, credentials kept in `.env.sit` like other SIT settings (decided 2026-10-23; `cloudbuildsit.yaml` `--set-secrets` replaced by `--clear-secrets`; the earlier malformed `AMAZON_REFRESH_TOKEN :` line would have broken the deploy), defaults and the unused OAuth trio removed — 8 Amazon lines left. Local `.env`: writes, stock auto-sync and order auto-sync off; defaults removed. `cloudbuildsit.yaml`: `--timeout 900`, `--clear-secrets` instead of `--set-secrets`. New section 4a: per-environment settings, credentials, build flags, scheduler commands, error table. Open: new random SIT scheduler secret, paste the 3 credentials into `.env.sit`, commit, deploy, create jobs.
 
 ### 2026-10-13: Inventory — Amazon Integration UI Ported from Dev (FIX-108)
 Full Amazon UI ported to Inventory `DEV-NEW` (branch `feature/amazon-ui-port`); hidden at first, then shown except on SIT (2026-10-14). Details: `Fix_After_Sep30/Master.md`.
@@ -453,6 +522,9 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 ### AMZ-PLAN-23: Move mappings between environments
 **Status:** Done 2026-10-22 (FIX-144): `npm run amazon:mappings` (option b). Before: Open. Found 2026-10-22. Mappings live in each database (`marketplace_listings.productId`, `unitsPerListing`, `inventorySyncMode`), so work done on dev / UAT does not reach Prod. Options: (a) map directly on Prod once it reads Amazon; (b) export from UAT (seller SKU → product PUC, pack size) and import on Prod with a script that matches by seller SKU and PUC, dry-run first, and writes the normal mapping audit rows. Product IDs differ between databases, so match by PUC, never by ID.
 
+
+### AMZ-PLAN-25: Amazon order fulfilment — courier, address, delivery tracking
+**Status:** Parked 2026-10-23, waiting for client confirmation (Easy Ship or Self Ship, couriers, booking in Nivaana or not). Full flow, current features, gaps and client questions: [`Amazon_Order_Fulfillment.md`](Amazon_Order_Fulfillment.md). Today the team books the courier outside Nivaana, types the tracking number, and clicks **Confirm shipment to Amazon** (the only status Amazon accepts from the seller; Amazon then tracks delivery via the courier). Missing: courier code is free text (phase 1: dropdown), buyer address not fetched (phase 2: RDT, needs Amazon PII role), no courier booking from the Amazon order (phase 3), no courier webhook for Amazon orders (phase 4: Nivaana-only delivery status, never sent to Amazon), RTO handling (phase 5).
 ---
 
 ## 10. Gap register (2026-10-22)
@@ -503,7 +575,7 @@ Every known gap across the Amazon modules, in one list. Severity: **Critical** =
 | U6 | Fulfillment tab / Amazon order detail | Not reviewed in detail; remaining non-theme colours in `AmazonOrderHub.tsx`, `AmazonOrderDetailPage.tsx` | — | AMZ-PLAN-20 | ✅ 2026-10-22: dark-mode colours (FIX-142); Fulfillment tab rebuilt as a work queue (FIX-154) |
 | U7 | Fulfillment | Not available: Easy Ship cancellation, Amazon document download, product-content editing, listing disable, alert recipients, per-workflow automation controls (no backend APIs) | Medium | AMZ-PLAN-21 | Open |
 | U8 | Mapping dialog | Esc in the product search may also close the dialog (not verified) | Low | AMZ-PLAN-19 | ✅ Fixed 2026-10-22 (FIX-142): first Esc closes the product list, the next closes the dialog (before, Esc in the search never closed the dialog) |
-| U9 | Mapping | Bulk map applies one product to every selected listing — only right for variants of the same item | Low | — | ✅ Bulk map hidden 2026-10-22 (FIX-150) |
+| U9 | Mapping | Bulk map applies one product to every selected listing — only right for variants of the same item | Low | — | ✅ Bulk map hidden 2026-10-22 (FIX-150); kept hidden 2026-10-23 after checking the data (repeated-title listings are different fragrances or pack sizes) |
 | U10 | Channels page | Shipmozo row makes a live Shipmozo call on every page open; its service does not log out on a portal 401 | Low | — | 401 handling ✅ (FIX-138); the live Shipmozo call on page open is kept — it is what makes the status real |
 | U11 | Code | Large multi-component files (`AmazonProductionListingsTable` ~1,680 lines, `AmazonOrderHub` ~1,070) | Low | AMZ-PLAN-11 | Open |
 | U12 | Code | Unused Amazon files; old lint / type errors (`.at()`, `any`, useless try/catch in `amazonService.ts`) | Low | AMZ-PLAN-12, AMZ-PLAN-13 | ✅ Fixed 2026-10-22 (FIX-137 unused files; FIX-138 type / lint errors — hook-dependency warnings left on purpose) |
