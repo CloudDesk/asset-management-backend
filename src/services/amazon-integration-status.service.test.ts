@@ -10,10 +10,6 @@ const completeConfig = {
   marketplaceId: 'A21TJRUUN4KGV',
   listingImportEnabled: true,
   productionWritesEnabled: true,
-  sandboxCredentialSource: 'SANDBOX' as const,
-  sandboxClientId: 'sandbox-client',
-  sandboxClientSecret: 'sandbox-secret',
-  sandboxRefreshToken: 'sandbox-refresh',
   appId: 'amzn1.sellerapps.app.test',
   redirectUri: 'https://example.com/amazon/callback',
   tokenEncryptionKey: Buffer.alloc(32, 1).toString('base64'),
@@ -33,14 +29,12 @@ test('reports missing configuration without returning credential values', () => 
   const status = buildAmazonIntegrationStatus({
     ...completeConfig,
     clientSecret: undefined,
-    sandboxRefreshToken: undefined,
   });
 
   assert.equal(status.production.status, 'INCOMPLETE');
   assert.deepEqual(status.production.missingConfiguration, ['client secret']);
-  assert.equal(status.sandbox.status, 'INCOMPLETE');
-  assert.deepEqual(status.sandbox.missingConfiguration, ['refresh token']);
-  assert.equal(JSON.stringify(status).includes('sandbox-secret'), false);
+  assert.equal(JSON.stringify(status).includes('"refresh"'), false); // no credential value is returned
+  assert.equal('sandbox' in status, false);
 });
 
 test('reports configured but disabled listing imports honestly', () => {

@@ -1,6 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { env } from '../config/env.js';
 import { prisma } from '../models/prisma.js';
+import { actorKey, resolveActorNames, type ActorRef } from '../utils/amazonActorNames.js';
+import { AMAZON_TEST_ORDER_PREFIX } from '../utils/amazonTestOrder.js';
 import { AmazonListingScope, amazonListingScopeService } from './amazon-listing-scope.service.js';
 import { amazonOrderJobService } from './amazon-order-job.service.js';
 import { amazonProductionInventoryService } from './amazon-production-inventory.service.js';
@@ -94,6 +96,26 @@ export const summarizeAmazonOperationsError = (
   };
 };
 
+/** User-facing Operations errors (message is safe to show; FIX-135) */
+/** Scheduled order imports of the last 24 hours as one line: how many ran, how many failed, the latest */
+export const summarizeScheduledImports = (jobs: Array<{ status: string; createdAt: Date; finishedAt: Date | null }>) => ({
+  runs: jobs.length,
+  failed: jobs.filter((job) => job.status === 'FAILED').length,
+  lastRunAt: jobs[0] ? (jobs[0].finishedAt ?? jobs[0].createdAt).toISOString() : null,
+  lastStatus: jobs[0]?.status ?? null,
+});
+
+export class AmazonOperationsError extends Error {
+  constructor(message: string, readonly statusCode: number, readonly code: string) {
+    super(message);
+    this.name = 'AmazonOperationsError';
+  }
+}
+
+/** Where-clause part: only rows after the last success (none → every row is still open) */
+export const openAfter = <K extends string>(field: K, lastSuccessAt: Date | null | undefined) =>
+  (lastSuccessAt ? { [field]: { gt: lastSuccessAt } } : {}) as Partial<Record<K, { gt: Date }>>;
+
 export class AmazonOperationsService {
   async dashboard(scope: AmazonListingScope, userId?: number) {
     const [writeStatus, setting, latestListing, latestOrder, latestNotification, counts, activities, failures, retries, rateLimit, subscriptions] = await Promise.all([
@@ -103,14 +125,18 @@ export class AmazonOperationsService {
       prisma.amazonOrderImportJob.findFirst({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { createdAt: 'desc' } }),
       prisma.amazonOrderNotification.findFirst({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { eventTime: 'desc' } }),
       Promise.all([
-        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } }),
-        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, mappingStatus: { not: 'MAPPED' } } }),
-        prisma.amazonMarketplaceOrder.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } }),
+        // Listings / Unmapped count what Seller Central counts: not deleted and priced. Unpriced
+        // ("incomplete") listings are counted separately (counts[6]).
+        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, price: { not: null }, NOT: { listingStatus: { contains: 'DELETED', mode: 'insensitive' } } } }),
+        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, price: { not: null }, mappingStatus: { not: 'MAPPED' }, NOT: { listingStatus: { contains: 'DELETED', mode: 'insensitive' } } } }),
+        // Real Amazon orders only, so the number matches Seller Central (test orders exist only in Nivaana)
+        prisma.amazonMarketplaceOrder.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, NOT: { amazonOrderId: { startsWith: AMAZON_TEST_ORDER_PREFIX } } } }),
         prisma.amazonOrderFulfillmentException.count({ where: { status: 'OPEN', order: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } } }),
         prisma.amazonRetryJob.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, status: { in: ['QUEUED', 'RUNNING', 'FAILED'] } } }),
         prisma.amazonConnection.count({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } }),
+        prisma.marketplaceListing.count({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, price: null, NOT: { listingStatus: { contains: 'DELETED', mode: 'insensitive' } } } }),
       ]),
-      this.activity(scope, 20),
+      this.activity(scope, 20, { realEventsOnly: true }),
       this.failures(scope, 20),
       prisma.amazonRetryJob.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { createdAt: 'desc' }, take: 20 }),
       amazonApiTelemetryService.health(scope.sellerId, scope.marketplaceId),
@@ -137,10 +163,15 @@ export class AmazonOperationsService {
         retryWorker: { enabled: env.AMAZON_RETRY_WORKER_ENABLED, cron: env.AMAZON_RETRY_WORKER_CRON },
         rateLimit,
       },
-      counts: { listings: counts[0], unmappedListings: counts[1], orders: counts[2], openFulfillmentExceptions: counts[3], retryQueue: counts[4] },
+      counts: { listings: counts[0], unmappedListings: counts[1], orders: counts[2], openFulfillmentExceptions: counts[3], retryQueue: counts[4], incompleteListings: counts[6] },
       settings: { productionWritesPaused: setting?.productionWritesPaused ?? false, pauseReason: setting?.pauseReason ?? null, pausedAt: iso(setting?.pausedAt) },
       permissions: userId ? await this.permissions(userId) : null,
       activities,
+      scheduledOrderImports: summarizeScheduledImports(await prisma.amazonOrderImportJob.findMany({
+        where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, trigger: 'SCHEDULED', createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } },
+        orderBy: { createdAt: 'desc' },
+        select: { status: true, createdAt: true, finishedAt: true },
+      })),
       failures,
       retries: retries.map((job) => ({
         ...job,
@@ -189,25 +220,51 @@ export class AmazonOperationsService {
     return { productionWritesPaused: setting.productionWritesPaused, pauseReason: setting.pauseReason, pausedAt: iso(setting.pausedAt) };
   }
 
-  async activity(scope: AmazonListingScope, limit = 50) {
-    const [ops, syncs, imports, audits] = await Promise.all([
+  // options.realEventsOnly (Activity tab): leave out the every-15-minutes order imports (shown as one summary
+  // line) and the per-listing audit rows every listing import writes, and add stock sent to Amazon
+  async activity(scope: AmazonListingScope, limit = 50, options: { realEventsOnly?: boolean } = {}) {
+    const realOnly = options.realEventsOnly === true;
+    const importWhere = realOnly ? { trigger: { not: 'SCHEDULED' } } : {};
+    const auditWhere = realOnly ? { operation: { in: ['MAPPED', 'REMAPPED', 'MAPPING_UPDATED', 'UNMAPPED'] } } : {};
+    const [ops, syncs, imports, audits, stockSends] = await Promise.all([
       prisma.amazonOperationsAudit.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { createdAt: 'desc' }, take: limit }),
       prisma.channelSyncLog.findMany({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { startedAt: 'desc' }, take: limit }),
-      prisma.amazonOrderImportJob.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { createdAt: 'desc' }, take: limit }),
-      prisma.marketplaceListingAudit.findMany({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, orderBy: { createdAt: 'desc' }, take: limit }),
+      prisma.amazonOrderImportJob.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, ...importWhere }, orderBy: { createdAt: 'desc' }, take: limit }),
+      prisma.marketplaceListingAudit.findMany({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, ...auditWhere }, orderBy: { createdAt: 'desc' }, take: limit }),
+      realOnly
+        ? prisma.amazonInventorySyncAttempt.findMany({
+          where: { operation: { not: 'PREVIEW' }, listing: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } },
+          orderBy: { createdAt: 'desc' },
+          take: limit,
+          select: { id: true, status: true, amazonQuantity: true, targetQuantity: true, createdAt: true, requestedByUserId: true, requestedByUserType: true, listing: { select: { sellerSku: true } } },
+        })
+        : Promise.resolve([]),
     ]);
-    return [
+    // Who did it (mappings, stock sends, manual imports store the user)
+    const names = realOnly ? await resolveActorNames([...syncs, ...imports, ...audits, ...stockSends]) : new Map<string, string>();
+    const by = (item: ActorRef) => names.get(actorKey(item) ?? '') ?? null;
+    const rows: Array<{ id: string; category: string; action: string; status: string; message: unknown; occurredAt: string; by?: string | null }> = [
       ...ops.map((item) => ({ id: `operation-${item.id}`, category: 'OPERATIONS', action: item.action, status: item.outcome, message: item.details, occurredAt: item.createdAt.toISOString() })),
-      ...syncs.map((item) => ({ id: `listing-sync-${item.id}`, category: 'LISTINGS', action: item.operation, status: item.status, message: item.errorMessage ? summarizeAmazonOperationsError(item.errorMessage, 'LISTING_IMPORT').userMessage : `${item.totalFetched} fetched`, occurredAt: item.startedAt.toISOString() })),
-      ...imports.map((item) => ({ id: `order-import-${item.id}`, category: 'ORDERS', action: `${item.trigger}_${item.mode}`, status: item.status, message: item.errorMessage ? summarizeAmazonOperationsError(item.errorMessage, 'ORDER_IMPORT').userMessage : `${item.fetched} fetched`, occurredAt: item.createdAt.toISOString() })),
-      ...audits.map((item) => ({ id: `listing-audit-${item.id}`, category: 'LISTINGS', action: item.operation, status: item.operation.includes('FAILED') ? 'FAILED' : 'SUCCESS', message: item.sellerSku, occurredAt: item.createdAt.toISOString() })),
-    ].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, limit);
+      ...syncs.map((item) => ({ id: `listing-sync-${item.id}`, by: by(item), category: 'LISTINGS', action: item.operation, status: item.status, message: item.errorMessage ? summarizeAmazonOperationsError(item.errorMessage, 'LISTING_IMPORT').userMessage : `${item.totalFetched} fetched`, occurredAt: item.startedAt.toISOString() })),
+      ...imports.map((item) => ({ id: `order-import-${item.id}`, by: by(item), category: 'ORDERS', action: `${item.trigger}_${item.mode}`, status: item.status, message: item.errorMessage ? summarizeAmazonOperationsError(item.errorMessage, 'ORDER_IMPORT').userMessage : `${item.fetched} fetched`, occurredAt: item.createdAt.toISOString() })),
+      ...stockSends.map((item) => ({ id: `stock-send-${item.id}`, by: by(item), category: 'STOCK', action: 'STOCK_SENT', status: item.status, message: `${item.listing.sellerSku}: Amazon ${item.amazonQuantity ?? '-'} → ${item.targetQuantity}`, occurredAt: item.createdAt.toISOString() })),
+      ...audits.map((item) => ({ id: `listing-audit-${item.id}`, by: by(item), category: 'LISTINGS', action: item.operation, status: item.operation.includes('FAILED') ? 'FAILED' : 'SUCCESS', message: item.sellerSku, occurredAt: item.createdAt.toISOString() })),
+        ];
+    return rows.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, limit);
   }
 
   async failures(scope: AmazonListingScope, limit = 50) {
+    const listingScope = { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId };
+    const orderScope = { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId };
+    // An import failure followed by a successful import of the same kind is resolved (FIX-132);
+    // otherwise old failures keep "Needs attention" on after Amazon works again
+    const [lastListingSuccess, lastOrderSuccess] = await Promise.all([
+      prisma.channelSyncLog.findFirst({ where: { ...listingScope, status: 'SUCCESS', failed: 0 }, orderBy: { startedAt: 'desc' }, select: { startedAt: true } }),
+      prisma.amazonOrderImportJob.findFirst({ where: { ...orderScope, status: 'COMPLETED' }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
+    ]);
     const [syncs, imports, inventory, exceptions, audits] = await Promise.all([
-      prisma.channelSyncLog.findMany({ where: { marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, OR: [{ status: { in: ['FAILED', 'PARTIAL'] } }, { failed: { gt: 0 } }] }, orderBy: { startedAt: 'desc' }, take: limit }),
-      prisma.amazonOrderImportJob.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, status: 'FAILED' }, orderBy: { createdAt: 'desc' }, take: limit }),
+      prisma.channelSyncLog.findMany({ where: { ...listingScope, ...openAfter('startedAt', lastListingSuccess?.startedAt), OR: [{ status: { in: ['FAILED', 'PARTIAL'] } }, { failed: { gt: 0 } }] }, orderBy: { startedAt: 'desc' }, take: limit }),
+      prisma.amazonOrderImportJob.findMany({ where: { ...orderScope, ...openAfter('createdAt', lastOrderSuccess?.createdAt), status: 'FAILED' }, orderBy: { createdAt: 'desc' }, take: limit }),
       prisma.amazonInventorySyncAttempt.findMany({ where: { status: 'FAILED', listing: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, marketplace: 'AMAZON', environment: 'PRODUCTION' } }, include: { listing: { select: { sellerSku: true } } }, orderBy: { createdAt: 'desc' }, take: limit }),
       prisma.amazonOrderFulfillmentException.findMany({ where: { status: 'OPEN', order: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } }, include: { order: { select: { amazonOrderId: true } } }, orderBy: { createdAt: 'desc' }, take: limit }),
       prisma.marketplaceListingAudit.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, operation: { contains: 'FAILED' } }, orderBy: { createdAt: 'desc' }, take: limit }),
@@ -236,21 +293,32 @@ export class AmazonOperationsService {
 
   async enqueueRetry(scope: AmazonListingScope, input: { type: string; resourceId: string; listingId?: string; orderId?: string }, actor: Actor) {
     const supported = ['ORDER_IMPORT', 'INVENTORY_SYNC', 'FULFILLMENT_EXCEPTION'];
-    if (!supported.includes(input.type)) throw new Error('This failure requires a fresh preview or manual correction and cannot be queued.');
-    const job = await prisma.amazonRetryJob.create({ data: {
+    if (!supported.includes(input.type)) throw new AmazonOperationsError('This failure requires a fresh preview or manual correction and cannot be queued.', 400, 'AMAZON_RETRY_NOT_SUPPORTED');
+    const job = await prisma.$transaction(async (transaction) => {
+      const key = JSON.stringify([scope.sellerId, scope.marketplaceId, input.type, input.resourceId]);
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+      const existing = await transaction.amazonRetryJob.findFirst({ where: {
+        sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, operation: input.type,
+        resourceId: input.resourceId, status: { in: ['QUEUED', 'RUNNING'] },
+      } });
+      if (existing) return existing;
+      return transaction.amazonRetryJob.create({ data: {
       sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, operation: input.type,
       resourceType: input.type, resourceId: input.resourceId,
       payload: { listingId: input.listingId, orderId: input.orderId } as Prisma.InputJsonValue,
       ...actor,
-    } });
+      } });
+    });
     return { id: String(job.id), status: job.status, nextAttemptAt: job.nextAttemptAt.toISOString() };
   }
 
   async runRetry(scope: AmazonListingScope, jobId: string) {
     const job = await prisma.amazonRetryJob.findFirst({ where: { id: BigInt(jobId), sellerId: scope.sellerId, marketplaceId: scope.marketplaceId } });
-    if (!job) throw new Error('Retry job was not found');
+    if (!job) throw new AmazonOperationsError('Retry job was not found', 404, 'AMAZON_RETRY_NOT_FOUND');
     if (!['QUEUED', 'FAILED'].includes(job.status)) return { id: jobId, status: job.status };
-    await prisma.amazonRetryJob.update({ where: { id: job.id }, data: { status: 'RUNNING', attempts: { increment: 1 }, startedAt: new Date(), lastError: null } });
+    const claim = await prisma.amazonRetryJob.updateMany({ where: { id: job.id,
+      status: { in: ['QUEUED', 'FAILED'] } }, data: { status: 'RUNNING', attempts: { increment: 1 }, startedAt: new Date(), lastError: null } });
+    if (claim.count !== 1) return { id: jobId, status: 'RUNNING' };
     try {
       const payload = (job.payload || {}) as Record<string, string | undefined>;
       const inventoryActor = {
@@ -268,14 +336,14 @@ export class AmazonOperationsService {
       } else if (job.operation === 'FULFILLMENT_EXCEPTION' && payload.orderId) {
         const { amazonOrderFulfillmentService } = await import('./amazon-order-fulfillment.service.js');
         await amazonOrderFulfillmentService.retryException(payload.orderId, job.resourceId, scope, fulfillmentActor);
-      } else throw new Error('Retry job payload is incomplete');
+      } else throw new AmazonOperationsError('Retry job payload is incomplete', 422, 'AMAZON_RETRY_PAYLOAD_INCOMPLETE');
       await prisma.amazonRetryJob.update({ where: { id: job.id }, data: { status: 'SUCCEEDED', finishedAt: new Date() } });
       return { id: jobId, status: 'SUCCEEDED' };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Retry failed';
       const attempts = job.attempts + 1;
       const terminal = attempts >= job.maxAttempts;
-      await prisma.amazonRetryJob.update({ where: { id: job.id }, data: { status: terminal ? 'FAILED' : 'QUEUED', lastError: message, nextAttemptAt: new Date(Date.now() + Math.min(60, 2 ** attempts) * 60_000), finishedAt: terminal ? new Date() : null } });
+      await prisma.amazonRetryJob.update({ where: { id: job.id }, data: { status: terminal ? 'FAILED' : 'QUEUED', lastError: message, nextAttemptAt: new Date(Date.now() + Math.floor((0.5 + Math.random() * 0.5) * Math.min(60, 2 ** attempts) * 60_000)), finishedAt: terminal ? new Date() : null } });
       throw error;
     }
   }
@@ -293,7 +361,7 @@ export class AmazonOperationsService {
       const rows = await prisma.amazonMarketplaceOrder.findMany({ where: { sellerId: scope.sellerId, marketplaceId: scope.marketplaceId }, include: { items: true }, orderBy: { purchaseDate: 'desc' } });
       return csv(['Amazon order ID', 'Purchased', 'Status', 'Fulfilment', 'Sync state', 'Items', 'Quantity'], rows.map((x) => [x.amazonOrderId, x.purchaseDate.toISOString(), x.orderStatus, x.fulfilmentType, x.syncState, x.items.length, x.items.reduce((sum, item) => sum + item.quantityOrdered, 0)]));
     }
-    throw new Error('Export type must be listings, mappings, inventory, or orders');
+    throw new AmazonOperationsError('Export type must be listings, mappings, inventory, or orders', 400, 'AMAZON_EXPORT_TYPE_INVALID');
   }
 }
 

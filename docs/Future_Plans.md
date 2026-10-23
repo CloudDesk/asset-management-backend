@@ -2,6 +2,8 @@
 
 Items analysed and agreed but deliberately parked. Each entry has enough context to pick up later without the original conversation. When an item is implemented, log it in `Fix_After_Sep30/Master.md` and mark it **Done** here.
 
+**Amazon plans are kept separately** as `AMZ-PLAN-xx` in `Amazon/Amazon_Master.md` (section 9), with the Amazon status, setup and change log.
+
 | ID | Parked on | Area | Summary | Priority | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **PLAN-01** | 2026-10-06 | Mobile App / PhonePe | UPI app handoff fails silently when the app is missing or not visible to Android | High (before prod release of the app) | Parked |

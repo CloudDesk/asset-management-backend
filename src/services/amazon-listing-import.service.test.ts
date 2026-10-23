@@ -433,3 +433,15 @@ test('repeated imports are idempotent', async () => {
   assert.equal(second.unmapped, 1);
   assert.equal(repository.records.size, 1);
 });
+
+test('an import first closes runs a stopped server left RUNNING, then starts its own', async () => {
+  const calls: string[] = [];
+  const repository = new FakeListingRepository();
+  Object.assign(repository, {
+    closeInterruptedSyncLogs: async () => { calls.push('close'); return 1; },
+    startSyncLog: async () => { calls.push('start'); return '1'; },
+  });
+  const client = new FakeListingsClient([{ items: [rawListing('SKU-1')], nextToken: null }]);
+  await new AmazonListingImportService({ client, repository, enabled: true }).importListings();
+  assert.deepEqual(calls, ['close', 'start']);
+});

@@ -1,3 +1,4 @@
+import { logAmazonFailure } from '../utils/amazonFailureLog.js';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
@@ -21,7 +22,7 @@ import {
   AmazonListingMappingError,
   amazonListingMappingService,
 } from '../services/amazon-listing-mapping.service.js';
-import { amazonListingScopeService } from '../services/amazon-listing-scope.service.js';
+import { amazonListingScopeService, AmazonListingScopeError } from '../services/amazon-listing-scope.service.js';
 import { amazonListingWorkspaceService } from '../services/amazon-listing-workspace.service.js';
 import {
   AmazonProductionInventoryError,
@@ -36,7 +37,7 @@ import {
 import { AmazonOfferUpdateError, amazonOfferUpdateService } from '../services/amazon-offer-update.service.js';
 import { AmazonListingEditError, amazonListingEditService } from '../services/amazon-listing-edit.service.js';
 import { AmazonSpApiError } from '../services/amazon-production-listings.client.js';
-import { AmazonAuthorizationError } from '../services/amazon-lwa-token.service.js';
+import { AmazonAuthorizationError, AmazonTokenRequestError } from '../services/amazon-lwa-token.service.js';
 import { AmazonProductionWriteDisabledError } from '../services/amazon-production-write-guard.service.js';
 
 const validationErrorResponse = (reply: FastifyReply, error: ZodError) => reply.code(400).send({
@@ -49,7 +50,7 @@ const validationErrorResponse = (reply: FastifyReply, error: ZodError) => reply.
 
 const mappingErrorResponse = (reply: FastifyReply, error: unknown) => {
   if (error instanceof ZodError) return validationErrorResponse(reply, error);
-  if (error instanceof AmazonListingMappingError) {
+  if (error instanceof AmazonListingMappingError || error instanceof AmazonListingScopeError) {
     return reply.code(error.statusCode).send({
       success: false,
       message: error.message,
@@ -70,7 +71,11 @@ const mappingErrorResponse = (reply: FastifyReply, error: unknown) => {
 
 const inventoryErrorResponse = (reply: FastifyReply, error: unknown) => {
   if (error instanceof ZodError) return validationErrorResponse(reply, error);
-  if (error instanceof AmazonProductionInventoryError) {
+  // Amazon credential / API / write-switch errors carry a user-safe message and an AMAZON_* code
+  // (the Inventory does not log out on an AMAZON_* 401), so pass them through like offer errors
+  if (error instanceof AmazonProductionInventoryError || error instanceof AmazonListingScopeError
+    || error instanceof AmazonAuthorizationError || error instanceof AmazonTokenRequestError
+    || error instanceof AmazonSpApiError || error instanceof AmazonProductionWriteDisabledError) {
     return reply.code(error.statusCode).send({
       success: false,
       message: error.message,
@@ -92,7 +97,7 @@ const offerErrorResponse = (reply: FastifyReply, error: unknown) => {
   if (error instanceof ZodError) return validationErrorResponse(reply, error);
   if (error instanceof AmazonOfferUpdateError || error instanceof AmazonListingEditError
     || error instanceof AmazonSpApiError || error instanceof AmazonAuthorizationError
-    || error instanceof AmazonProductionWriteDisabledError) return reply.code(error.statusCode).send({
+    || error instanceof AmazonProductionWriteDisabledError || error instanceof AmazonListingScopeError) return reply.code(error.statusCode).send({
     success: false, message: error.message, details: error.message, statusCode: error.statusCode, code: error.code,
   });
   return reply.code(500).send({ success: false, message: 'Amazon offer operation failed', details: 'Amazon offer operation failed', statusCode: 500, code: 'AMAZON_OFFER_OPERATION_FAILED' });
@@ -127,7 +132,7 @@ export class AmazonListingController {
       return reply.code(200).send(
         createSuccessResponse('Amazon production listings imported successfully', summary)
       );
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       const sanitized = sanitizeAmazonListingImportError(error);
       return reply.code(sanitized.statusCode).send({
         success: false,
@@ -151,7 +156,7 @@ export class AmazonListingController {
         ...createSuccessResponse('Amazon production listings retrieved successfully', result.data),
         pagination: result.pagination,
       });
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       if (error instanceof ZodError) {
         return validationErrorResponse(reply, error);
       }
@@ -186,7 +191,7 @@ export class AmazonListingController {
       return reply.code(200).send(
         createSuccessResponse('Amazon listing mapped to Nivaana product successfully', listing)
       );
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return mappingErrorResponse(reply, error);
     }
   };
@@ -206,7 +211,7 @@ export class AmazonListingController {
       return reply.code(200).send(
         createSuccessResponse('Amazon listing unmapped successfully', listing)
       );
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return mappingErrorResponse(reply, error);
     }
   };
@@ -216,7 +221,7 @@ export class AmazonListingController {
       const { listingId } = amazonListingParamsSchema.parse(request.params);
       const data = await amazonListingWorkspaceService.getDetails(listingId, await this.resolveScope(request));
       return reply.code(200).send(createSuccessResponse('Amazon listing details retrieved successfully', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return mappingErrorResponse(reply, error);
     }
   };
@@ -226,7 +231,7 @@ export class AmazonListingController {
       const { listingId } = amazonListingParamsSchema.parse(request.params);
       const data = await amazonListingWorkspaceService.getSuggestions(listingId, await this.resolveScope(request));
       return reply.code(200).send(createSuccessResponse('Amazon product suggestions retrieved successfully', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return mappingErrorResponse(reply, error);
     }
   };
@@ -236,7 +241,7 @@ export class AmazonListingController {
       const { listingId } = amazonListingParamsSchema.parse(request.params);
       const data = await amazonListingWorkspaceService.getAudits(listingId, await this.resolveScope(request));
       return reply.code(200).send(createSuccessResponse('Amazon mapping audit retrieved successfully', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return mappingErrorResponse(reply, error);
     }
   };
@@ -247,7 +252,7 @@ export class AmazonListingController {
       const changes = amazonOfferUpdateSchema.parse(request.body);
       const data = await amazonOfferUpdateService.preview(listingId, changes, await this.resolveScope(request), this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon offer update validated', data));
-    } catch (error) { return offerErrorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return offerErrorResponse(reply, error); }
   };
 
   applyOfferUpdate = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -256,7 +261,7 @@ export class AmazonListingController {
       const input = amazonOfferApplySchema.parse(request.body);
       const data = await amazonOfferUpdateService.apply(listingId, input.previewId, await this.resolveScope(request), this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon offer update submitted', data));
-    } catch (error) { return offerErrorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return offerErrorResponse(reply, error); }
   };
 
   bootstrapListingEdit = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -264,7 +269,7 @@ export class AmazonListingController {
       const { listingId } = amazonListingParamsSchema.parse(request.params);
       const data = await amazonListingEditService.bootstrap(listingId, await this.resolveScope(request));
       return reply.code(200).send(createSuccessResponse('Latest Amazon listing baseline retrieved', data));
-    } catch (error) { return offerErrorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return offerErrorResponse(reply, error); }
   };
 
   previewListingEdit = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -275,7 +280,7 @@ export class AmazonListingController {
         listingId, input, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon listing changes validated', data));
-    } catch (error) { return offerErrorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return offerErrorResponse(reply, error); }
   };
 
   applyListingEdit = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -289,7 +294,7 @@ export class AmazonListingController {
         this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon listing edit submitted', data));
-    } catch (error) { return offerErrorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return offerErrorResponse(reply, error); }
   };
 
   reconcileListingEdit = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -299,7 +304,7 @@ export class AmazonListingController {
         listingId, await this.resolveScope(request), this.actor(request)
       );
       return reply.code(200).send(createSuccessResponse('Amazon listing edit reconciled', data));
-    } catch (error) { return offerErrorResponse(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return offerErrorResponse(reply, error); }
   };
 
   bulkMapListings = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -311,7 +316,7 @@ export class AmazonListingController {
         ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
       });
       return reply.code(200).send(createSuccessResponse('Amazon bulk mapping completed', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return mappingErrorResponse(reply, error);
     }
   };
@@ -325,7 +330,7 @@ export class AmazonListingController {
         ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
       });
       return reply.code(200).send(createSuccessResponse('Amazon stock sync preview created', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return inventoryErrorResponse(reply, error);
     }
   };
@@ -340,7 +345,7 @@ export class AmazonListingController {
         ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
       });
       return reply.code(200).send(createSuccessResponse('Amazon MFN stock synchronized successfully', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return inventoryErrorResponse(reply, error);
     }
   };
@@ -351,7 +356,17 @@ export class AmazonListingController {
       const { mode } = amazonInventorySyncModeSchema.parse(request.body);
       const data = await amazonProductionInventoryService.setMode(listingId, mode, await this.resolveScope(request));
       return reply.code(200).send(createSuccessResponse('Amazon inventory sync mode updated', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
+      return inventoryErrorResponse(reply, error);
+    }
+  };
+
+  checkPendingInventorySync = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const data = await amazonProductionInventoryService.checkPendingSend(listingId, await this.resolveScope(request));
+      return reply.code(200).send(createSuccessResponse('Amazon stock checked', data));
+    } catch (error) { logAmazonFailure(request, error);
       return inventoryErrorResponse(reply, error);
     }
   };
@@ -361,7 +376,7 @@ export class AmazonListingController {
       const { listingId } = amazonListingParamsSchema.parse(request.params);
       const data = await amazonProductionInventoryService.history(listingId, await this.resolveScope(request));
       return reply.code(200).send(createSuccessResponse('Amazon inventory sync history retrieved', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return inventoryErrorResponse(reply, error);
     }
   };
@@ -375,7 +390,7 @@ export class AmazonListingController {
         ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
       });
       return reply.code(200).send(createSuccessResponse('Amazon bulk stock preview completed', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return inventoryErrorResponse(reply, error);
     }
   };
@@ -389,7 +404,7 @@ export class AmazonListingController {
         ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
       });
       return reply.code(200).send(createSuccessResponse('Amazon bulk MFN stock synchronization completed', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return inventoryErrorResponse(reply, error);
     }
   };
@@ -404,7 +419,7 @@ export class AmazonListingController {
         ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
       });
       return reply.code(200).send(createSuccessResponse('Amazon inventory synchronization retried successfully', data));
-    } catch (error) {
+    } catch (error) { logAmazonFailure(request, error);
       return inventoryErrorResponse(reply, error);
     }
   };

@@ -20,6 +20,12 @@ const enqueueConfiguredScopes = async () => {
     // Stored OAuth scopes can still be scheduled when no environment fallback exists.
   }
   for (const scope of scopes.values()) {
+    const backoff = await amazonOrderJobService.scheduledBackoff(scope.sellerId, scope.marketplaceId);
+    if (backoff.skip) {
+      logger.warn({ sellerId: scope.sellerId, streak: backoff.streak, retryAfter: backoff.retryAfter },
+        'Scheduled Amazon order sync skipped: Amazon keeps rejecting the credentials (backoff)');
+      continue;
+    }
     await amazonOrderJobService.enqueue({
       sellerId: scope.sellerId,
       marketplaceId: scope.marketplaceId,
@@ -29,7 +35,9 @@ const enqueueConfiguredScopes = async () => {
 };
 
 export const startAmazonOrderScheduler = async () => {
-  await amazonOrderJobService.recoverPendingJobs();
+  await amazonOrderJobService.recoverPendingJobs().catch((error) =>
+    logger.error({ error: error instanceof Error ? error.message : 'Unknown recovery error' },
+      'Amazon job recovery failed; scheduled retries will continue'));
   if (!env.AMAZON_ORDER_AUTO_SYNC_ENABLED || scheduledTask) return;
   if (!cron.validate(env.AMAZON_ORDER_SYNC_CRON)) {
     logger.error({ cron: env.AMAZON_ORDER_SYNC_CRON }, 'Amazon order scheduler has an invalid cron expression');

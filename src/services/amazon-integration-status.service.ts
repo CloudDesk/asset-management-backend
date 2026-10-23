@@ -12,14 +12,6 @@ export type AmazonIntegrationStatus = {
     accessMode: 'READ_ONLY';
     missingConfiguration: string[];
   };
-  sandbox: {
-    environment: 'SANDBOX';
-    connectionType: 'ENVIRONMENT_VARIABLES';
-    status: 'CONFIGURED' | 'INCOMPLETE';
-    marketplaceId: string;
-    credentialSource: 'SANDBOX' | 'PRODUCTION';
-    missingConfiguration: string[];
-  };
   oauth: {
     status: 'AVAILABLE' | 'NOT_CONFIGURED';
     missingConfiguration: string[];
@@ -34,10 +26,6 @@ type AmazonStatusConfig = {
   marketplaceId: string;
   listingImportEnabled: boolean;
   productionWritesEnabled: boolean;
-  sandboxCredentialSource: 'SANDBOX' | 'PRODUCTION';
-  sandboxClientId?: string | undefined;
-  sandboxClientSecret?: string | undefined;
-  sandboxRefreshToken?: string | undefined;
   appId?: string | undefined;
   redirectUri?: string | undefined;
   tokenEncryptionKey?: string | undefined;
@@ -57,22 +45,6 @@ export const buildAmazonIntegrationStatus = (
     ['seller ID', config.sellerId],
   ]);
 
-  const sandboxCredentials = config.sandboxCredentialSource === 'PRODUCTION'
-    ? {
-        clientId: config.clientId,
-        clientSecret: config.clientSecret,
-        refreshToken: config.refreshToken,
-      }
-    : {
-        clientId: config.sandboxClientId,
-        clientSecret: config.sandboxClientSecret,
-        refreshToken: config.sandboxRefreshToken,
-      };
-  const sandboxMissing = missingKeys([
-    ['client ID', sandboxCredentials.clientId],
-    ['client secret', sandboxCredentials.clientSecret],
-    ['refresh token', sandboxCredentials.refreshToken],
-  ]);
   const oauthMissing = missingKeys([
     ['client ID', config.clientId],
     ['client secret', config.clientSecret],
@@ -98,14 +70,6 @@ export const buildAmazonIntegrationStatus = (
       accessMode: 'READ_ONLY',
       missingConfiguration: productionMissing,
     },
-    sandbox: {
-      environment: 'SANDBOX',
-      connectionType: 'ENVIRONMENT_VARIABLES',
-      status: sandboxMissing.length === 0 ? 'CONFIGURED' : 'INCOMPLETE',
-      marketplaceId: config.marketplaceId,
-      credentialSource: config.sandboxCredentialSource,
-      missingConfiguration: sandboxMissing,
-    },
     oauth: {
       status: oauthMissing.length === 0 ? 'AVAILABLE' : 'NOT_CONFIGURED',
       missingConfiguration: oauthMissing,
@@ -122,10 +86,6 @@ export const getAmazonIntegrationStatus = (): AmazonIntegrationStatus =>
     marketplaceId: env.AMAZON_MARKETPLACE_ID,
     listingImportEnabled: env.AMAZON_LISTING_IMPORT_ENABLED,
     productionWritesEnabled: env.AMAZON_PRODUCTION_WRITES_ENABLED,
-    sandboxCredentialSource: env.AMAZON_SANDBOX_CREDENTIAL_SOURCE,
-    sandboxClientId: env.AMAZON_SANDBOX_CLIENT_ID,
-    sandboxClientSecret: env.AMAZON_SANDBOX_CLIENT_SECRET,
-    sandboxRefreshToken: env.AMAZON_SANDBOX_REFRESH_TOKEN,
     appId: env.AMAZON_SP_API_APP_ID,
     redirectUri: env.AMAZON_REDIRECT_URI,
     tokenEncryptionKey: env.AMAZON_TOKEN_ENCRYPTION_KEY,

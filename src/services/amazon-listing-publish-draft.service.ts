@@ -20,6 +20,7 @@ import {
 } from './amazon-production-write-guard.service.js';
 import { normalizeAmazonListing } from './amazon-listing-normalizer.js';
 import { env } from '../config/env.js';
+import { AmazonAuthorizationError } from './amazon-lwa-token.service.js';
 
 type DraftBootstrapInput = AmazonPublishScope & {
   productId: string;
@@ -1235,16 +1236,24 @@ export class AmazonListingPublishDraftService {
         'AMAZON_LISTING_SUBMISSION_PERSISTENCE_UNAVAILABLE'
       );
     }
-    const requestKey = `PUBLISH:${draftId}:${input.idempotencyKey}`;
-    const existingAttempt = await this.repository.getValidationAttempt(requestKey);
+    const baseRequestKey = `PUBLISH:${draftId}:REVISION:${input.draftRevision}`;
+    let requestKey = baseRequestKey;
+    const existingAttempt = this.repository.getPublishAttemptForRevision
+      ? await this.repository.getPublishAttemptForRevision(draftId, input.draftRevision)
+      : await this.repository.getValidationAttempt(baseRequestKey);
     if (existingAttempt) {
       if (existingAttempt.status === 'SUCCEEDED' && draft.status === 'SUBMITTED') {
         return this.get(draftId, scope);
       }
-      throw new AmazonListingPublishDraftError(
+      const safeToRetry = existingAttempt.status === 'FAILED' && existingAttempt.id != null
+        && ['AMAZON_WRITE_NOT_SENT', 'AMAZON_INVALID_AUTHORIZATION'].includes(existingAttempt.errorCode);
+      if (safeToRetry) {
+        // Concurrent retries of the same rejected attempt share one unique claim.
+        requestKey = `${baseRequestKey}:RETRY:${existingAttempt.id}`;
+      } else throw new AmazonListingPublishDraftError(
         existingAttempt.status === 'STARTED'
           ? 'This publish request is already in progress or has an unknown outcome; reconcile it before retrying'
-          : 'This publish request key was already used; start a fresh confirmed retry',
+          : 'This draft revision was already submitted; reconcile the outcome before publishing a new revision',
         409,
         existingAttempt.status === 'STARTED'
           ? 'AMAZON_SUBMISSION_OUTCOME_UNKNOWN'
@@ -1357,6 +1366,12 @@ export class AmazonListingPublishDraftService {
       payloadHash: hash,
       requestPayload: jsonValue(request),
       actor,
+    }).catch((error: unknown) => {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
+        throw new AmazonListingPublishDraftError('This draft revision is already being published',
+          409, 'AMAZON_SUBMISSION_OUTCOME_UNKNOWN');
+      }
+      throw error;
     });
 
     let response: Awaited<ReturnType<NonNullable<AmazonListingsReadClient['submitListingItem']>>>;
@@ -1372,8 +1387,8 @@ export class AmazonListingPublishDraftService {
         attemptId: String(attempt.id),
         status: 'FAILED',
         issues: [],
-        httpStatus: error instanceof AmazonSpApiError ? error.statusCode : null,
-        errorCode: error instanceof AmazonSpApiError ? error.code : 'AMAZON_LISTING_SUBMISSION_FAILED',
+        httpStatus: error instanceof AmazonSpApiError || error instanceof AmazonAuthorizationError ? error.statusCode : null,
+        errorCode: error instanceof AmazonSpApiError || error instanceof AmazonAuthorizationError ? error.code : 'AMAZON_LISTING_SUBMISSION_FAILED',
         errorMessage: error instanceof Error ? error.message : 'Amazon listing submission failed',
       });
       throw error;

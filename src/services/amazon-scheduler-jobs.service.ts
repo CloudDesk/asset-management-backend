@@ -1,0 +1,97 @@
+import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
+import { prisma } from '../models/prisma.js';
+import { amazonListingScopeService } from './amazon-listing-scope.service.js';
+import { importConfiguredScopes } from './amazon-listing-scheduler.service.js';
+import { amazonOrderJobService } from './amazon-order-job.service.js';
+import { processDue } from './amazon-retry-scheduler.service.js';
+import { amazonReturnService } from './amazon-return.service.js';
+
+// Cloud Scheduler jobs (FIX-124). Each call runs the same work as the matching node-cron
+// scheduler but waits for it to finish, because Cloud Run throttles CPU once the response is sent.
+
+export class AmazonSchedulerJobsService {
+  // Same seller scopes the node-cron order scheduler uses: stored OAuth connections plus the .env account
+  async configuredScopes(): Promise<Array<{ sellerId: string; marketplaceId: string }>> {
+    const connections = await prisma.amazonConnection.findMany({
+      select: { sellerId: true, marketplaceId: true },
+      distinct: ['sellerId', 'marketplaceId'],
+    });
+    const scopes = new Map(connections.map((connection) => [`${connection.sellerId}:${connection.marketplaceId}`, connection]));
+    try {
+      const fallback = await amazonListingScopeService.resolve();
+      scopes.set(`${fallback.sellerId}:${fallback.marketplaceId}`, { sellerId: fallback.sellerId, marketplaceId: fallback.marketplaceId });
+    } catch {
+      // Stored OAuth scopes can still be synced when no environment fallback exists.
+    }
+    return [...scopes.values()];
+  }
+
+  async runOrderSync() {
+    const results = [];
+    for (const scope of await this.configuredScopes()) {
+      const backoff = await amazonOrderJobService.scheduledBackoff(scope.sellerId, scope.marketplaceId);
+      if (backoff.skip) {
+        // Credentials keep failing: no new FAILED job until the backoff window passes (FIX-136)
+        results.push({ sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, jobId: null, status: 'BACKOFF', skipped: true,
+          errorMessage: `Amazon keeps rejecting the credentials (${backoff.streak} in a row); next scheduled try after ${backoff.retryAfter.toISOString()}` });
+        continue;
+      }
+      const { job, existing } = await amazonOrderJobService.enqueue({
+        sellerId: scope.sellerId,
+        marketplaceId: scope.marketplaceId,
+        trigger: 'SCHEDULED',
+      }, { background: false });
+      if (existing) {
+        // Another run (manual, notification or node-cron) already owns this scope
+        results.push({ sellerId: scope.sellerId, marketplaceId: scope.marketplaceId, jobId: job.id, status: job.status, skipped: true, errorMessage: null });
+        continue;
+      }
+      await amazonOrderJobService.run(BigInt(job.id));
+      const finished = await amazonOrderJobService.getJob(job.id, scope.sellerId, scope.marketplaceId);
+      results.push({
+        sellerId: scope.sellerId,
+        marketplaceId: scope.marketplaceId,
+        jobId: job.id,
+        status: finished?.status ?? 'UNKNOWN',
+        skipped: false,
+        fetched: finished?.fetched ?? 0,
+        errorMessage: finished?.errorMessage ?? null,
+      });
+    }
+    const failed = results.filter((result) => result.status === 'FAILED').length;
+    if (failed > 0) logger.error({ results }, 'Scheduled Amazon order sync finished with failures (Cloud Scheduler)');
+    return { scopes: results.length, failed, results };
+  }
+
+  async runListingSync() {
+    if (!env.AMAZON_LISTING_IMPORT_ENABLED) return { skipped: true, reason: 'AMAZON_LISTING_IMPORT_ENABLED is off' };
+    await importConfiguredScopes();
+    return { skipped: false };
+  }
+
+  async runRetryQueue() {
+    return { processed: await processDue() };
+  }
+
+  // Returns (P4): one quick step per call per scope and FBA / FBM — request a report, or collect a
+  // finished one. Schedule it every 15–30 minutes so a requested report is collected on a later call.
+  async runReturnSync() {
+    const results: Array<Record<string, unknown>> = [];
+    for (const item of await this.configuredScopes()) {
+      for (const fulfilmentType of ['FBA', 'FBM'] as const) {
+        try {
+          const scope = await amazonListingScopeService.resolveForSeller(item.sellerId, item.marketplaceId);
+          results.push({ sellerId: item.sellerId, marketplaceId: item.marketplaceId, ...await amazonReturnService.runScheduledStep(scope, fulfilmentType) });
+        } catch (error) {
+          results.push({ sellerId: item.sellerId, marketplaceId: item.marketplaceId, fulfilmentType, status: 'FAILED', errorMessage: error instanceof Error ? error.message : 'Amazon return import failed' });
+        }
+      }
+    }
+    const failed = results.filter((result) => result.status === 'FAILED').length;
+    if (failed > 0) logger.error({ results }, 'Scheduled Amazon return import finished with failures (Cloud Scheduler)');
+    return { steps: results.length, failed, results };
+  }
+}
+
+export const amazonSchedulerJobsService = new AmazonSchedulerJobsService();

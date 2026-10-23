@@ -22,7 +22,7 @@ steps:
       - "push"
       - "gcr.io/nivaana/nivaana-sit:latest"
 
-  # Step 4: Deploy to Cloud Run SIT using .env.sit plus Secret Manager for Amazon credentials.
+  # Step 4: Deploy to Cloud Run SIT using .env.sit.
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: "gcloud"
     args:
@@ -42,10 +42,14 @@ steps:
       - "5600"
       - "--memory"
       - "512Mi"
+      # Above the 10-minute attempt deadline of the Amazon Cloud Scheduler jobs (order / listing sync wait for the import).
+      - "--timeout"
+      - "900"
       - "--env-vars-file"
       - ".env.sit"
-      - "--set-secrets"
-      - "AMAZON_CLIENT_ID=nivaana-sit-amazon-client-id:latest,AMAZON_CLIENT_SECRET=nivaana-sit-amazon-client-secret:latest,AMAZON_REFRESH_TOKEN=nivaana-sit-amazon-refresh-token:latest"
+      # Amazon credentials now come from .env.sit like every other SIT setting (2026-10-23).
+      # Removes the old Secret Manager references so the plain values can replace them.
+      - "--clear-secrets"
 
 options:
   logging: CLOUD_LOGGING_ONLY

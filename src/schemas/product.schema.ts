@@ -26,6 +26,12 @@ const requiredShortNameField = z.string()
 const optionalShortNameField = requiredShortNameField.optional();
 
 // Updated product schema for new database structure
+// Amazon ASIN (gap D4): 10 letters/digits, stored upper case; empty clears it
+const asinField = z.preprocess(
+  (value) => (typeof value === 'string' ? (value.trim() === '' ? null : value.trim().toUpperCase()) : value),
+  z.string().regex(/^[A-Z0-9]{10}$/, 'ASIN must be 10 letters or digits (e.g. B0ABC12345)').nullable().optional(),
+);
+
 export const createProductSchema = z.object({
   // Core required fields
   name: z.string().min(1, 'Product name is required').max(1200, 'Product name too long'),
@@ -55,6 +61,7 @@ export const createProductSchema = z.object({
   // Tax / HSN & GST (Mandatory)
   hsn_code: z.string().trim().min(1, 'HSN code is required').max(50, 'HSN code too long'),
   gst_rate: z.coerce.number().min(0, 'GST rate cannot be negative').max(100, 'GST rate cannot exceed 100%'),
+  asin: asinField,
 
   // Quantity fields
   quantity: z.number().int().min(0).optional(),
@@ -137,6 +144,7 @@ export const updateProductSchema = z.object({
   // Tax / HSN & GST
   hsn_code: z.string().trim().min(1, 'HSN code cannot be empty').max(50, 'HSN code too long').optional(),
   gst_rate: z.coerce.number().min(0, 'GST rate cannot be negative').max(100, 'GST rate cannot exceed 100%').optional(),
+  asin: asinField,
 
   // Quantity fields
   quantity: z.number().int().min(0).optional(),
@@ -211,6 +219,7 @@ export const upsertProductSchema = z.object({
   // Tax / HSN & GST
   hsn_code: z.string().trim().min(1, 'HSN code cannot be empty').max(50, 'HSN code too long').optional(),
   gst_rate: z.coerce.number().min(0, 'GST rate cannot be negative').max(100, 'GST rate cannot exceed 100%').optional(),
+  asin: asinField,
 
   // Quantity fields
   quantity: z.number().int().min(0).optional(),

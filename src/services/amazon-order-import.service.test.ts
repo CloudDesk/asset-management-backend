@@ -101,6 +101,21 @@ test('cancellation and unmapped safety gates take precedence over routing', () =
   );
 });
 
+test('an order without items is "Items missing", never ready or unmapped; cancelled still wins', () => {
+  assert.equal(
+    deriveAmazonOrderRoutingDecision({ isCancelled: false, hasUnmappedItems: false, fulfilmentType: 'EASY_SHIP', items: [] }).syncState,
+    'BLOCKED_ITEMS_MISSING'
+  );
+  assert.equal(
+    deriveAmazonOrderRoutingDecision({ isCancelled: true, hasUnmappedItems: false, fulfilmentType: 'EASY_SHIP', items: [] }).status,
+    'CANCELLED'
+  );
+  assert.equal(
+    deriveAmazonOrderRoutingDecision({ isCancelled: false, hasUnmappedItems: false, fulfilmentType: 'EASY_SHIP', items: [{}] }).status,
+    'RESERVE_STOCK'
+  );
+});
+
 test('treats only completed shipment states as final stock-sale states', () => {
   assert.equal(isAmazonOrderFinalStatus('SHIPPED'), true);
   assert.equal(isAmazonOrderFinalStatus('delivered'), true);

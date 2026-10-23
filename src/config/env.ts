@@ -356,6 +356,8 @@ const envSchema = z.object({
   AMAZON_LISTING_SYNC_CRON: z.string().optional().default("0 */6 * * *"),
   AMAZON_RETRY_WORKER_ENABLED: z.enum(["true", "false"]).optional().default("false").transform((value) => value === "true"),
   AMAZON_RETRY_WORKER_CRON: z.string().optional().default("*/5 * * * *"),
+  // Shared secret Cloud Scheduler sends in `x-scheduler-secret` to run the Amazon job endpoints.
+  AMAZON_SCHEDULER_SECRET: z.string().trim().min(16).optional(),
   AMAZON_NOTIFICATION_INGEST_SECRET: z.string().trim().min(32).optional(),
   AMAZON_NOTIFICATION_DESTINATION_ID: z.string().trim().optional(),
   AMAZON_NOTIFICATION_SQS_DESTINATION_ID: z.string().trim().optional(),
@@ -375,15 +377,7 @@ const envSchema = z.object({
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) ? Math.min(5, Math.max(0, parsed)) : 3;
   }),
-  AMAZON_SANDBOX_CREDENTIAL_SOURCE: z.enum(["SANDBOX", "PRODUCTION"]).optional().default("SANDBOX"),
   AMAZON_MARKETPLACE_ID: z.string().optional().default("A21TJRUUN4KGV"), // Fixed for India
-  AMAZON_SP_API_BASE_URL: z.string().optional(),
-  AMAZON_SANDBOX_CLIENT_ID: z.string().optional(),
-  AMAZON_SANDBOX_CLIENT_SECRET: z.string().optional(),
-  AMAZON_SANDBOX_REFRESH_TOKEN: z.string().optional(),
-  AMAZON_SANDBOX_SP_API_BASE_URL: z.string().optional().default('https://sandbox.sellingpartnerapi-eu.amazon.com'),
-  AMAZON_AWS_IAM_ROLE_ARN: z.string().optional(),
-  AMAZON_REGION: z.string().optional().default("eu-west-1"),
   AMAZON_SELLER_CENTRAL_URL: z
     .string()
     .optional()

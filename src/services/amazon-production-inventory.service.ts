@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { env } from '../config/env.js';
 import { prisma } from '../models/prisma.js';
+import { actorKey, resolveActorNames } from '../utils/amazonActorNames.js';
 import { AmazonListingScope } from './amazon-listing-scope.service.js';
 import { amazonListingScopeService } from './amazon-listing-scope.service.js';
 import {
   classifyAmazonFulfilment,
   extractAmazonSellerQuantity,
-  isInactiveAmazonListing,
+  isIncompleteAmazonListing, isInactiveAmazonListing,
   normalizeAmazonListingStatus,
 } from './amazon-listing-normalizer.js';
 import { amazonProductionWriteGuardService } from './amazon-production-write-guard.service.js';
@@ -27,8 +28,21 @@ export class AmazonProductionInventoryError extends Error {
   }
 }
 
-export const calculateAmazonTargetQuantity = (availableQuantity: number, unitsPerListing: number) =>
-  Math.floor(Math.max(0, Math.trunc(availableQuantity)) / Math.max(1, Math.trunc(unitsPerListing)));
+import { calculateAmazonTargetQuantity } from '../utils/amazonStockTarget.js';
+export { calculateAmazonTargetQuantity };
+
+export function assertAmazonInventorySubmissionAccepted(result: { status: string; issues: unknown[] }) {
+  if (result.status === 'ACCEPTED') return;
+  const details = result.issues.slice(0, 5).flatMap((issue) => {
+    if (!issue || typeof issue !== 'object') return [];
+    const fields = issue as { code?: unknown; message?: unknown };
+    const message = [fields.code, fields.message].filter((value) => typeof value === 'string').join(': ').slice(0, 1000);
+    return message ? [message] : [];
+  }).join('; ');
+  throw new AmazonProductionInventoryError(details
+    ? `Amazon did not accept the inventory update: ${details}` : 'Amazon did not accept the inventory update',
+    502, 'AMAZON_INVENTORY_REJECTED');
+}
 
 const AMAZON_CONFIRMATION_TIMEOUT_MS = 15 * 60 * 1000;
 
@@ -47,6 +61,7 @@ export const resolveAmazonInventoryConfirmation = (
 
 type AmazonInventoryEligibleListing = {
   listingStatus: string;
+  price: unknown;
   mappingStatus: string;
   productId: bigint | number | string | null;
   fulfilmentChannel: string;
@@ -59,6 +74,13 @@ export const assertAmazonInventoryListingEligible = (listing: AmazonInventoryEli
       'Map this Amazon listing before synchronizing stock',
       409,
       'AMAZON_LISTING_NOT_MAPPED'
+    );
+  }
+  if (isIncompleteAmazonListing(listing)) {
+    throw new AmazonProductionInventoryError(
+      'This listing has no price on Amazon yet, so it is not for sale. Set a price in Seller Central first.',
+      409,
+      'AMAZON_LISTING_INCOMPLETE'
     );
   }
   if (isInactiveAmazonListing(listing.listingStatus)) {
@@ -85,6 +107,12 @@ export const assertAmazonInventoryListingEligible = (listing: AmazonInventoryEli
     );
   }
 };
+
+/** Adds the name of who sent it ("by Harish Raja"); automatic sends have no user */
+export const withActorNames = (
+  attempts: Array<ReturnType<typeof serializeAttempt>>,
+  names: Map<string, string>,
+) => attempts.map((attempt) => ({ ...attempt, requestedByName: names.get(actorKey(attempt) ?? '') ?? null }));
 
 const serializeAttempt = (attempt: any) => ({
   id: String(attempt.id),
@@ -145,6 +173,7 @@ export class AmazonProductionInventoryService {
         lastInventorySyncAt: true,
         lastInventorySyncStatus: true,
         lastSyncedQuantity: true,
+        price: true,
       },
     });
     if (!listing) throw new AmazonProductionInventoryError('Amazon listing was not found', 404, 'AMAZON_LISTING_NOT_FOUND');
@@ -275,6 +304,20 @@ export class AmazonProductionInventoryService {
     });
   }
 
+  /**
+   * Re-reads Amazon's quantity and confirms (or times out) a send that Amazon accepted but has not applied yet.
+   * Unlike preview, it records nothing new; the Stock sync dialog calls it every few seconds while waiting.
+   */
+  async checkPendingSend(listingId: string, scope: AmazonListingScope) {
+    const context = await this.loadContext(listingId, scope);
+    const amazonQuantity = await this.getRemoteQuantity(scope, context.listing.sellerSku);
+    await this.reconcileSubmittedAttempt(context.listing.id, amazonQuantity);
+    const pending = await prisma.amazonInventorySyncAttempt.count({
+      where: { listingId: context.listing.id, status: 'SUBMITTED' },
+    });
+    return { amazonQuantity, pending: pending > 0, checkedAt: new Date().toISOString() };
+  }
+
   async preview(listingId: string, scope: AmazonListingScope, actor: AmazonInventoryActor = {}) {
     const context = await this.loadContext(listingId, scope);
     const amazonQuantity = await this.getRemoteQuantity(scope, context.listing.sellerSku);
@@ -292,9 +335,12 @@ export class AmazonProductionInventoryService {
         ...this.actorData(actor),
       },
     });
+    const others = await this.otherSellerFulfilledListings(context.listing.productId!, context.listing.id);
     return {
       ...serializeAttempt(attempt),
       sellerSku: context.listing.sellerSku,
+      // Same product, same stock: the UI warns that publishing here does not reduce what they show
+      sharedStockListings: others.map((other) => ({ sellerSku: other.sellerSku, inventorySyncMode: other.inventorySyncMode })),
       unitsPerListing: context.listing.unitsPerListing,
       difference: context.targetQuantity - amazonQuantity,
       mismatch: context.targetQuantity !== amazonQuantity,
@@ -317,13 +363,10 @@ export class AmazonProductionInventoryService {
       throw new AmazonProductionInventoryError('Amazon production writes are disabled by the global kill switch', 409, 'AMAZON_PRODUCTION_WRITES_DISABLED');
     }
     const context = await this.loadContext(listingId, scope);
-    const requiredMode = operation === 'AUTOMATIC' ? 'AUTOMATIC' : 'MANUAL';
-    if (context.listing.inventorySyncMode !== requiredMode) {
-      throw new AmazonProductionInventoryError(
-        requiredMode === 'AUTOMATIC' ? 'Automatic sync is not enabled for this listing' : 'Enable manual sync for this listing before publishing',
-        409,
-        requiredMode === 'AUTOMATIC' ? 'AMAZON_AUTOMATIC_SYNC_DISABLED' : 'AMAZON_MANUAL_SYNC_DISABLED'
-      );
+    // A person pressing "Sync stock now" (single, bulk or retry) needs no per-listing mode (2026-10-22: the
+    // Off / Manual / Automatic choice was removed from the screen). Automatic sends still need AUTOMATIC.
+    if (operation === 'AUTOMATIC' && context.listing.inventorySyncMode !== 'AUTOMATIC') {
+      throw new AmazonProductionInventoryError('Automatic sync is not enabled for this listing', 409, 'AMAZON_AUTOMATIC_SYNC_DISABLED');
     }
     if (operation === 'AUTOMATIC' && (!env.AMAZON_AUTO_SYNC_ENABLED || env.AMAZON_ENVIRONMENT !== 'PRODUCTION')) {
       throw new AmazonProductionInventoryError('Amazon automatic sync is disabled globally', 409, 'AMAZON_AUTOMATIC_SYNC_DISABLED');
@@ -376,9 +419,7 @@ export class AmazonProductionInventoryService {
         productType: context.listing.productType!,
         quantity: context.targetQuantity,
       });
-      if (result.status !== 'ACCEPTED') {
-        throw new AmazonProductionInventoryError('Amazon did not accept the inventory update', 502, 'AMAZON_INVENTORY_REJECTED');
-      }
+      assertAmazonInventorySubmissionAccepted(result);
       const submittedAt = new Date();
       const issueSummary = result.issues.length > 0
         ? ` Amazon issues: ${JSON.stringify(result.issues).slice(0, 1500)}`
@@ -419,8 +460,37 @@ export class AmazonProductionInventoryService {
     }
   }
 
+  // Other mapped seller-fulfilled listings of the same product (P7 / AMZ-PLAN-14). They all publish
+  // from one Nivaana "amazon" stock, so at most one of them may sync automatically.
+  async otherSellerFulfilledListings(productId: bigint, excludeListingId: bigint) {
+    return prisma.marketplaceListing.findMany({
+      where: {
+        marketplace: 'AMAZON',
+        environment: 'PRODUCTION',
+        productId,
+        mappingStatus: 'MAPPED',
+        fulfilmentChannel: { in: ['MFN', 'EASY_SHIP'] },
+        id: { not: excludeListingId },
+      },
+      select: { sellerSku: true, inventorySyncMode: true },
+      orderBy: { sellerSku: 'asc' },
+    });
+  }
+
+  async assertOnlyAutomaticListing(productId: bigint, listingId: bigint) {
+    const others = await this.otherSellerFulfilledListings(productId, listingId);
+    const automatic = others.filter((other) => other.inventorySyncMode === 'AUTOMATIC');
+    if (automatic.length > 0) {
+      throw new AmazonProductionInventoryError(
+        `Only one Amazon listing per product can sync automatically. ${automatic.map((other) => other.sellerSku).join(', ')} already does; set it to Manual or Off first.`,
+        409,
+        'AMAZON_AUTOMATIC_ALREADY_SET'
+      );
+    }
+  }
+
   async setMode(listingId: string, mode: 'DISABLED' | 'MANUAL' | 'AUTOMATIC', scope: AmazonListingScope) {
-    await this.loadContext(listingId, scope);
+    const context = await this.loadContext(listingId, scope);
     if (mode === 'AUTOMATIC' && (
       !env.AMAZON_AUTO_SYNC_ENABLED
       || !env.AMAZON_PRODUCTION_WRITES_ENABLED
@@ -432,6 +502,7 @@ export class AmazonProductionInventoryService {
         'AMAZON_AUTOMATIC_SYNC_GLOBALLY_DISABLED'
       );
     }
+    if (mode === 'AUTOMATIC') await this.assertOnlyAutomaticListing(context.listing.productId!, context.listing.id);
     const listing = await prisma.marketplaceListing.update({
       where: { id: BigInt(listingId) },
       data: { inventorySyncMode: mode },
@@ -440,14 +511,16 @@ export class AmazonProductionInventoryService {
     return { listingId: String(listing.id), inventorySyncMode: listing.inventorySyncMode };
   }
 
+  // Stock actually sent to Amazon (manual, bulk, automatic, retry), newest first, with the person's name.
+  // Previews (one per dialog open) stay in the table for audit but are not listed.
   async history(listingId: string, scope: AmazonListingScope) {
     await this.loadContext(listingId, scope);
     const attempts = await prisma.amazonInventorySyncAttempt.findMany({
-      where: { listingId: BigInt(listingId) },
+      where: { listingId: BigInt(listingId), operation: { not: 'PREVIEW' } },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 100,
     });
-    return attempts.map(serializeAttempt);
+    return withActorNames(attempts.map(serializeAttempt), await resolveActorNames(attempts));
   }
 
   async bulkPreview(listingIds: string[], scope: AmazonListingScope, actor: AmazonInventoryActor = {}) {
@@ -560,6 +633,14 @@ export class AmazonProductionInventoryService {
     });
     if (listings.length === 0) {
       return { status: 'SKIPPED' as const, reason: 'No automatic seller-fulfilled listing is mapped to this stock' };
+    }
+    // P7: publishing the full stock to several listings oversells; setMode prevents this, older data may not
+    if (listings.length > 1) {
+      return {
+        status: 'FAILED' as const,
+        reason: `Several automatic listings share this product (${listings.map((listing) => listing.sellerSku).join(', ')}); keep one Automatic and set the others to Manual or Off`,
+        results: [],
+      };
     }
 
     const results: Array<Record<string, unknown>> = [];

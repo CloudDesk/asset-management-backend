@@ -1,6 +1,6 @@
 import { env } from '../config/env.js';
 import { prisma } from '../models/prisma.js';
-import { AmazonLwaTokenService } from './amazon-lwa-token.service.js';
+import { AmazonLwaTokenService, amazonLwaTokenService, type AmazonAccessTokenProvider } from './amazon-lwa-token.service.js';
 import {
   AmazonListingsReadClient,
   AmazonProductionListingsClient,
@@ -13,7 +13,15 @@ export type AmazonListingScope = {
   marketplaceId: string;
   client: AmazonListingsReadClient;
   source: 'OAUTH' | 'ENVIRONMENT_FALLBACK';
+  /** Token source behind `client`; the connection check asks it for a token directly */
+  accessTokenProvider?: AmazonAccessTokenProvider;
 };
+
+export class AmazonListingScopeError extends Error {
+  readonly statusCode = 409;
+  readonly code = 'AMAZON_CONNECTION_REQUIRED';
+  constructor() { super('Connect your Amazon seller account before using Amazon integration'); }
+}
 
 export class AmazonListingScopeService {
   private scopeFromConnection(connection: { sellerId: string; marketplaceId: string; refreshToken: string }): AmazonListingScope {
@@ -32,6 +40,7 @@ export class AmazonListingScopeService {
         marketplaceId: connection.marketplaceId,
       }),
       source: 'OAUTH',
+      accessTokenProvider,
     };
   }
 
@@ -48,11 +57,14 @@ export class AmazonListingScopeService {
       return this.scopeFromConnection(connection);
     }
 
+    // Preserve the configured shared-account flow when no personal OAuth
+    // connection exists. Route authentication and channel permissions still apply.
     return {
       sellerId: amazonProductionListingsClient.getSellerId(),
       marketplaceId: amazonProductionListingsClient.getMarketplaceId(),
       client: amazonProductionListingsClient,
       source: 'ENVIRONMENT_FALLBACK',
+      accessTokenProvider: amazonLwaTokenService,
     };
   }
 

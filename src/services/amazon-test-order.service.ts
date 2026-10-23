@@ -5,8 +5,7 @@ import { AmazonListingScope } from './amazon-listing-scope.service.js';
 import { AmazonOrderImportError } from './amazon-order-import.service.js';
 import { amazonOrderFulfillmentService } from './amazon-order-fulfillment.service.js';
 import { amazonOrderRoutingService } from './amazon-order-routing.service.js';
-
-const TEST_ORDER_PREFIX = 'TEST-AMZ-';
+import { AMAZON_TEST_ORDER_PREFIX as TEST_ORDER_PREFIX } from '../utils/amazonTestOrder.js';
 
 export const isAmazonTestOrderId = (amazonOrderId: string) =>
   amazonOrderId.startsWith(TEST_ORDER_PREFIX);

@@ -4,7 +4,7 @@ import { amazonInventorySyncService } from './amazon-inventory-sync.service.js';
 
 export type AmazonOrderRoutingDecision = {
   route: 'FBA_RECONCILIATION' | 'EASY_SHIP_HANDLING' | 'NIVAANA_SHIPPING' | 'BLOCKED';
-  status: 'TRACK_FBA_STOCK' | 'RESERVE_STOCK' | 'BLOCKED_UNMAPPED' | 'BLOCKED_ROUTE' | 'CANCELLED';
+  status: 'TRACK_FBA_STOCK' | 'RESERVE_STOCK' | 'BLOCKED_UNMAPPED' | 'BLOCKED_ITEMS_MISSING' | 'BLOCKED_ROUTE' | 'CANCELLED';
   syncState: string;
   blockedReason: string | null;
 };
@@ -12,10 +12,15 @@ export type AmazonOrderRoutingDecision = {
 export const deriveAmazonOrderRoutingDecision = (input: {
   isCancelled: boolean;
   hasUnmappedItems: boolean;
+  /** Stored order items; an order without any can be neither mapped nor shipped from Nivaana */
+  items?: readonly unknown[];
   fulfilmentType: string;
 }): AmazonOrderRoutingDecision => {
   if (input.isCancelled) {
     return { route: 'BLOCKED', status: 'CANCELLED', syncState: 'CANCELLED', blockedReason: 'Amazon cancelled this order' };
+  }
+  if (input.items !== undefined && input.items.length === 0) {
+    return { route: 'BLOCKED', status: 'BLOCKED_ITEMS_MISSING', syncState: 'BLOCKED_ITEMS_MISSING', blockedReason: 'Amazon sent this order without its items; import the order again' };
   }
   if (input.hasUnmappedItems) {
     return { route: 'BLOCKED', status: 'BLOCKED_UNMAPPED', syncState: 'BLOCKED_UNMAPPED', blockedReason: 'At least one Amazon SKU is not mapped to a Nivaana product' };

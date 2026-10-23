@@ -15,6 +15,9 @@ const decodeKey = (configuredKey?: string): Buffer => {
   if (!value) {
     throw new AmazonTokenEncryptionError('Amazon token encryption key is not configured');
   }
+  if (!/^[a-f\d]{64}$/i.test(value) && !/^[A-Za-z0-9+/]{43}=?$/.test(value)) {
+    throw new AmazonTokenEncryptionError('Amazon token encryption key must be 64 hex characters or a 32-byte base64 key');
+  }
 
   const key = /^[a-f\d]{64}$/i.test(value)
     ? Buffer.from(value, 'hex')
