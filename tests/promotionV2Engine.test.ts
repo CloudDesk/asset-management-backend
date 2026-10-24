@@ -1242,16 +1242,43 @@ test('TC-Q04 subcategory counts only its own items', () => {
   assert.deepEqual(minimumMissed(quote, 104).map((details) => [details?.remaining, details?.scope_name]), [[1, 'Reed']]);
 });
 
-test('TC-Q05 selected products: each product on its own', () => {
+// FIX-2026-10-23-160: selected products add up their quantity (was each
+// product on its own in PLAN-116).
+test('TC-Q05 selected products: different products are added up', () => {
   const quote = evaluatePromotionQuote([qDiffuserA(1), qDiffuserB(1)], [Q2(), Q6()], []);
-  assert.deepEqual(savings(quote), { 106: 18_000 });
-  assert.deepEqual(minimumMissed(quote, 102).map((details) => details?.product_ids), [['diffuser-a'], ['diffuser-b']]);
+  assert.deepEqual(savings(quote), { 102: 36_000 });
+  assert.deepEqual(minimumMissed(quote, 102), []);
 });
 
-test('TC-Q06 selected products: one reaches the minimum, the other gets the percent cart offer', () => {
+test('TC-Q06 selected products: once the total is met, every selected item gets the offer', () => {
   const quote = evaluatePromotionQuote([qDiffuserA(2), qDiffuserB(1)], [Q2(), Q6()], []);
-  assert.deepEqual(savings(quote), { 102: 40_000, 106: 8_000 });
-  assert.deepEqual(discountByProduct(quote, 106), { 'diffuser-b': 8_000 });
+  assert.deepEqual(savings(quote), { 102: 56_000 });
+  assert.deepEqual(discountByProduct(quote, 102), { 'diffuser-a': 40_000, 'diffuser-b': 16_000 });
+});
+
+test('FIX-160 UAT cart: Diffuser 1 + Cool Aqua 1 meet minimum 2; the percent cart offer gets nothing', () => {
+  const diffuser = item('diffuser', 1, 280_000, 'Diffusers', 'Waterless');
+  const aqua = item('cool-aqua', 1, 7_000, 'Wardrobe', 'Fragrance');
+  const offer = productOffer(120, 'PRODUCT', ['diffuser', 'cool-aqua', 'cherry-blossom'], { type: 'PERCENT_OFF', value: 25 }, { minimumQuantity: 2 });
+  const quote = evaluatePromotionQuote([diffuser, aqua], [offer, Q6(), Q7()], []);
+  assert.deepEqual(savings(quote), { 120: 71_750, 107: 10_000 });
+  const twoAndOne = evaluatePromotionQuote([{ ...diffuser, quantity: 2 }, aqua], [offer, Q6(), Q7()], []);
+  assert.deepEqual(savings(twoAndOne), { 120: 141_750, 107: 10_000 });
+});
+
+test('FIX-160 selected products below the minimum: one locked entry for the promotion', () => {
+  const quote = evaluatePromotionQuote([qDiffuserA(1), qCandle(1)], [Q2(), Q6()], []);
+  assert.deepEqual(savings(quote), { 106: 15_000 });
+  assert.deepEqual(minimumMissed(quote, 102), [{
+    current: 1, required: 2, remaining: 1, product_ids: ['diffuser-a'],
+    benefit_type: 'PERCENT_OFF', benefit_value: 20, product_rank: 2,
+    scope_facet: 'PRODUCT', scope_values: ['diffuser-a', 'diffuser-b'], scope_name: 'eligible',
+  }]);
+  // One selected product: no scope name, so the hint reads "... this item".
+  const single = productOffer(121, 'PRODUCT', ['diffuser-a'], { type: 'PERCENT_OFF', value: 20 }, { minimumQuantity: 2 });
+  const missed = minimumMissed(evaluatePromotionQuote([qDiffuserA(1)], [single], []), 121);
+  assert.equal(missed.length, 1);
+  assert.equal(missed[0]?.scope_name, undefined);
 });
 
 test('TC-Q07 fixed amount on two qualifying products is one amount', () => {
@@ -1332,20 +1359,21 @@ test('TC-Q16 category beats subcategory, even if smaller', () => {
 });
 
 test('TC-Q17 each item goes to its highest-priority promotion', () => {
+  // FIX-160: Diffuser B is a selected product, so it goes to Q2 with A.
   const quote = evaluatePromotionQuote([qDiffuserA(2), qDiffuserB(1), qDiffuserC(1)], [Q2(), Q5(), Q4()], []);
-  assert.deepEqual(savings(quote), { 102: 40_000, 105: 42_000 });
-  assert.deepEqual(discountByProduct(quote, 105), { 'diffuser-b': 24_000, 'diffuser-c': 18_000 });
+  assert.deepEqual(savings(quote), { 102: 56_000, 105: 18_000 });
+  assert.deepEqual(discountByProduct(quote, 105), { 'diffuser-c': 18_000 });
 });
 
 test('TC-Q18 an item taken by a higher priority still counts for the minimum', () => {
-  const quote = evaluatePromotionQuote([qDiffuserA(2), qDiffuserB(1)], [Q1(), Q5()], []);
-  assert.deepEqual(savings(quote), { 101: 10_000, 105: 24_000 });
-  assert.deepEqual(discountByProduct(quote, 105), { 'diffuser-b': 24_000 });
+  const quote = evaluatePromotionQuote([qDiffuserA(2), qDiffuserC(1)], [Q1(), Q5()], []);
+  assert.deepEqual(savings(quote), { 101: 10_000, 105: 18_000 });
+  assert.deepEqual(discountByProduct(quote, 105), { 'diffuser-c': 18_000 });
 });
 
 test('TC-Q19 lower priority applies when the higher one misses its minimum', () => {
-  const quote = evaluatePromotionQuote([qDiffuserA(1), qDiffuserB(1)], [Q2(), Q5()], []);
-  assert.deepEqual(savings(quote), { 105: 54_000 });
+  const quote = evaluatePromotionQuote([qDiffuserA(1), qDiffuserC(1)], [Q2(), Q5()], []);
+  assert.deepEqual(savings(quote), { 105: 48_000 });
 });
 
 test('TC-Q20 / TC-Q34 product promotions first, then cart promotions', () => {
@@ -1377,8 +1405,8 @@ test('TC-Q23 higher priority not active: the next one applies', () => {
 test('TC-Q24 same totals whatever the line or promotion order', () => {
   const first = evaluatePromotionQuote([qDiffuserA(2), qDiffuserB(1), qDiffuserC(1)], [Q2(), Q5(), Q4()], []);
   const second = evaluatePromotionQuote([qDiffuserC(1), qDiffuserB(1), qDiffuserA(2)], [Q4(), Q5(), Q2()], []);
-  assert.equal(first.discount_total, 82_000);
-  assert.equal(second.discount_total, 82_000);
+  assert.equal(first.discount_total, 74_000);
+  assert.equal(second.discount_total, 74_000);
 });
 
 test('TC-Q35 Stackable on or off gives the same priority result', () => {
@@ -1386,19 +1414,19 @@ test('TC-Q35 Stackable on or off gives the same priority result', () => {
   const on = { stackable: true, itemReuse: 'ALLOW' as const };
   const stackOn = evaluatePromotionQuote(cart, [Q2(on), Q5(on), Q4(on), Q6()], []);
   const stackOff = evaluatePromotionQuote(cart, [Q2(), Q5(), Q4(), Q6()], []);
-  assert.deepEqual(savings(stackOn), { 102: 40_000, 105: 42_000 });
+  assert.deepEqual(savings(stackOn), { 102: 56_000, 105: 18_000 });
   assert.deepEqual(savings(stackOff), savings(stackOn));
   const fixedOn = evaluatePromotionQuote([qDiffuserA(2)], [Q1(on), Q2(on)], []);
   assert.deepEqual(savings(fixedOn), { 101: 10_000 });
 });
 
-test('PLAN-116 a category saved with the per-product metric is still added up', () => {
+test('PLAN-116 / FIX-160 categories and products saved with the per-product metric are still added up', () => {
   const offer = productOffer(111, 'SUBCATEGORY', ['Reed'], { type: 'PERCENT_OFF', value: 40 }, { minimumQuantity: 2 });
   offer.rule = { ...offer.rule, qualifier: { ...offer.rule.qualifier, metric: 'PER_PRODUCT_QUANTITY', aggregation: 'PER_PRODUCT' } };
   const quote = evaluatePromotionQuote([qDiffuserB(1), qDiffuserC(1)], [offer], []);
   assert.deepEqual(savings(quote), { 111: 56_000 });
   const product = productOffer(112, 'PRODUCT', ['diffuser-a', 'diffuser-b'], { type: 'PERCENT_OFF', value: 20 }, { minimumQuantity: 2 });
   product.rule = { ...product.rule, qualifier: { ...product.rule.qualifier, metric: 'PER_PRODUCT_QUANTITY', aggregation: 'PER_PRODUCT' } };
-  assert.deepEqual(savings(evaluatePromotionQuote([qDiffuserA(1), qDiffuserB(1)], [product], [])), {});
-  assert.deepEqual(savings(evaluatePromotionQuote([qDiffuserA(2), qDiffuserB(1)], [product], [])), { 112: 40_000 });
+  assert.deepEqual(savings(evaluatePromotionQuote([qDiffuserA(1), qDiffuserB(1)], [product], [])), { 112: 36_000 });
+  assert.deepEqual(savings(evaluatePromotionQuote([qDiffuserA(1)], [product], [])), {});
 });
