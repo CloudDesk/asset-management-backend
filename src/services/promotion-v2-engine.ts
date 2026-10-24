@@ -162,13 +162,13 @@ function hasPerItemMinimumQuantity(campaign: PromotionCampaign): boolean {
 }
 
 /**
- * CATEGORY / SUBCATEGORY when a product promotion's minimum quantity is added
- * up per category / subcategory (PLAN-2026-10-15-116). Undefined for selected
- * products, which are checked per product.
+ * The facet whose selected values a product promotion's minimum quantity is
+ * added up across (PLAN-2026-10-15-116). Selected products are added up too
+ * (FIX-2026-10-23-160: Diffuser 1 + Cool Aqua 1 = 2).
  */
-function summedQuantityFacet(rule: PromotionRuleV2): 'CATEGORY' | 'SUBCATEGORY' | undefined {
+function summedQuantityFacet(rule: PromotionRuleV2): 'PRODUCT' | 'CATEGORY' | 'SUBCATEGORY' | undefined {
   const facets = new Set(rule.qualifier.scope.include.map((group) => group.facet));
-  if (facets.has('PRODUCT')) return undefined;
+  if (facets.has('PRODUCT')) return 'PRODUCT';
   if (facets.has('CATEGORY')) return 'CATEGORY';
   if (facets.has('SUBCATEGORY')) return 'SUBCATEGORY';
   return undefined;
@@ -564,16 +564,15 @@ export function evaluatePromotionQuote(
     let buckets = qualificationBuckets(campaign.rule, eligible);
     const minimumCheckedAbove = hasPerItemMinimumQuantity(campaign);
     if (minimumCheckedAbove) {
-      // Minimum quantity (PLAN-2026-10-15-116): selected products are checked
-      // on each product's own quantity; category / subcategory promotions add
-      // up the quantity of all cart items in any of the promotion's selected
-      // categories / subcategories (Havan Cups 1 + Dhoop Sticks 1 = 2). The
-      // qualifying items then share one promotion (one fixed amount, one
-      // maximum discount).
+      // Minimum quantity (PLAN-2026-10-15-116, FIX-2026-10-23-160): the
+      // quantity of all cart items in any of the promotion's selected products /
+      // categories / subcategories is added up (Havan Cups 1 + Dhoop Sticks 1 =
+      // 2; Diffuser 1 + Cool Aqua 1 = 2). The qualifying items then share one
+      // promotion (one fixed amount, one maximum discount).
       const required = thresholdFor(campaign.rule);
       const benefit = campaign.rule.benefit!;
-      const missed = (current: number, productIds: string[], scope?: { facet: 'CATEGORY' | 'SUBCATEGORY'; values: string[] }) => {
-        const names = scope?.values.map((value) => options.facetLabels?.[scope.facet]?.get(normalise(value)) ?? value) ?? [];
+      const missed = (current: number, productIds: string[], scope?: { facet: 'PRODUCT' | 'CATEGORY' | 'SUBCATEGORY'; values: string[] }) => {
+        const names = scope && scope.facet !== 'PRODUCT' ? scope.values.map((value) => options.facetLabels?.[scope.facet as 'CATEGORY' | 'SUBCATEGORY']?.get(normalise(value)) ?? value) : [];
         progress.push({ promotion_id: campaign.promotionId, current, next_minimum: required, remaining: required - current, metric: campaign.rule.qualifier.metric });
         rejected.push({
           promotion_id: campaign.promotionId,
@@ -585,8 +584,12 @@ export function evaluatePromotionQuote(
             // Cart-row hint: shown only when it beats the item's current offer.
             product_rank: getProductPromotionRank(campaign),
             // "Add 1 more Dhoop Sticks or Havan Cups item"; with more than two
-            // selected, "Add 1 more eligible item".
-            ...(scope ? { scope_facet: scope.facet, scope_values: scope.values, scope_name: names.length <= 2 ? names.join(' or ') : 'eligible' } : {}),
+            // selected, "Add 1 more eligible item". Several selected products:
+            // "Add 1 more eligible item"; one selected product keeps "Add 1
+            // more to get 25% off this item".
+            ...(scope?.facet === 'PRODUCT'
+              ? (scope.values.length > 1 ? { scope_facet: scope.facet, scope_values: scope.values, scope_name: 'eligible' } : {})
+              : scope ? { scope_facet: scope.facet, scope_values: scope.values, scope_name: names.length <= 2 ? names.join(' or ') : 'eligible' } : {}),
           },
         });
       };
