@@ -6,7 +6,7 @@
 
 1. **Minimum quantity** is required for Percentage Off Categories, Percentage Off Subcategories, Percentage Off Selected Products and Fixed Amount Off Selected Products. Default is 1.
 2. **Quantity check.** If the minimum is not met, the promotion is skipped.
-   - **Selected products** (percentage and fixed amount): each product's own quantity must reach the minimum. Only the products that reach it get the promotion.
+   - **Selected products** (percentage and fixed amount): each product's own quantity must reach the minimum. Only the products that reach it get the promotion. **Changed 2026-10-23 by FIX-2026-10-23-160:** selected products are added up too (total quantity of all selected products in the cart; every selected item gets the offer once met). See [hotfix plan](2026-10-23-promotion-selected-products-min-qty-hotfix-plan.md).
    - **Category:** the quantity of all cart items in that category is added up. Example: Incense minimum 2, Rose Incense × 1 + Jasmine Incense × 1 = 2, so the promotion applies.
    - **Subcategory:** the same as category, added up within the subcategory.
 3. **Priority** when an item matches more than one promotion:
@@ -16,7 +16,7 @@
 
 | # | Question | Answer |
 | --- | --- | --- |
-| 1 | Selected products: total of selected products, or each product on its own? | Each product's own quantity. Products that reach the minimum get the promotion. |
+| 1 | Selected products: total of selected products, or each product on its own? | ~~Each product's own quantity. Products that reach the minimum get the promotion.~~ **Changed 2026-10-23 (FIX-160, UAT):** total of selected products (any combination). |
 | 2 | Category: add up matching items? Several categories in one promotion? | Add up all items of that category in the cart. With several categories / subcategories in one promotion, all their items are added up together (changed 2026-10-15 after dev test: Havan Cups 1 + Dhoop Sticks 1 = 2). |
 | 3 | Subcategory | Same as category. |
 | 4 | Subcategory ranked after category | Follow the priority order. |
@@ -64,7 +64,7 @@
 | TC-Q32 | Locked offer on mobile | Rose × 1 | Q3 | Same text as web. |
 | TC-Q33 | Minimum missed, cart percent applies | Rose × 1, Candle × 1 | Q3, Q6 | Q3 locked "Add 1 more". Q6 10% of ₹700 = ₹70 (Rose included). |
 | TC-Q34 | Minimum met, cart percent skips those items | Rose × 2, Candle × 1 | Q3, Q6 | Rose ₹100. Q6 on Candle only = ₹50. |
-| TC-Q35 | Stackable off on all promotions | TC-Q17 cart | Q2, Q5, Q4 (Stackable off) | Same ₹820 as Stackable on. |
+| TC-Q35 | Stackable off on all promotions | TC-Q17 cart | Q2, Q5, Q4 (Stackable off) | Same ₹820 as Stackable on. **FIX-160:** ₹740. |
 | TC-Q36 | No "keep whichever saves more" note | Cart page | Q1–Q5 click-to-apply, Stackable off | Note not shown. |
 | TC-Q37 | Cart-row hint, category | Rose × 2 (Incense min 3, 20%), cart 10% active | Q3-like, Q6 | Rose row: "Add 1 more Incense & Rituals item to get 20% off instead of 10%". Gone at qty 3. |
 | TC-Q38 | Cart-row hint, products | Diffuser A × 1 | Q2 | Row: "Add 1 more to get 20% off this item". Fixed: "Add 1 more to get ₹100 off". |
@@ -75,7 +75,7 @@
 | Area | Today (PLAN-107) | Needed |
 | --- | --- | --- |
 | Minimum quantity field in admin | The simple setup screen for the four types has no quantity field. Every promotion is saved with 1. | Required "Minimum quantity" field, default 1. |
-| Selected products minimum | Each product on its own | No change |
+| Selected products minimum | Each product on its own | No change (changed by FIX-160: added up) |
 | Category / subcategory minimum | Each product on its own (TC-P04: Diffuser A × 1 + Diffuser B × 1 does not meet 2) | Added up per category / subcategory |
 | Two product promotions on the same item | Bigger saving wins (TC-N13) | Higher-priority type wins; same type → bigger saving |
 | Cart promotions | Percent on items without a product promotion, fixed on full cart | No change |
@@ -163,8 +163,8 @@
 | TC-Q02 | Category below minimum | Rose × 1, Candle × 1 | Q3, Q6 | Q3 skipped, "Add 1 more eligible item(s)". Q6 10% of ₹700 = ₹70. |
 | TC-Q03 | Subcategory adds up | Diffuser B × 1, Diffuser C × 1 | Q4 | Reed qty 2. 40% of ₹1,400 = ₹560. |
 | TC-Q04 | Subcategory counts only its own items | Diffuser A × 1, Diffuser B × 1 | Q4 | Reed qty 1. Q4 skipped, "Add 1 more". |
-| TC-Q05 | Selected products: each product on its own | Diffuser A × 1, Diffuser B × 1 | Q2, Q6 | Neither reaches 2. Q2 skipped. Q6 10% of ₹1,800 = ₹180. |
-| TC-Q06 | Selected products: one reaches the minimum | Diffuser A × 2, Diffuser B × 1 | Q2, Q6 | Diffuser A 20% = ₹400. Q6 on Diffuser B = ₹80. Total ₹480. |
+| TC-Q05 | Selected products: each product on its own | Diffuser A × 1, Diffuser B × 1 | Q2, Q6 | ~~Neither reaches 2. Q2 skipped. Q6 10% of ₹1,800 = ₹180.~~ **FIX-160:** total 2, Q2 20% of ₹1,800 = ₹360; Q6 nothing. |
+| TC-Q06 | Selected products: one reaches the minimum | Diffuser A × 2, Diffuser B × 1 | Q2, Q6 | ~~Diffuser A 20% = ₹400. Q6 on Diffuser B = ₹80. Total ₹480.~~ **FIX-160:** A and B 20% = ₹560. |
 | TC-Q07 | Fixed amount on two qualifying products | Diffuser A × 2, Diffuser B × 2 | Q1 | ₹100 once, shared (₹55.56 / ₹44.44). |
 | TC-Q08 | Several categories in one promotion are added up together | Rose × 1, Candle × 1 | Q8 | Total 2 meets the minimum: 25% of ₹700 = ₹175. |
 | TC-Q09 | Several categories, total met | Rose × 2, Candle × 1 | Q8 | Total 3: 25% on every matching item, ₹225. |
@@ -180,14 +180,14 @@
 | TC-Q14 | Fixed products beats % products, even if smaller | Diffuser A × 2 | Q1, Q2 | Q1 ₹100. Q2 not applied (would be ₹400). |
 | TC-Q15 | % products beats category, even if smaller | Diffuser A × 2 | Q2, Q5 | Q2 ₹400. Q5 not applied (would be ₹600). |
 | TC-Q16 | Category beats subcategory, even if smaller | Diffuser B × 1, Diffuser C × 1 | Q5, Q4 | Q5 30% of ₹1,400 = ₹420. Q4 not applied (would be ₹560). |
-| TC-Q17 | Mixed: each item goes to its highest-priority promotion | Diffuser A × 2, B × 1, C × 1 | Q2, Q5, Q4 | A: Q2 ₹400. B and C: Q5 ₹420. Q4 not applied. Total ₹820. |
-| TC-Q18 | Item taken by higher priority still counts for the minimum | Diffuser A × 2, Diffuser B × 1 | Q1, Q5 | A: Q1 ₹100. Diffusers qty 3 so Q5 qualifies; B: 30% = ₹240. Total ₹340. |
-| TC-Q19 | Lower priority applies when higher misses its minimum | Diffuser A × 1, Diffuser B × 1 | Q2, Q5 | Q2 skipped. Q5 30% of ₹1,800 = ₹540. |
+| TC-Q17 | Mixed: each item goes to its highest-priority promotion | Diffuser A × 2, B × 1, C × 1 | Q2, Q5, Q4 | A: Q2 ₹400. B and C: Q5 ₹420. Q4 not applied. Total ₹820. **FIX-160:** A and B: Q2 ₹560; C: Q5 ₹180; total ₹740. |
+| TC-Q18 | Item taken by higher priority still counts for the minimum | Diffuser A × 2, Diffuser B × 1 | Q1, Q5 | A: Q1 ₹100. Diffusers qty 3 so Q5 qualifies; B: 30% = ₹240. Total ₹340. **FIX-160:** B is a selected product, so Q1 ₹100 covers A and B; Q5 nothing. Test now uses Diffuser A × 2 + C × 1: Q1 ₹100 + Q5 on C ₹180. |
+| TC-Q19 | Lower priority applies when higher misses its minimum | Diffuser A × 1, Diffuser B × 1 | Q2, Q5 | Q2 skipped. Q5 30% of ₹1,800 = ₹540. **FIX-160:** Q2 now qualifies (₹360, wins by priority). Test now uses Diffuser A × 1 + C × 1: Q2 skipped, Q5 ₹480. |
 | TC-Q20 | Product promotions, then cart promotions | Rose × 2, Candle × 1 | Q3, Q6, Q7 | Rose ₹100. Q6 on Candle = ₹50. Q7 ₹100 on full cart. Total ₹250. |
 | TC-Q21 | Same type twice on one item | Diffuser A × 2 | Q5, Q9 | Bigger saving: Q5 ₹600. Q9 not applied. |
 | TC-Q22 | Promotion card saving | Diffuser A × 2 | Q1, Q2 | Cart / Checkout card for Q2 shows no saving (Q1 takes the item). Q1 card ₹100. |
 | TC-Q23 | Higher priority inactive / expired / other channel | Diffuser A × 2 | Q1 (inactive), Q2 | Q2 ₹400. |
-| TC-Q24 | Web and mobile match | TC-Q17 cart | Q2, Q5, Q4 | ₹820 on both. |
+| TC-Q24 | Web and mobile match | TC-Q17 cart | Q2, Q5, Q4 | ₹820 on both. **FIX-160:** ₹740. |
 
 **Admin**
 
