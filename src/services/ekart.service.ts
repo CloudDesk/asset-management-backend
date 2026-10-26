@@ -443,7 +443,14 @@ export class EkartService {
    * Seller info (name, address) must come from payload (FE)
    * GST TIN can come from payload or environment variable
    */
-  async createForwardShipment(payload: CreateShipmentPayload): Promise<CreateShipmentResponse> {
+  /**
+   * `prepared` carries items and HSN for shipments that are not website orders (Amazon Self
+   * Ship); without it they come from the website order's immutable orderline snapshots.
+   */
+  async createForwardShipment(
+    payload: CreateShipmentPayload,
+    prepared?: { items: Array<NonNullable<CreateShipmentPayload['items']>[number] & { hsn_code: string }>; hsnCode: string }
+  ): Promise<CreateShipmentResponse> {
     logger.info(
       {
         orderNumber: payload.order_number,
@@ -501,7 +508,10 @@ export class EkartService {
     let derivedItems: Array<NonNullable<CreateShipmentPayload['items']>[number] & { hsn_code: string }> = [];
     let derivedCategoryOfGoods = payload.category_of_goods;
 
-    try {
+    if (prepared) {
+      derivedItems = prepared.items;
+      derivedHsnCode = prepared.hsnCode;
+    } else try {
         const { OrdersService } = await import('./orders.service.js');
         const ordersService = new OrdersService();
         const order = await ordersService.findByOrderIdString(payload.order_number);

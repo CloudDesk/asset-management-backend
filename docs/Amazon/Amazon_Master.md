@@ -6,8 +6,8 @@ One place for everything Amazon (SP-API) in Nivaana: how it works, where it is s
 - Every Amazon fix gets an entry in section 8 here **and** the usual entry in `docs/Fix_After_Sep30/Master.md` (same FIX number).
 - Every Amazon env / script / Cloud Scheduler change also gets a row in `docs/RELEASE_SCRIPTS_CHECKLIST.md` section 4e.
 - Amazon plans live in section 9 here as `AMZ-PLAN-xx` (not in `docs/Future_Plans.md`).
-- Last updated: 2026-10-23. Full gap list: section 10. **Deploying Amazon to SIT / UAT / Prod: section 4a.**
-- Order fulfilment flow (FBA / Easy Ship / Self Ship), what exists, gaps and plan: [`Amazon_Order_Fulfillment.md`](Amazon_Order_Fulfillment.md) (AMZ-PLAN-25).
+- Last updated: 2026-10-26. Full gap list: section 10. **Deploying Amazon to SIT / UAT / Prod: section 4a.**
+- Order fulfilment flow (FBA / Easy Ship / Self Ship), client decisions (2026-10-26), Ship now, delivery status and plan: [`Amazon_Order_Fulfillment.md`](Amazon_Order_Fulfillment.md) (AMZ-PLAN-25).
 
 ---
 
@@ -304,10 +304,18 @@ The time shown is the latest job, whatever its status (AMZ-PLAN-07).
 | 2026-10-21 | Amazon Operations: Settings tab folded into Overview; Developer tools (sandbox) and the internal "not exposed" note removed from the page; Recommended next action replaced by warning banners |
 | 2026-10-21 | Authorize Seller Account opens Amazon in a new tab |
 | 2026-10-21 | SIT may use the **Prod Amazon account read-only** (sandbox has no useful data) — not done yet, see AMZ-PLAN-02 |
+| 2026-10-26 | Client: FBA = sync only; Easy Ship (most orders) = Amazon picks up, stock sold when Amazon reports Shipped; Self Ship = Ekart / Shipmozo / Manual like website orders, with delivery status in Nivaana (AMZ-PLAN-25) |
+| 2026-10-26 | No PII role request for now (would restart the developer-profile review); the team pastes the buyer address into Ship now (AMZ-PLAN-26) |
 
 ---
 
 ## 8. Change log
+
+### 2026-10-26: Amazon — Self Ship "Ship now" (Ekart / Shipmozo / Manual) and delivery status (FIX-162, backend + Inventory DEV-NEW, not committed)
+- Client decisions recorded (FBA sync only; Easy Ship stock sold on Amazon's Shipped; Self Ship like website orders) — section 7 and `Amazon_Order_Fulfillment.md` §2.
+- `POST /api/channels/amazon/orders/:orderId/fulfillment/ship-now` books the courier and confirms "Shipped" to Amazon in one call; `…/courier`, `…/delivery-status`, `GET …/label`. Ekart / Shipmozo webhooks and the Shipmozo scheduled sync update Amazon AWBs (Nivaana only).
+- Release: run `scripts/migrations/20261026_add_amazon_ship_now_fields.sql` before the backend (release checklist 4b). First real shipment on Prod: check that Amazon accepts the courier name (Ekart is sent as `Other`).
+- Details: `docs/Fix_After_Sep30/Master.md` FIX-2026-10-26-162.
 
 ### 2026-10-23: Amazon — SIT ready for Cloud Scheduler; env files cleaned; deployment runbook (FIX-159, backend DEV-NEW, config + docs)
 `.env.sit`: Amazon on (`AMAZON_LISTING_IMPORT_ENABLED: "true"`, `AMAZON_SCHEDULER_SECRET` set, integration default `true`), writes off, credentials kept in `.env.sit` like other SIT settings (decided 2026-10-23; `cloudbuildsit.yaml` `--set-secrets` replaced by `--clear-secrets`; the earlier malformed `AMAZON_REFRESH_TOKEN :` line would have broken the deploy), defaults and the unused OAuth trio removed — 8 Amazon lines left. Local `.env`: writes, stock auto-sync and order auto-sync off; defaults removed. `cloudbuildsit.yaml`: `--timeout 900`, `--clear-secrets` instead of `--set-secrets`. New section 4a: per-environment settings, credentials, build flags, scheduler commands, error table. Open: new random SIT scheduler secret, paste the 3 credentials into `.env.sit`, commit, deploy, create jobs.
@@ -523,8 +531,16 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 **Status:** Done 2026-10-22 (FIX-144): `npm run amazon:mappings` (option b). Before: Open. Found 2026-10-22. Mappings live in each database (`marketplace_listings.productId`, `unitsPerListing`, `inventorySyncMode`), so work done on dev / UAT does not reach Prod. Options: (a) map directly on Prod once it reads Amazon; (b) export from UAT (seller SKU → product PUC, pack size) and import on Prod with a script that matches by seller SKU and PUC, dry-run first, and writes the normal mapping audit rows. Product IDs differ between databases, so match by PUC, never by ID.
 
 
-### AMZ-PLAN-25: Amazon order fulfilment — courier, address, delivery tracking
-**Status:** Parked 2026-10-23, waiting for client confirmation (Easy Ship or Self Ship, couriers, booking in Nivaana or not). Full flow, current features, gaps and client questions: [`Amazon_Order_Fulfillment.md`](Amazon_Order_Fulfillment.md). Today the team books the courier outside Nivaana, types the tracking number, and clicks **Confirm shipment to Amazon** (the only status Amazon accepts from the seller; Amazon then tracks delivery via the courier). Missing: courier code is free text (phase 1: dropdown), buyer address not fetched (phase 2: RDT, needs Amazon PII role), no courier booking from the Amazon order (phase 3), no courier webhook for Amazon orders (phase 4: Nivaana-only delivery status, never sent to Amazon), RTO handling (phase 5).
+### AMZ-PLAN-25: Amazon order fulfilment — Ship now, delivery status
+**Status:** Client confirmed 2026-10-26; build started 2026-10-26 (FIX-2026-10-26-162). Full flow, decisions, plan and test list: [`Amazon_Order_Fulfillment.md`](Amazon_Order_Fulfillment.md).
+- **A. FBA:** no change; order sync is enough.
+- **B(i). Easy Ship (most orders):** no new build. Stock reserved on import, moved to sold when Amazon reports Shipped after pickup (next sync), released if Amazon cancels. Needs the order-sync scheduler on Prod (AMZ-PLAN-03).
+- **B(ii). Self Ship:** **Ship now** with Ekart / Shipmozo / Manual (like website orders) books the courier and confirms "Shipped" to Amazon in one click (stock reserved → sold). Delivery status (In transit → Delivered / RTO) from the Ekart and Shipmozo webhooks or a manual **Update status**, shown on the Amazon order in Nivaana; never sent to Amazon (Amazon tracks the courier itself). Courier names mapped to Amazon carrier codes, `Other` + name otherwise. Fix courier + retry when Amazon rejects the confirmation.
+- **Buyer address:** typed from Seller Central into the Ship now form, not stored. PII role not requested (would restart the developer-profile review): AMZ-PLAN-26.
+- **Later:** RTO → stock return prompt; cancel courier shipment from the Amazon order.
+
+### AMZ-PLAN-26: Buyer address from Amazon (PII role)
+**Status:** Parked 2026-10-26 by the client's choice: the developer profile was approved after a long review and a role change starts a new one. When wanted: request **Direct-to-Consumer Shipping (Restricted)** in the developer profile, then tick it on Nivaana-PROD, re-authorize (new refresh token → env + GCP secret), and fetch the address with a Restricted Data Token to pre-fill Ship now. Store only if needed (encrypted, deleted 30 days after delivery). Steps: `Amazon_Order_Fulfillment.md` section 7.
 ---
 
 ## 10. Gap register (2026-10-22)

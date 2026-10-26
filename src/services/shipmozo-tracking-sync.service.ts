@@ -17,6 +17,10 @@ import {
 } from '../utils/shipmentCancellation.js';
 
 const TERMINAL_STATUSES = new Set(['delivered', 'rto_delivered', 'cancelled', 'returned']);
+
+// Amazon Self Ship (AMZ-PLAN-25) is loaded only when an Amazon shipment is involved, so website
+// order tracking never depends on the Amazon modules loading.
+const amazonShipping = async () => (await import('./amazon-order-shipping.service.js')).amazonOrderShippingService;
 function parseHistory(value: unknown): any[] {
   if (Array.isArray(value)) return value;
   if (typeof value === 'string') {
@@ -296,7 +300,50 @@ export class ShipmozoTrackingSyncService {
     });
     if (returnRequest) return { entity: 'return', ...(await this.syncReturn(returnRequest.id)) };
 
+    // Website orders and returns are matched first; a failing Amazon lookup keeps the old "ignored" answer
+    const amazonFulfillment = await amazonShipping()
+      .then((service) => service.findByAwb('SHIPMOZO', normalizedAwb))
+      .catch((error) => {
+        logger.warn({ error, awbNumber: normalizedAwb }, 'Amazon AWB lookup failed during Shipmozo sync');
+        return null;
+      });
+    if (amazonFulfillment) return { entity: 'amazon_order', ...(await this.syncAmazonFulfillment(amazonFulfillment.id)) };
+
     return { entity: null, tracking_id: normalizedAwb, ignored: true, reason: 'tracking_id_not_found' };
+  }
+
+  /**
+   * Amazon Self Ship order booked through Shipmozo: store the delivery status on the Amazon
+   * fulfilment (Nivaana only; Amazon tracks the courier itself). A shipment cancelled at
+   * Shipmozo is only flagged: Amazon may already have the AWB, so the team decides what to do.
+   */
+  async syncAmazonFulfillment(fulfillmentId: bigint) {
+    const fulfillment = await prisma.amazonOrderFulfillment.findUnique({ where: { id: fulfillmentId } });
+    if (!fulfillment?.trackingNumber || fulfillment.shippingProvider !== 'SHIPMOZO') {
+      throw new Error(`Amazon fulfilment ${fulfillmentId} is not an active Shipmozo shipment`);
+    }
+    const tracking = await shipmozoService.trackOrder(fulfillment.trackingNumber);
+    const normalized = normalizeShipmozoTracking(tracking);
+    const recheckAt = nextSyncAt(normalized.is_provider_cancelled ? 'cancelled' : normalized.system_status);
+    const result = await (await amazonShipping()).applyDeliveryStatus(fulfillment.id, {
+      status: normalized.system_status,
+      source: 'SHIPMOZO',
+      providerStatus: normalized.provider_status,
+      nextSyncAt: recheckAt === null ? null : new Date(recheckAt),
+    });
+    if (normalized.is_provider_cancelled) {
+      await prisma.amazonOrderFulfillment.update({
+        where: { id: fulfillment.id },
+        data: { lastError: `Shipmozo reports shipment ${fulfillment.trackingNumber} as cancelled. Check the order in Shipmozo and Seller Central.` },
+      });
+    }
+    return {
+      amazon_fulfillment_id: String(fulfillment.id),
+      tracking_id: fulfillment.trackingNumber,
+      provider_status: normalized.provider_status,
+      applied_status: result.changed ? result.status : null,
+      provider_cancelled: normalized.is_provider_cancelled,
+    };
   }
 
   async syncReturn(returnRequestId: number) {
@@ -433,6 +480,24 @@ export class ShipmozoTrackingSyncService {
       })
       .slice(0, remaining);
 
+    const amazonRemaining = Math.max(0, remaining - reverseRequests.length);
+    // Never let the Amazon query stop website orders and returns from syncing
+    const amazonFulfillments = amazonRemaining
+      ? await prisma.amazonOrderFulfillment.findMany({
+          where: {
+            shippingProvider: 'SHIPMOZO',
+            trackingNumber: { not: null },
+            deliveryNextSyncAt: { not: null, lte: new Date(now) },
+          },
+          select: { id: true, trackingNumber: true },
+          take: amazonRemaining,
+          orderBy: { deliveryNextSyncAt: 'asc' },
+        }).catch((error) => {
+          logger.warn({ error }, 'Amazon Shipmozo shipments could not be listed; website tracking continues');
+          return [];
+        })
+      : [];
+
     const results: unknown[] = [];
     for (const order of forwardOrders) {
       try {
@@ -462,6 +527,19 @@ export class ShipmozoTrackingSyncService {
           error
         });
         results.push({ return_request_id: request.id, success: false, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    for (const fulfillment of amazonFulfillments) {
+      try {
+        results.push(await this.syncAmazonFulfillment(fulfillment.id));
+      } catch (error) {
+        logger.warn({ error, amazonFulfillmentId: String(fulfillment.id) }, 'Shipmozo Amazon order tracking sync failed');
+        // Back off instead of retrying on every run
+        await prisma.amazonOrderFulfillment.update({
+          where: { id: fulfillment.id },
+          data: { deliveryNextSyncAt: new Date(Date.now() + env.SHIPMOZO_TRACKING_RECHECK_MINUTES * 6 * 60_000) },
+        }).catch(() => undefined);
+        results.push({ amazon_fulfillment_id: String(fulfillment.id), success: false, error: error instanceof Error ? error.message : String(error) });
       }
     }
     return { started_at: now, processed: results.length, results };

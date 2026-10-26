@@ -2242,6 +2242,17 @@ model AmazonOrderFulfillment {
   amazonConfirmationStatus String    @default("NOT_REQUIRED") @db.VarChar(30)
   amazonConfirmedAt        DateTime? @db.Timestamptz(3)
   lastError                String?   @db.Text
+  // Self Ship "Ship now" (scripts/migrations/20261026_add_amazon_ship_now_fields.sql)
+  shippingProvider         String?   @db.VarChar(20)
+  providerOrderId          String?   @db.VarChar(255)
+  publicTrackingLink       String?   @db.Text
+  // Delivery status shown in Nivaana only; Amazon tracks the courier itself
+  deliveryStatus           String?   @db.VarChar(40)
+  deliveryStatusSource     String?   @db.VarChar(20)
+  deliveryProviderStatus   String?   @db.VarChar(255)
+  deliveryUpdatedAt        DateTime? @db.Timestamptz(3)
+  deliveredAt              DateTime? @db.Timestamptz(3)
+  deliveryNextSyncAt       DateTime? @db.Timestamptz(3)
   createdAt                DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt                DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
 
@@ -2250,6 +2261,7 @@ model AmazonOrderFulfillment {
   exceptions AmazonOrderFulfillmentException[]
 
   @@index([route, workflowStatus], map: "amazon_order_fulfillment_route_status_idx")
+  @@index([trackingNumber], map: "amazon_order_fulfillment_tracking_idx")
   @@map("amazon_order_fulfillments")
 }
 

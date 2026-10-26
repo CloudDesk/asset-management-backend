@@ -10,7 +10,9 @@ import {
   amazonOrderShippingMethodSchema, amazonOrderTrackingSchema, amazonTestOrderCreateSchema,
   amazonTestOrderStatusSchema,
   amazonFulfillmentExceptionResolutionSchema,
+  amazonCourierUpdateSchema, amazonDeliveryStatusSchema, amazonShipNowSchema,
 } from '../schemas/amazon-order.schema.js';
+import { amazonOrderShippingService } from '../services/amazon-order-shipping.service.js';
 import { amazonListingScopeService, AmazonListingScopeError } from '../services/amazon-listing-scope.service.js';
 import { AmazonOrderImportError, amazonOrderImportService } from '../services/amazon-order-import.service.js';
 import { amazonOrderJobService } from '../services/amazon-order-job.service.js';
@@ -19,7 +21,11 @@ import { createSuccessResponse } from '../utils/errorHandler.js';
 import { amazonTestOrderService } from '../services/amazon-test-order.service.js';
 
 const sendError = (reply: FastifyReply, error: unknown) => {
-  if (error instanceof ZodError) return reply.code(400).send({ success: false, message: 'Invalid Amazon order request', code: 'VALIDATION_ERROR' });
+  if (error instanceof ZodError) {
+    const issue = error.issues[0];
+    const message = issue ? `Invalid Amazon order request: ${issue.path.join('.') || 'body'} ${issue.message}` : 'Invalid Amazon order request';
+    return reply.code(400).send({ success: false, message, details: message, statusCode: 400, code: 'VALIDATION_ERROR' });
+  }
   const known = error instanceof AmazonOrderImportError || error instanceof AmazonFulfillmentError || error instanceof AmazonSpApiError || error instanceof AmazonAuthorizationError || error instanceof AmazonListingScopeError
     ? error : new AmazonOrderImportError('Amazon order operation failed', 500, 'AMAZON_ORDER_OPERATION_FAILED');
   return reply.code(known.statusCode).send({ success: false, message: known.message, details: known.message, statusCode: known.statusCode, code: known.code });
@@ -221,6 +227,41 @@ export class AmazonOrderController {
       const input = amazonFulfillmentExceptionResolutionSchema.parse(request.body);
       const data = await amazonOrderFulfillmentService.resolveException(this.orderId(request), exceptionId, await this.resolveScope(request), input.note, this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon fulfillment exception resolved', data));
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
+  };
+
+  shipNow = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const input = amazonShipNowSchema.parse(request.body);
+      const data = await amazonOrderShippingService.shipNow(this.orderId(request), await this.resolveScope(request), input, this.actor(request));
+      const message = !data.contactsAmazon ? 'Test order shipped in Nivaana (Amazon not contacted)'
+        : data.amazonConfirmed ? 'Shipped and confirmed to Amazon'
+          : 'Courier booked; Amazon confirmation failed';
+      return reply.code(200).send(createSuccessResponse(message, data));
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
+  };
+
+  updateCourier = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const input = amazonCourierUpdateSchema.parse(request.body);
+      const data = await amazonOrderShippingService.updateCourier(this.orderId(request), await this.resolveScope(request), input, this.actor(request));
+      return reply.code(200).send(createSuccessResponse('Courier for Amazon updated', data));
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
+  };
+
+  getShippingLabel = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const label = await amazonOrderShippingService.getLabel(this.orderId(request), await this.resolveScope(request));
+      if ('pdf' in label) return reply.code(200).header('Content-Type', label.contentType).send(label.pdf);
+      return reply.code(200).send(createSuccessResponse('Courier label ready', label));
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
+  };
+
+  updateDeliveryStatus = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const input = amazonDeliveryStatusSchema.parse(request.body);
+      const data = await amazonOrderShippingService.updateDeliveryStatusManually(this.orderId(request), await this.resolveScope(request), input, this.actor(request));
+      return reply.code(200).send(createSuccessResponse('Delivery status updated in Nivaana', data));
     } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 }
