@@ -813,6 +813,39 @@ export class EkartController {
         // Find order by tracking_id (the "wbn" field in webhook)
         const trackingId = webhookPayload.wbn;
         const order = await this.ordersService.findByTrackingId(trackingId);
+        // Amazon Self Ship orders booked through Ekart (AMZ-PLAN-25): status kept in Nivaana only.
+        // Only looked up when no website order has this AWB; a failing lookup keeps the old 404.
+        const amazonShipping = order ? null : await import('../services/amazon-order-shipping.service.js')
+          .then((module) => module.amazonOrderShippingService)
+          .catch((error) => {
+            logger.warn({ error, trackingId }, 'Amazon shipping module could not be loaded for Ekart webhook');
+            return null;
+          });
+        const amazonFulfillment = amazonShipping
+          ? await amazonShipping.findByAwb('EKART', trackingId).catch((error) => {
+              logger.warn({ error, trackingId }, 'Amazon AWB lookup failed for Ekart webhook');
+              return null;
+            })
+          : null;
+        if (amazonShipping && amazonFulfillment) {
+          const result = await amazonShipping.applyDeliveryStatus(amazonFulfillment.id, {
+            status: this.ordersService.mapEkartWebhookStatusToSystemStatus(webhookPayload.status),
+            source: 'EKART',
+            providerStatus: String(webhookPayload.status),
+          });
+          logger.info(
+            { requestId: request.id, amazonFulfillmentId: String(amazonFulfillment.id), trackingId, ekartStatus: webhookPayload.status, changed: result.changed },
+            'Ekart tracking status webhook processed for Amazon order'
+          );
+          return reply.code(200).send(
+            createSuccessResponse('Tracking status updated successfully', {
+              amazonFulfillmentId: String(amazonFulfillment.id),
+              trackingId,
+              ekartStatus: webhookPayload.status,
+              deliveryStatus: result.status
+            })
+          );
+        }
         if (!order) {
           logger.warn(
             { trackingId },

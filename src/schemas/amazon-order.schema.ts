@@ -92,3 +92,46 @@ export const amazonEasyShipRescheduleSchema = z.object({ slot: amazonEasyShipSlo
 export const amazonFulfillmentExceptionResolutionSchema = z.object({
   note: z.string().trim().min(1).max(2_000),
 }).strict();
+
+// Self Ship "Ship now" (AMZ-PLAN-25). The buyer address is sent to the courier, never stored.
+const shipNowAddressSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  phone: z.string().trim().regex(/^[6-9]\d{9}$/, 'Phone must be a 10-digit Indian mobile number'),
+  addressLine1: z.string().trim().min(3).max(500),
+  addressLine2: z.string().trim().max(500).optional(),
+  city: z.string().trim().min(1).max(100),
+  state: z.string().trim().min(1).max(100),
+  pincode: z.string().trim().regex(/^\d{6}$/, 'Pincode must be 6 digits'),
+}).strict();
+
+export const amazonShipNowSchema = z.object({
+  provider: z.enum(['EKART', 'SHIPMOZO', 'MANUAL']),
+  weightGrams: z.coerce.number().int().min(11).max(1_000_000),
+  lengthCm: z.coerce.number().positive().max(100_000),
+  widthCm: z.coerce.number().positive().max(100_000),
+  heightCm: z.coerce.number().positive().max(100_000),
+  paymentType: z.enum(['PREPAID', 'COD']).default('PREPAID'),
+  codAmount: z.coerce.number().nonnegative().optional(),
+  address: shipNowAddressSchema.optional(),
+  manual: z.object({
+    carrierCode: z.string().trim().min(1).max(100),
+    courierName: z.string().trim().min(1).max(255),
+    trackingNumber: z.string().trim().min(3).max(255),
+    trackingLink: z.string().trim().url().max(2_000).optional(),
+  }).strict().optional(),
+  shipmozo: z.object({
+    warehouseId: z.string().trim().max(100).optional(),
+    courierId: z.string().trim().max(100).optional(),
+  }).strict().optional(),
+  ekart: z.object({ pickupAlias: z.string().trim().max(255).optional() }).strict().optional(),
+}).strict();
+
+export const amazonCourierUpdateSchema = z.object({
+  carrierCode: z.string().trim().min(1).max(100),
+  courierName: z.string().trim().min(1).max(255),
+}).strict();
+
+export const amazonDeliveryStatusSchema = z.object({
+  status: z.enum(['shipped', 'in_transit', 'out_for_delivery', 'delivered', 'rto_initiated', 'rto_delivered']),
+  note: z.string().trim().max(500).optional(),
+}).strict();

@@ -432,6 +432,42 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
       body: { type: 'object', required: ['slot'], properties: { slot: slotSchema }, additionalProperties: false } },
   }, orderController.rescheduleEasyShip);
 
+  // Self Ship "Ship now" and delivery status (AMZ-PLAN-25); bodies are validated in the controller
+  fastify.post('/orders/:orderId/fulfillment/ship-now', {
+    preHandler: fulfillmentWrite,
+    schema: {
+      description: 'Book Ekart / Shipmozo or save a manual courier for a Self Ship order, then confirm the shipment to Amazon',
+      tags: ['Amazon Fulfillment'], security: [{ bearerAuth: [] }], params: fulfillmentParams,
+      body: { type: 'object', required: ['provider'], additionalProperties: true },
+    },
+  }, orderController.shipNow);
+
+  fastify.post('/orders/:orderId/fulfillment/courier', {
+    preHandler: fulfillmentWrite,
+    schema: {
+      description: 'Change the courier sent to Amazon before Amazon accepted the shipment (then retry the confirmation)',
+      tags: ['Amazon Fulfillment'], security: [{ bearerAuth: [] }], params: fulfillmentParams,
+      body: { type: 'object', required: ['carrierCode', 'courierName'], additionalProperties: true },
+    },
+  }, orderController.updateCourier);
+
+  fastify.get('/orders/:orderId/fulfillment/label', {
+    preHandler: fulfillmentWrite,
+    schema: {
+      description: 'Courier label (PDF, or a label link) for an Amazon order shipped with Ekart or Shipmozo',
+      tags: ['Amazon Fulfillment'], security: [{ bearerAuth: [] }], params: fulfillmentParams,
+    },
+  }, orderController.getShippingLabel);
+
+  fastify.post('/orders/:orderId/fulfillment/delivery-status', {
+    preHandler: fulfillmentWrite,
+    schema: {
+      description: 'Set the delivery status shown in Nivaana (never sent to Amazon; Amazon tracks the courier)',
+      tags: ['Amazon Fulfillment'], security: [{ bearerAuth: [] }], params: fulfillmentParams,
+      body: { type: 'object', required: ['status'], additionalProperties: true },
+    },
+  }, orderController.updateDeliveryStatus);
+
   const fulfillmentExceptionParams = {
     type: 'object', required: ['orderId', 'exceptionId'], properties: {
       orderId: { type: 'string', pattern: '^\\d+$' }, exceptionId: { type: 'string', pattern: '^\\d+$' },

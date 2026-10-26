@@ -93,6 +93,8 @@ const serializeOrder = (order: any) => ({
     quantity: reservation.quantity,
     status: reservation.status,
     errorMessage: reservation.errorMessage,
+    reservedAt: reservation.reservedAt?.toISOString() ?? null,
+    releasedAt: reservation.releasedAt?.toISOString() ?? null,
     soldAt: reservation.soldAt?.toISOString() ?? null,
   })),
   fulfillment: order.fulfillment ? {
@@ -124,6 +126,14 @@ const serializeOrder = (order: any) => ({
     amazonConfirmationStatus: order.fulfillment.amazonConfirmationStatus,
     amazonConfirmedAt: order.fulfillment.amazonConfirmedAt?.toISOString() ?? null,
     lastError: order.fulfillment.lastError,
+    shippingProvider: order.fulfillment.shippingProvider,
+    providerOrderId: order.fulfillment.providerOrderId,
+    publicTrackingLink: order.fulfillment.publicTrackingLink,
+    deliveryStatus: order.fulfillment.deliveryStatus,
+    deliveryStatusSource: order.fulfillment.deliveryStatusSource,
+    deliveryProviderStatus: order.fulfillment.deliveryProviderStatus,
+    deliveryUpdatedAt: order.fulfillment.deliveryUpdatedAt?.toISOString() ?? null,
+    deliveredAt: order.fulfillment.deliveredAt?.toISOString() ?? null,
   } : null,
   items: (order.items ?? []).map((item: any) => ({
     id: String(item.id),

@@ -458,7 +458,7 @@ export class OrdersService {
    * @param ekartStatus - Status from EKART webhook (e.g., "Shipped", "In Transit", "Pick Up")
    * @returns Mapped system status (e.g., "shipped", "in_transit") or null if unknown
    */
-  private mapEkartWebhookStatusToSystemStatus(ekartStatus: string): string | null {
+  mapEkartWebhookStatusToSystemStatus(ekartStatus: string): string | null {
     if (!ekartStatus) return null;
 
     // Normalize: lowercase, trim, replace spaces/underscores/hyphens with single space
