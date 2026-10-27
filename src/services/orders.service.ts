@@ -34,11 +34,23 @@ import {
   type OrderCostBreakdown,
 } from '../utils/order-cost-breakdown.js';
 import {
+  buildCourierReportedCancellationUpdate,
   cancellationForSameAwb,
   carryShipmentHistory,
+  isCourierShipmentCancelledStatus,
   isShipmentCancellationConfirmed,
   withShipmentHistory,
 } from '../utils/shipmentCancellation.js';
+import { statusAfterCourierCancellation } from '../utils/shipmozo-status.js';
+
+// Orders the courier can no longer move forward: a webhook only records them.
+const CLOSED_ORDER_STATUSES = [
+  'cancelled',
+  'cancelled_refund_processing',
+  'cancelled_refunded',
+  'cancelled_completed',
+  'returned'
+];
 
 export class OrdersService {
   private walletRedemptionService = new WalletRedemptionService();
@@ -281,7 +293,7 @@ export class OrdersService {
     return await this.findById(order.id) || order;
   }
 
-  private queueProviderShipmentCancellation(order: any): void {
+  queueProviderShipmentCancellation(order: any): void {
     void this.cancelProviderShipment(order).catch((error) => {
       logger.warn(
         {
@@ -2881,6 +2893,28 @@ export class OrdersService {
         return order; // Return existing order without changes
       }
 
+      // Cancelled in the Ekart portal (or by Ekart): remove the shipment so a new
+      // one can be created, or confirm the courier cancel of a cancelled order.
+      if (isCourierShipmentCancelledStatus(ekartStatus)) {
+        return await this.applyEkartCourierCancellation(order, ekartStatus, webhookData);
+      }
+
+      // A cancelled or returned order must not move forward again (e.g. the
+      // courier cancel failed and the parcel was still picked up).
+      if (CLOSED_ORDER_STATUSES.includes(String(order.orderstatus || '').toLowerCase())) {
+        logger.warn(
+          { orderId: order.id, trackingId, ekartStatus, orderStatus: order.orderstatus },
+          'EKART webhook for a cancelled/returned order - status kept, logistics follow-up required'
+        );
+        return await this.recordEkartWebhookHistoryOnly(
+          order,
+          ekartStatus,
+          webhookData,
+          fullWebhookPayload,
+          `EKART status ${ekartStatus} received after the order was ${order.orderstatus}; order status not changed`
+        );
+      }
+
       // Map EKART status to system status
       const systemStatus = this.mapEkartWebhookStatusToSystemStatus(ekartStatus);
 
@@ -2889,51 +2923,13 @@ export class OrdersService {
           { trackingId, ekartStatus, orderId: order.id },
           'Unknown EKART webhook status - storing in shipment_tracking_status and status_history only (is_active: false)'
         );
-
-        const currentTimestamp = webhookData.ctime || Date.now();
-        const currentOrderStatus = order.orderstatus;
-
-        // Get existing status history
-        const existingHistory = Array.isArray(order.status_history)
-          ? order.status_history
-          : (typeof order.status_history === 'string' ? JSON.parse(order.status_history) : []);
-
-        // Set all existing entries to is_active: false
-        const deactivatedHistory = existingHistory.map((entry: any) => ({
-          ...entry,
-          is_active: false
-        }));
-
-        // Add new entry for unknown webhook status (is_active: false - does not affect status flow)
-        const unknownStatusEntry: any = {
-          previous_status: currentOrderStatus,
-          new_status: currentOrderStatus, // Keep current status (no change)
-          changed_date: currentTimestamp,
-          source: 'ekart',
-          location: webhookData.location,
-          description: webhookData.description || `Unknown EKART status: ${ekartStatus}`,
-          ekart_original_status: ekartStatus, // Store original unknown status
-          is_active: false, // NOT active - just for tracking/history
-          is_webhook_status: true, // Mark as webhook status
-          webhook_payload: fullWebhookPayload || {} // Store full webhook payload for debugging/auditing
-        };
-
-        const updatedHistory = [...deactivatedHistory, unknownStatusEntry];
-
-        // Store original status in shipment_tracking_status and status_history
-        // BUT do NOT update orderstatus or orderline statuses
-        await dynamicUpdate('orders', { id: order.id }, {
-          shipment_tracking_status: ekartStatus, // Store original unknown status
-          status_history: JSON.stringify(updatedHistory), // Add to history with is_active: false
-          modifieddate: currentTimestamp
-        });
-
-        logger.info(
-          { orderId: order.id, ekartStatus, currentOrderStatus },
-          'Unknown EKART webhook status stored in shipment_tracking_status and status_history (is_active: false) - orderstatus unchanged'
+        return await this.recordEkartWebhookHistoryOnly(
+          order,
+          ekartStatus,
+          webhookData,
+          fullWebhookPayload,
+          `Unknown EKART status: ${ekartStatus}`
         );
-
-        return await this.findById(order.id);
       }
 
       // Check if status actually changed
@@ -2995,6 +2991,8 @@ export class OrdersService {
         );
 
         for (const orderline of orderlines) {
+          // Lines cancelled or returned on their own keep their status.
+          if (['cancelled', 'returned'].includes(String(orderline.orderstatus || '').toLowerCase())) continue;
           await orderlineService.updateOrderlineStatus(
             orderline.id.toString(),
             systemStatus,
@@ -3043,6 +3041,126 @@ export class OrdersService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Stores an EKART webhook status in shipment_tracking_status and as an
+   * inactive status_history entry, without changing the order status.
+   */
+  private async recordEkartWebhookHistoryOnly(
+    order: any,
+    ekartStatus: string,
+    webhookData: { location?: string; description?: string; ctime?: number },
+    fullWebhookPayload: Record<string, any> | undefined,
+    fallbackDescription: string
+  ): Promise<any> {
+    const currentTimestamp = webhookData.ctime || Date.now();
+    const deactivatedHistory = this.parseStatusHistory(order.status_history)
+      .map((entry: any) => ({ ...entry, is_active: false }));
+
+    const webhookEntry = {
+      previous_status: order.orderstatus,
+      new_status: order.orderstatus, // Keep current status (no change)
+      changed_date: currentTimestamp,
+      source: 'ekart',
+      location: webhookData.location,
+      description: webhookData.description || fallbackDescription,
+      ekart_original_status: ekartStatus,
+      is_active: false, // NOT active - just for tracking/history
+      is_webhook_status: true,
+      webhook_payload: fullWebhookPayload || {}
+    };
+
+    await dynamicUpdate('orders', { id: order.id }, {
+      shipment_tracking_status: ekartStatus,
+      status_history: JSON.stringify([...deactivatedHistory, webhookEntry]),
+      modifieddate: currentTimestamp
+    });
+
+    return await this.findById(order.id);
+  }
+
+  /**
+   * EKART reports the shipment as cancelled (Ekart portal or courier). Same
+   * result as the admin "Cancel Ekart Shipment" button: tracking, vendor and
+   * label are cleared so a new shipment can be created, and the AWB is kept in
+   * shipment_history. Shipped/in-transit orders go back to ready_for_dispatch;
+   * a cancelled order keeps its status and its courier cancel is confirmed.
+   */
+  private async applyEkartCourierCancellation(
+    order: any,
+    ekartStatus: string,
+    webhookData: { location?: string; description?: string }
+  ): Promise<any> {
+    const trackingId = String(order.tracking_id || '').trim();
+    const currentStatus = String(order.orderstatus || '').toLowerCase();
+    const revertedStatus = statusAfterCourierCancellation(currentStatus);
+    const timestamp = Date.now();
+    const historyEntry = (previousStatus: string | null) => ({
+      previous_status: previousStatus,
+      new_status: revertedStatus,
+      changed_date: timestamp,
+      source: 'ekart',
+      reason: 'courier_shipment_cancelled',
+      location: webhookData.location,
+      description: webhookData.description || `EKART shipment ${trackingId} cancelled`,
+      ekart_original_status: ekartStatus,
+      is_active: true
+    });
+
+    const shipmentUpdate = buildCourierReportedCancellationUpdate({
+      barcodes: order.barcodes,
+      provider: 'EKART',
+      trackingId,
+      courierStatus: ekartStatus,
+      orderCancelled: CLOSED_ORDER_STATUSES.includes(currentStatus),
+      timestamp
+    });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.orders.update({
+        where: { id: order.id },
+        data: {
+          ...shipmentUpdate,
+          ...(revertedStatus ? {
+            orderstatus: revertedStatus,
+            shipdate: null,
+            status_history: [
+              ...this.parseStatusHistory(order.status_history).map((entry: any) => ({ ...entry, is_active: false })),
+              historyEntry(order.orderstatus)
+            ]
+          } : {})
+        }
+      });
+
+      const lines = await tx.orderline.findMany({ where: { orderid: order.id } });
+      for (const line of lines) {
+        // On a revert, lines already cancelled or returned keep their status.
+        const revertLine = Boolean(revertedStatus && statusAfterCourierCancellation(line.orderstatus) === revertedStatus);
+        await tx.orderline.update({
+          where: { id: line.id },
+          data: {
+            tracking_id: null,
+            ...(revertLine ? {
+              orderstatus: revertedStatus,
+              shipdate: null,
+              status_history: [
+                ...this.parseStatusHistory(line.status_history).map((entry: any) => ({ ...entry, is_active: false })),
+                historyEntry(line.orderstatus)
+              ]
+            } : {}),
+            modifieddate: timestamp
+          }
+        });
+      }
+    });
+
+    logger.info(
+      { orderId: order.id, orderNumber: order.orderid, trackingId, ekartStatus, previousStatus: currentStatus, revertedStatus },
+      'EKART reported the shipment as cancelled; shipment cleared so a new one can be created'
+    );
+
+    return await this.findById(order.id);
   }
 
   /**

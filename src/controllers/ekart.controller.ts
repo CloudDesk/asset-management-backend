@@ -19,7 +19,7 @@ import {
 import { createSuccessResponse, createErrorResponse, asyncHandler } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
 import { shipmentCancellationService } from '../services/shipment-cancellation.service.js';
-import { carryShipmentHistory } from '../utils/shipmentCancellation.js';
+import { carryShipmentHistory, isCourierShipmentCancelledStatus } from '../utils/shipmentCancellation.js';
 import { dynamicUpdate } from '../utils/dynamicDbOperations.js';
 import axios from 'axios';
 import FormData from 'form-data';
@@ -846,6 +846,20 @@ export class EkartController {
             })
           );
         }
+        if (!order && isCourierShipmentCancelledStatus(webhookPayload.status)) {
+          // The shipment was already removed (admin cancel or an earlier webhook),
+          // so the AWB no longer sits on any order. Acknowledge so Ekart stops retrying.
+          logger.info(
+            { trackingId, ekartStatus: webhookPayload.status },
+            'Ekart cancellation webhook for an AWB no longer on any order - nothing to update'
+          );
+          return reply.code(200).send(
+            createSuccessResponse('Shipment cancellation already recorded', {
+              trackingId,
+              ekartStatus: webhookPayload.status
+            })
+          );
+        }
         if (!order) {
           logger.warn(
             { trackingId },
@@ -881,11 +895,16 @@ export class EkartController {
           webhookPayload // Pass full webhook payload for unknown statuses
         );
 
+        // Notify only when the order status really changed. A courier-side
+        // shipment cancel is internal: the customer's order is unaffected.
+        const statusChanged = updatedOrder?.orderstatus !== order.orderstatus;
         try {
-          await this.customerNotificationService.notifyOrderStatus(
-            updatedOrder,
-            updatedOrder?.orderstatus
-          );
+          if (statusChanged && !isCourierShipmentCancelledStatus(webhookPayload.status)) {
+            await this.customerNotificationService.notifyOrderStatus(
+              updatedOrder,
+              updatedOrder?.orderstatus
+            );
+          }
         } catch (notificationError: any) {
           logger.warn(
             {
