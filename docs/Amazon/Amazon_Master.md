@@ -313,6 +313,9 @@ The time shown is the latest job, whatever its status (AMZ-PLAN-07).
 
 ## 8. Change log
 
+### 2026-10-27: Amazon — combo creation script (FIX-169, AMZ-PLAN-27 P5 tooling, backend DEV-NEW, not committed)
+- `npm run amazon:combos -- <env>` plans and (with `--apply --confirm=NIVAANA_AMAZON_COMBOS`) creates the Inventory combos for Amazon combo listings from the reviewed CSV, through the normal product create. UAT dry run: 95 to create, 1 exists, 1 skipped. Nothing created yet. Details: `docs/Fix_After_Sep30/Master.md` FIX-2026-10-27-169.
+
 ### 2026-10-27: Amazon — combo listings take stock from components (FIX-168, AMZ-PLAN-27 P1 + P2, backend + Inventory DEV-NEW, not committed)
 - Combo = virtual stock: Amazon stock of a combo listing = lowest of (component Amazon stock ÷ quantity per combo); orders reserve / sell / release each component; a returned combo restocks every component. FBA combos unchanged.
 - Release: run `scripts/migrations/20261027_amazon_combo_stock_reservations.sql` before the backend (release checklist 4b). Details: `docs/Fix_After_Sep30/Master.md` FIX-2026-10-27-168.
@@ -552,7 +555,7 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 ### AMZ-PLAN-26: Buyer address from Amazon (PII role)
 **Status:** Parked 2026-10-26 by the client's choice: the developer profile was approved after a long review and a role change starts a new one. When wanted: request **Direct-to-Consumer Shipping (Restricted)** in the developer profile, then tick it on Nivaana-PROD, re-authorize (new refresh token → env + GCP secret), and fetch the address with a Restricted Data Token to pre-fill Ship now. Store only if needed (encrypted, deleted 30 days after delivery). Steps: `Amazon_Order_Fulfillment.md` section 7.
 ### AMZ-PLAN-27: Amazon combo listings — stock from components
-**Status:** **P1 + P2 implemented 2026-10-27** (FIX-2026-10-27-168, not committed; SQL `20261027_amazon_combo_stock_reservations.sql` run on Dev/SIT 2026-10-27; UAT / Prod pending): combo stock from components in Stock Sync / listing table / test orders, per-component reservations, sold, release, combo returns restock all components (decision 4), order page lists components. Open: P3 (combo re-sync on component change, with the auto-sync go-live), P4 (mapping dialog combo view), P5 / P6 data and Prod, decisions 1–3 and 5–8. Source list (every listing, proposed PUCs, stock): [`Amazon_Listings_vs_Inventory_UAT_2026-10-27.md`](Amazon_Listings_vs_Inventory_UAT_2026-10-27.md) / [`.csv`](Amazon_Listings_vs_Inventory_UAT_2026-10-27.csv), read-only on `assetmanagement_uat`.
+**Status:** **P1 + P2 implemented 2026-10-27** (FIX-2026-10-27-168, not committed; SQL `20261027_amazon_combo_stock_reservations.sql` run on Dev/SIT 2026-10-27; UAT / Prod pending): combo stock from components in Stock Sync / listing table / test orders, per-component reservations, sold, release, combo returns restock all components (decision 4), order page lists components. **P5 tooling 2026-10-27** (FIX-2026-10-27-169): `npm run amazon:combos -- <env>` creates the combos from the reviewed CSV (dry run by default; UAT dry run: 95 to create, 1 exists, 1 skipped). Open: P3 (combo re-sync on component change, with the auto-sync go-live), P4 (mapping dialog combo view), applying P5 after the CSV review, mapping, P6 Prod, decisions 1–3 and 5–8. Source list (every listing, proposed PUCs, stock): [`Amazon_Listings_vs_Inventory_UAT_2026-10-27.md`](Amazon_Listings_vs_Inventory_UAT_2026-10-27.md) / [`.csv`](Amazon_Listings_vs_Inventory_UAT_2026-10-27.csv), read-only on `assetmanagement_uat`.
 
 **Rule until FIX-168 is deployed (SQL first) in that environment:** do **not** map an Amazon listing to a combo product. Stock Sync would send **0** to Amazon (e.g. `Auora_Pack6`: Amazon 100 → 0, components allow 85) and every order would be blocked.
 
@@ -602,7 +605,7 @@ The website already expands combos into components for orders (`orders.service.t
 #### 27.4 Creating the 96 combos
 
 - Incense and AUORA sachet combos can be made in the product form today (Scent mode). Soap, dhoop sticks and diffuser oil need their subcategories added to the combo list, or PLAN-2026-10-26-164 Search mode (pick components from any subcategory).
-- 96 combos by hand is slow and error-prone: proposed one-off script `scripts/create-amazon-combos.ts` reading the reviewed CSV (combo name, subcategory, pack, components + qty, price), **dry run by default**, `--apply --confirm=…` to write, skips combos that already exist (`validate-combo` rule: same components = duplicate). PUC / HSN / GST as the product service does today. Script row in the release checklist.
+- 96 combos by hand is slow and error-prone: **built 2026-10-27 (FIX-169)** — script `scripts/create-amazon-combos.ts` reading the reviewed CSV (combo name, subcategory, pack, components + qty, price), **dry run by default**, `--apply --confirm=…` to write, skips combos that already exist (`validate-combo` rule: same components = duplicate). PUC / HSN / GST as the product service does today. Script row in the release checklist.
 - After creation: map each listing (Amazon → Mappings), Sync mode Manual first; compare Nivaana target with Amazon quantity before the first send.
 
 #### 27.5 Phases
