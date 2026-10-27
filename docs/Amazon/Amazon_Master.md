@@ -34,7 +34,7 @@ One place for everything Amazon (SP-API) in Nivaana: how it works, where it is s
 | Environment | Database | Data | Amazon reads (import listings / orders) | Amazon writes (stock, price, shipment) | Scheduled order sync |
 | --- | --- | --- | --- | --- | --- |
 | Local | `assetmanagement_dev` | Test data | Manual only (Refresh) | **Never** | **Off** (`AMAZON_ORDER_AUTO_SYNC_ENABLED="false"`) |
-| SIT | `assetmanagement_dev` (**same as local**) | Test data | Yes | **Never** | Cloud Scheduler, hourly (one runner per DB) |
+| SIT | `assetmanagement_dev` (**same as local**) | Test data | Yes | **Yes, manual actions only, from 2026-10-26** (user decision; see 7) | Cloud Scheduler, hourly (one runner per DB) |
 | UAT | `assetmanagement_uat` | Prod-like copy | Yes — best place to try mapping and stock previews with realistic stock | **One controlled single-listing test only** (below); otherwise never | Cloud Scheduler (optional) |
 | Prod | `railway` | Live | Yes | Yes, after the go-live checklist (5a) | Cloud Scheduler, every 15 min |
 
@@ -305,6 +305,7 @@ The time shown is the latest job, whatever its status (AMZ-PLAN-07).
 | 2026-10-21 | Authorize Seller Account opens Amazon in a new tab |
 | 2026-10-21 | SIT may use the **Prod Amazon account read-only** (sandbox has no useful data) — not done yet, see AMZ-PLAN-02 |
 | 2026-10-26 | Client: FBA = sync only; Easy Ship (most orders) = Amazon picks up, stock sold when Amazon reports Shipped; Self Ship = Ekart / Shipmozo / Manual like website orders, with delivery status in Nivaana (AMZ-PLAN-25) |
+| 2026-10-26 | **SIT Amazon writes switched on** (user decision, to test stock sync): `.env.sit` `PRODUCTION` + `true` on the `SIT` branch. SIT sends from the shared dev database to the live account on manual actions only (stock, shipment confirmation, Easy Ship, price / listing edits); automatic stock sync stays off. This replaces the "writes only from Prod" rule for SIT until switched back. Stop quickly with Operations → pause production writes. |
 | 2026-10-26 | No PII role request for now (would restart the developer-profile review); the team pastes the buyer address into Ship now (AMZ-PLAN-26) |
 
 ---

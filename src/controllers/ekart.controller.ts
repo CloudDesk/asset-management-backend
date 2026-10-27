@@ -16,10 +16,10 @@ import {
   DownloadLabelInput,
   ShippingRatesInput
 } from '../schemas/ekart.schema.js';
-import { createSuccessResponse, createErrorResponse, asyncHandler } from '../utils/errorHandler.js';
+import { createSuccessResponse, createErrorResponse, asyncHandler, ValidationError } from '../utils/errorHandler.js';
 import { logger } from '../config/logger.js';
 import { shipmentCancellationService } from '../services/shipment-cancellation.service.js';
-import { carryShipmentHistory } from '../utils/shipmentCancellation.js';
+import { carryShipmentHistory, isCourierShipmentCancelledStatus } from '../utils/shipmentCancellation.js';
 import { dynamicUpdate } from '../utils/dynamicDbOperations.js';
 import axios from 'axios';
 import FormData from 'form-data';
@@ -587,6 +587,43 @@ export class EkartController {
   );
 
   /**
+   * Push only when the order status really changed. A courier-side shipment
+   * cancel is internal: the customer's order is unaffected.
+   */
+  private async notifyEkartStatusChange(previousOrder: any, updatedOrder: any, ekartStatus: string) {
+    if (updatedOrder?.orderstatus === previousOrder?.orderstatus || isCourierShipmentCancelledStatus(ekartStatus)) return;
+    try {
+      await this.customerNotificationService.notifyOrderStatus(updatedOrder, updatedOrder?.orderstatus);
+    } catch (notificationError: any) {
+      logger.warn(
+        {
+          orderId: updatedOrder?.id,
+          trackingId: previousOrder?.tracking_id,
+          error: notificationError?.message || 'Unknown error',
+        },
+        'Failed to send EKART order push notification'
+      );
+    }
+  }
+
+  /**
+   * Sync one order from live Ekart tracking (manual fallback for a missed webhook)
+   * POST /v1/ekart/orders/:orderId/tracking/sync
+   */
+  syncOrderTracking = asyncHandler(
+    async (request: FastifyRequest<{ Params: { orderId: string } }>, reply: FastifyReply) => {
+      const orderId = Number(request.params.orderId);
+      if (!Number.isInteger(orderId) || orderId <= 0) throw new ValidationError('A valid numeric orderId is required');
+
+      const previousOrder = await this.ordersService.findById(orderId);
+      const { order, summary } = await this.ordersService.syncEkartTracking(orderId);
+      await this.notifyEkartStatusChange(previousOrder, order, summary.ekart_status);
+
+      return reply.code(200).send(createSuccessResponse('Ekart order tracking synchronized successfully', summary));
+    }
+  );
+
+  /**
    * Cancel Shipment
    * DELETE /v1/ekart/shipments/:trackingId/cancel
    */
@@ -846,6 +883,20 @@ export class EkartController {
             })
           );
         }
+        if (!order && isCourierShipmentCancelledStatus(webhookPayload.status)) {
+          // The shipment was already removed (admin cancel or an earlier webhook),
+          // so the AWB no longer sits on any order. Acknowledge so Ekart stops retrying.
+          logger.info(
+            { trackingId, ekartStatus: webhookPayload.status },
+            'Ekart cancellation webhook for an AWB no longer on any order - nothing to update'
+          );
+          return reply.code(200).send(
+            createSuccessResponse('Shipment cancellation already recorded', {
+              trackingId,
+              ekartStatus: webhookPayload.status
+            })
+          );
+        }
         if (!order) {
           logger.warn(
             { trackingId },
@@ -881,21 +932,7 @@ export class EkartController {
           webhookPayload // Pass full webhook payload for unknown statuses
         );
 
-        try {
-          await this.customerNotificationService.notifyOrderStatus(
-            updatedOrder,
-            updatedOrder?.orderstatus
-          );
-        } catch (notificationError: any) {
-          logger.warn(
-            {
-              orderId: updatedOrder?.id,
-              trackingId,
-              error: notificationError?.message || 'Unknown error',
-            },
-            'Failed to send EKART order push notification'
-          );
-        }
+        await this.notifyEkartStatusChange(order, updatedOrder, webhookPayload.status);
 
         logger.info(
           {

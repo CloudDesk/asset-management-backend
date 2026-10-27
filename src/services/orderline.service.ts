@@ -237,55 +237,6 @@ export class OrderlineService {
         }
       }
 
-      // ✅ CANCELLATION FLOW: Handle EKART shipment cancellation before updating status
-      // According to ORDER_FULFILLMENT_EKART_INTEGRATION_PLAN.md Section 6
-      if (status.toLowerCase() === 'cancelled') {
-        try {
-          const { OrdersService } = await import('./orders.service.js');
-          const ordersService = new OrdersService();
-          const order = await ordersService.findById(parseInt(currentOrderline.orderid.toString()));
-          
-          if (order && order.tracking_id) {
-            // Scenario B & C: Cancel EKART shipment if exists
-            // - Scenario B: Before label print (ready_for_dispatch) - should succeed
-            // - Scenario C: After label print (shipped/in_transit) - may fail, but continue anyway
-            try {
-              const { ekartService } = await import('./ekart.service.js');
-              await ekartService.cancelShipment(order.tracking_id);
-              logger.info({ 
-                trackingId: order.tracking_id, 
-                orderlineId: id,
-                orderId: order.id,
-                orderStatus: order.orderstatus
-              }, '✅ EKART shipment cancelled successfully before orderline cancellation');
-            } catch (error: any) {
-              // EKART cancellation may fail if shipment is already in transit
-              // According to plan: Continue with cancellation anyway, EKART will handle RTO
-              logger.warn({ 
-                error: error.message, 
-                trackingId: order.tracking_id,
-                orderlineId: id,
-                orderStatus: order.orderstatus
-              }, '⚠️ Failed to cancel EKART shipment (may be in transit) - continuing with orderline cancellation. EKART will handle RTO automatically.');
-              // Continue with cancellation anyway - stock will be restored
-            }
-          } else {
-            // Scenario A: No tracking_id - no EKART action needed
-            logger.debug({ 
-              orderlineId: id,
-              orderId: order?.id,
-              hasTrackingId: !!order?.tracking_id
-            }, 'No EKART shipment found - proceeding with orderline cancellation only');
-          }
-        } catch (error: any) {
-          logger.warn({ 
-            error: error.message, 
-            orderlineId: id 
-          }, 'Error checking for EKART shipment cancellation - continuing with orderline cancellation');
-          // Continue with cancellation anyway - don't fail the entire operation
-        }
-      }
-
       // Prepare status history entry
       const existingHistory = Array.isArray(currentOrderline.status_history) 
         ? currentOrderline.status_history 
@@ -396,6 +347,34 @@ export class OrderlineService {
           );
           // Don't fail the orderline update if recalculation fails
           // Orderline cancellation should succeed even if order status update fails
+        }
+      }
+
+      // Courier shipment: cancel it only when the whole order is now cancelled
+      // (EKART or SHIPMOZO, recorded in barcodes like a full order cancel). A
+      // partial cancel keeps the shipment for the remaining lines.
+      if (orderline.orderid && status.toLowerCase() === 'cancelled') {
+        try {
+          const { OrdersService } = await import('./orders.service.js');
+          const ordersService = new OrdersService();
+          const order = await ordersService.findById(parseInt(orderline.orderid.toString()));
+          if (order?.tracking_id) {
+            if (String(order.orderstatus || '').toLowerCase().startsWith('cancelled')) {
+              ordersService.queueProviderShipmentCancellation(order);
+            } else {
+              logger.warn({
+                orderlineId: id,
+                orderId: order.id,
+                trackingId: order.tracking_id,
+                vendor: order.vendor
+              }, 'Orderline cancelled after shipment creation; courier shipment kept for the remaining lines - check the package contents');
+            }
+          }
+        } catch (error: any) {
+          logger.warn(
+            { error: error.message, orderlineId: id, orderId: orderline.orderid },
+            'Orderline cancelled; courier shipment cancellation could not be queued - logistics follow-up required'
+          );
         }
       }
 

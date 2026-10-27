@@ -418,6 +418,44 @@ export async function ekartRoutes(fastify: FastifyInstance) {
     }
   }, ekartController.trackShipment);
 
+  /**
+   * Sync Order Tracking (manual fallback for a missed Ekart webhook)
+   * POST /v1/ekart/orders/:orderId/tracking/sync
+   */
+  fastify.post('/orders/:orderId/tracking/sync', {
+    schema: {
+      description: 'Read the live Ekart status of an order and apply it like the tracking webhook (courier cancel clears the shipment)',
+      tags: ['Ekart Logistics'],
+      params: {
+        type: 'object',
+        required: ['orderId'],
+        properties: { orderId: { type: 'integer', minimum: 1 } }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                order_id: { type: 'number' },
+                order_number: { type: 'string' },
+                tracking_id: { type: 'string' },
+                ekart_status: { type: 'string' },
+                previous_status: { type: 'string' },
+                order_status: { type: 'string' },
+                shipment_cancelled: { type: 'boolean' },
+                changed: { type: 'boolean' }
+              }
+            }
+          }
+        }
+      }
+    }
+  }, ekartController.syncOrderTracking);
+
   /** - not used now in ecom and inventory  for cancel order route used 
    * Cancel Shipment
    * DELETE /v1/ekart/shipments/:trackingId/cancel
