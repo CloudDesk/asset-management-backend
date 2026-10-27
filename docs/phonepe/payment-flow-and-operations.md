@@ -42,7 +42,7 @@ sequenceDiagram
 2. **Product validation**
    - Confirms product exists and has available quantity.
 3. **Platform stock validation**
-   - Checks platform-specific availability (`platformStock.availableqty - lockqty`).
+   - Checks platform-specific availability: `platformStock.availableqty >= quantity`. `availableqty` already excludes locked units (`ecomqty − orderedqty − lockqty`), so the lock is not subtracted again. The product check `product.availablequantity >= quantity` also runs. See [19_End_to_End_Flows.md](../requirements/19_End_to_End_Flows.md).
 
 Failures return actionable 400 responses (e.g. `PRODUCT_VALIDATION_FAILED`, `PROMOTION_EXPIRED_OR_INVALID`).
 

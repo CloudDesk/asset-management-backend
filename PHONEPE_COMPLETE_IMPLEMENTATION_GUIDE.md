@@ -1,5 +1,7 @@
 # 📘 PhonePe Payment Integration - Complete Implementation Guide
 
+> **⚠️ Superseded (2026-10-27)** — see [docs/requirements/19_End_to_End_Flows.md](docs/requirements/19_End_to_End_Flows.md). The stock-quantity rules here are out of date: the lock is released after 120 s (not 15 min), the check is `availableqty ≥ qty` (not `availableqty − lockqty`), and the lock happens at initiate, not after payment.
+
 **Version**: 2.0 (With PlatformStock & Product Validation)  
 **Last Updated**: October 8, 2025  
 **Platform**: nivapp  

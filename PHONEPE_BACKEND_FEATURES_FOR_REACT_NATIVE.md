@@ -1,5 +1,7 @@
 # PhonePe Backend Features - React Native Integration Guide
 
+> **⚠️ Superseded (2026-10-27)** — see [docs/requirements/19_End_to_End_Flows.md](docs/requirements/19_End_to_End_Flows.md). The stock-quantity rules here are out of date: the lock is released after 120 s (not 15 min), and on success the lock becomes **ordered** quantity (not available).
+
 > **Complete documentation of PhonePe payment gateway features implemented in the backend for React Native mobile app integration**
 
 ## 📋 Table of Contents
