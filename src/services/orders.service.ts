@@ -53,6 +53,19 @@ const CLOSED_ORDER_STATUSES = [
   'returned'
 ];
 
+// Orders whose Ekart shipment can still be cancelled (not delivered, RTO or returned).
+const EKART_CANCELLABLE_SHIPMENT_STATUSES = [
+  'ready_for_dispatch',
+  'shipped',
+  'in_transit',
+  'out_for_delivery',
+  'partially_cancelled',
+  'cancelled',
+  'cancelled_refund_processing',
+  'cancelled_refunded',
+  'cancelled_completed'
+];
+
 export class OrdersService {
   private walletRedemptionService = new WalletRedemptionService();
   private promotionCheckoutService = new PromotionCheckoutService();
@@ -2886,7 +2899,7 @@ export class OrdersService {
       }
 
       // Only process EKART orders
-      if (order.vendor !== 'EKART') {
+      if (String(order.vendor || '').toUpperCase() !== 'EKART') {
         logger.info(
           { orderId: order.id, vendor: order.vendor, trackingId },
           'Ekart webhook received for non-EKART order - ignoring (manual vendor)'
@@ -2897,7 +2910,20 @@ export class OrdersService {
       // Cancelled in the Ekart portal (or by Ekart): remove the shipment so a new
       // one can be created, or confirm the courier cancel of a cancelled order.
       if (isCourierShipmentCancelledStatus(ekartStatus)) {
-        return await this.applyEkartCourierCancellation(order, ekartStatus, webhookData);
+        if (EKART_CANCELLABLE_SHIPMENT_STATUSES.includes(String(order.orderstatus || '').toLowerCase())) {
+          return await this.applyEkartCourierCancellation(order, ekartStatus, webhookData);
+        }
+        logger.warn(
+          { orderId: order.id, trackingId, ekartStatus, orderStatus: order.orderstatus },
+          'EKART cancel status for a delivered/RTO/returned order - shipment kept, recorded in history only'
+        );
+        return await this.recordEkartWebhookHistoryOnly(
+          order,
+          ekartStatus,
+          webhookData,
+          fullWebhookPayload,
+          `EKART status ${ekartStatus} received after the order was ${order.orderstatus}; shipment not changed`
+        );
       }
 
       // A cancelled or returned order must not move forward again (e.g. the

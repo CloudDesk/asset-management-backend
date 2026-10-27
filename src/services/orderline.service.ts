@@ -340,25 +340,6 @@ export class OrderlineService {
             previousStatus,
             newStatus: status
           }, 'Order status recalculated after orderline status update');
-
-          // Courier shipment: cancel it only when the whole order is now
-          // cancelled (EKART or SHIPMOZO, recorded in barcodes like a full order
-          // cancel). A partial cancel keeps the shipment for the remaining lines.
-          if (status.toLowerCase() === 'cancelled') {
-            const order = await ordersService.findById(parseInt(orderline.orderid.toString()));
-            if (order?.tracking_id) {
-              if (String(order.orderstatus || '').toLowerCase().startsWith('cancelled')) {
-                ordersService.queueProviderShipmentCancellation(order);
-              } else {
-                logger.warn({
-                  orderlineId: id,
-                  orderId: order.id,
-                  trackingId: order.tracking_id,
-                  vendor: order.vendor
-                }, 'Orderline cancelled after shipment creation; courier shipment kept for the remaining lines - check the package contents');
-              }
-            }
-          }
         } catch (error: any) {
           logger.error(
             { error: error.message, orderlineId: id, orderId: orderline.orderid },
@@ -366,6 +347,34 @@ export class OrderlineService {
           );
           // Don't fail the orderline update if recalculation fails
           // Orderline cancellation should succeed even if order status update fails
+        }
+      }
+
+      // Courier shipment: cancel it only when the whole order is now cancelled
+      // (EKART or SHIPMOZO, recorded in barcodes like a full order cancel). A
+      // partial cancel keeps the shipment for the remaining lines.
+      if (orderline.orderid && status.toLowerCase() === 'cancelled') {
+        try {
+          const { OrdersService } = await import('./orders.service.js');
+          const ordersService = new OrdersService();
+          const order = await ordersService.findById(parseInt(orderline.orderid.toString()));
+          if (order?.tracking_id) {
+            if (String(order.orderstatus || '').toLowerCase().startsWith('cancelled')) {
+              ordersService.queueProviderShipmentCancellation(order);
+            } else {
+              logger.warn({
+                orderlineId: id,
+                orderId: order.id,
+                trackingId: order.tracking_id,
+                vendor: order.vendor
+              }, 'Orderline cancelled after shipment creation; courier shipment kept for the remaining lines - check the package contents');
+            }
+          }
+        } catch (error: any) {
+          logger.warn(
+            { error: error.message, orderlineId: id, orderId: orderline.orderid },
+            'Orderline cancelled; courier shipment cancellation could not be queued - logistics follow-up required'
+          );
         }
       }
 

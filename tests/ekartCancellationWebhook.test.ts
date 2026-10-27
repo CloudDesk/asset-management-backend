@@ -235,3 +235,27 @@ test('Sync Ekart Tracking refuses orders without an Ekart shipment', async (t) =
   await assert.rejects(service.syncEkartTracking(501), /no active Ekart shipment/);
   assert.equal(track.mock.callCount(), 0);
 });
+
+test('Ekart cancel status on a delivered order is recorded without clearing the shipment', async (t) => {
+  t.after(restoreAll);
+  const captured: Captured = { lineUpdates: [] };
+  stubTransaction([], captured);
+  const service = serviceFor(ekartOrder('delivered'));
+  const historyOnly = mock.method(service as any, 'recordEkartWebhookHistoryOnly', async () => ({ id: 501 }));
+
+  await service.handleEkartWebhookStatusUpdate('EKART-AWB-1', 'Cancelled', {});
+
+  assert.equal(historyOnly.mock.callCount(), 1);
+  assert.equal(captured.orderUpdate, undefined, 'delivered order keeps its tracking');
+});
+
+test('Ekart webhook vendor check ignores letter case', async (t) => {
+  t.after(restoreAll);
+  const captured: Captured = { lineUpdates: [] };
+  stubTransaction([], captured);
+  const service = serviceFor({ ...ekartOrder('ready_for_dispatch'), vendor: 'Ekart' });
+
+  await service.handleEkartWebhookStatusUpdate('EKART-AWB-1', 'Cancelled', {});
+
+  assert.equal(captured.orderUpdate.data.tracking_id, null);
+});
