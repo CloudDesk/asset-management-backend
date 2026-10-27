@@ -42,6 +42,7 @@ import {
   withShipmentHistory,
 } from '../utils/shipmentCancellation.js';
 import { statusAfterCourierCancellation } from '../utils/shipmozo-status.js';
+import { NotFoundError, ValidationError } from '../utils/errorHandler.js';
 
 // Orders the courier can no longer move forward: a webhook only records them.
 const CLOSED_ORDER_STATUSES = [
@@ -3041,6 +3042,60 @@ export class OrdersService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Manual fallback for a missed EKART webhook ("Sync Ekart Tracking"): reads the
+   * live Ekart status and applies it exactly like the webhook (courier cancel,
+   * forward status, or history only). A status already stored is skipped so
+   * repeated clicks do not add history entries.
+   */
+  async syncEkartTracking(orderId: number) {
+    const order = await this.findById(orderId);
+    if (!order) throw new NotFoundError(`Order ${orderId} not found`);
+    const trackingId = String(order.tracking_id || '').trim();
+    if (String(order.vendor || '').toUpperCase() !== 'EKART' || !trackingId) {
+      throw new ValidationError(`Order ${order.orderid || orderId} has no active Ekart shipment`);
+    }
+
+    const { ekartService } = await import('./ekart.service.js');
+    const tracking = await ekartService.trackShipment(trackingId);
+    const ekartStatus = String(tracking?.track?.status || '').trim();
+    if (!ekartStatus) throw new ValidationError(`Ekart returned no status for ${trackingId}`);
+
+    const unchanged = ekartStatus === String(order.shipment_tracking_status || '').trim();
+    const updatedOrder = unchanged
+      ? order
+      : await this.handleEkartWebhookStatusUpdate(
+          trackingId,
+          ekartStatus,
+          {
+            location: tracking.track.location,
+            description: tracking.track.desc,
+            ...(tracking.track.pickupTime !== undefined ? { pickupTime: tracking.track.pickupTime } : {}),
+            ...(tracking.track.attempts !== undefined ? { attempts: String(tracking.track.attempts) } : {})
+          },
+          { source: 'manual_sync', track: tracking.track }
+        );
+
+    logger.info(
+      { orderId: order.id, trackingId, ekartStatus, previousStatus: order.orderstatus, newStatus: updatedOrder?.orderstatus, unchanged },
+      'EKART tracking synced manually'
+    );
+
+    return {
+      order: updatedOrder,
+      summary: {
+        order_id: order.id,
+        order_number: order.orderid,
+        tracking_id: trackingId,
+        ekart_status: ekartStatus,
+        previous_status: order.orderstatus,
+        order_status: updatedOrder?.orderstatus ?? order.orderstatus,
+        shipment_cancelled: isCourierShipmentCancelledStatus(ekartStatus),
+        changed: !unchanged
+      }
+    };
   }
 
   /**

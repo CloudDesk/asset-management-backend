@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { prisma } from '../src/models/prisma.ts';
 import { OrdersService } from '../src/services/orders.service.ts';
+import { ekartService } from '../src/services/ekart.service.ts';
 import {
   buildCourierReportedCancellationUpdate,
   isCourierShipmentCancelledStatus,
@@ -192,4 +193,45 @@ test('Ekart forward status on a cancelled order is recorded without moving the o
   assert.equal(historyOnly.mock.callCount(), 1);
   assert.equal(historyOnly.mock.calls[0].arguments[1], 'Shipped');
   assert.equal(statusUpdate.mock.callCount(), 0, 'order and lines are not moved to shipped');
+});
+
+function trackingWith(status: string) {
+  return { _id: 'x', edd: 0, order_number: 'NIVAANA-0000000501', track: { status, ctime: 1, desc: 'desc', location: 'Hub', details: [] } };
+}
+
+test('Sync Ekart Tracking applies a live cancel like the webhook', async (t) => {
+  t.after(restoreAll);
+  const order = { ...ekartOrder('ready_for_dispatch'), shipment_tracking_status: 'Manifested' };
+  const service = serviceFor(order);
+  mock.method(ekartService, 'trackShipment', async () => trackingWith('Cancelled'));
+  const apply = mock.method(service, 'handleEkartWebhookStatusUpdate', async () => ({ ...order, tracking_id: null }));
+
+  const { summary } = await service.syncEkartTracking(501);
+
+  assert.equal(apply.mock.callCount(), 1);
+  assert.equal(apply.mock.calls[0].arguments[1], 'Cancelled');
+  assert.equal(summary.shipment_cancelled, true);
+  assert.equal(summary.changed, true);
+});
+
+test('Sync Ekart Tracking skips a status that is already stored', async (t) => {
+  t.after(restoreAll);
+  const order = { ...ekartOrder('shipped'), shipment_tracking_status: 'Shipped' };
+  const service = serviceFor(order);
+  mock.method(ekartService, 'trackShipment', async () => trackingWith('Shipped'));
+  const apply = mock.method(service, 'handleEkartWebhookStatusUpdate', async () => order);
+
+  const { summary } = await service.syncEkartTracking(501);
+
+  assert.equal(apply.mock.callCount(), 0, 'repeated clicks add no history');
+  assert.equal(summary.changed, false);
+});
+
+test('Sync Ekart Tracking refuses orders without an Ekart shipment', async (t) => {
+  t.after(restoreAll);
+  const service = serviceFor({ ...ekartOrder('ready_for_dispatch'), vendor: 'SHIPMOZO' });
+  const track = mock.method(ekartService, 'trackShipment', async () => trackingWith('Shipped'));
+
+  await assert.rejects(service.syncEkartTracking(501), /no active Ekart shipment/);
+  assert.equal(track.mock.callCount(), 0);
 });
