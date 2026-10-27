@@ -5,6 +5,7 @@ import { AmazonListingScope } from './amazon-listing-scope.service.js';
 import { AmazonOrderImportError } from './amazon-order-import.service.js';
 import { amazonOrderFulfillmentService } from './amazon-order-fulfillment.service.js';
 import { amazonOrderRoutingService } from './amazon-order-routing.service.js';
+import { amazonAvailableByProduct } from './amazon-combo-stock.service.js';
 import { AMAZON_TEST_ORDER_PREFIX as TEST_ORDER_PREFIX } from '../utils/amazonTestOrder.js';
 
 export const isAmazonTestOrderId = (amazonOrderId: string) =>
@@ -67,16 +68,12 @@ export class AmazonTestOrderService {
     }
 
     const reservedQuantity = input.quantity * Math.max(1, listing.unitsPerListing);
-    const stock = await prisma.platformStock.findFirst({
-      where: {
-        productid: listing.productId,
-        platform: { equals: 'amazon', mode: 'insensitive' },
-      },
-      select: { availableqty: true },
-    });
-    if (!stock || stock.availableqty < reservedQuantity) {
+    // A combo's stock is what its components allow (AMZ-PLAN-27)
+    const { available: availableByProduct } = await amazonAvailableByProduct([listing.productId]);
+    const available = availableByProduct.get(String(listing.productId));
+    if (available === undefined || available < reservedQuantity) {
       throw new AmazonOrderImportError(
-        `Only ${stock?.availableqty ?? 0} Amazon unit(s) are available in Nivaana`,
+        `Only ${available ?? 0} Amazon unit(s) are available in Nivaana`,
         409,
         'AMAZON_TEST_ORDER_INSUFFICIENT_STOCK',
       );

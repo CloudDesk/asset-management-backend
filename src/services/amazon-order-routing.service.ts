@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
 import { amazonInventorySyncService } from './amazon-inventory-sync.service.js';
+import { AmazonComboStockError, expandAmazonStockLines, loadComboComponents } from './amazon-combo-stock.service.js';
 
 export type AmazonOrderRoutingDecision = {
   route: 'FBA_RECONCILIATION' | 'EASY_SHIP_HANDLING' | 'NIVAANA_SHIPPING' | 'BLOCKED';
@@ -47,6 +48,29 @@ export const calculateFbaSoldDelta = (
   nextQuantity: number,
   sold: boolean
 ) => (sold ? nextQuantity : 0) - (previous?.status === 'SOLD' ? previous.quantity : 0);
+
+type StockLine = { amazonOrderItemId: string; listingId: bigint | null; productId: bigint; quantity: number; comboProductId: bigint | null };
+type ReservationTransaction = Prisma.TransactionClient;
+
+/** PUC for stock messages ("Insufficient … for product NIV-0096"), the id when the product is gone */
+const productLabel = async (transaction: ReservationTransaction, productId: bigint) =>
+  (await transaction.product.findUnique({ where: { id: productId }, select: { puc: true } }))?.puc ?? String(productId);
+
+/**
+ * Seller rows that hold no stock (FAILED / RELEASED) and no longer match the order's stock lines,
+ * e.g. the combo's own row once it reserves per component; they would otherwise block shipping.
+ */
+const removeStaleSellerRows = (transaction: ReservationTransaction, orderId: bigint, lines: StockLine[]) =>
+  transaction.amazonOrderStockReservation.deleteMany({
+    where: {
+      orderId,
+      inventoryOwnership: 'SELLER',
+      status: { in: ['FAILED', 'RELEASED'] },
+      ...(lines.length > 0
+        ? { NOT: { OR: lines.map((line) => ({ amazonOrderItemId: line.amazonOrderItemId, productId: line.productId })) } }
+        : {}),
+    },
+  });
 
 export class AmazonOrderRoutingService {
   private async reconcilePlatformStocks(stockIds: bigint[]) {
@@ -140,20 +164,34 @@ export class AmazonOrderRoutingService {
       unitsPerListing: number;
     }>;
   }, reconcile = true) {
-    const desired = order.items.map((item) => ({
+    const items = order.items.map((item) => ({
       amazonOrderItemId: item.amazonOrderItemId,
       listingId: item.listingId,
       productId: item.productId!,
       quantity: item.quantityOrdered * Math.max(1, item.unitsPerListing),
     })).filter((item) => item.quantity > 0);
 
+    // A combo item reserves each component (virtual stock, AMZ-PLAN-27); a single product reserves itself
+    let desired: StockLine[];
+    let expansionError: string | null = null;
+    try {
+      const combos = await loadComboComponents(items.map((item) => item.productId));
+      desired = items.flatMap((item) => expandAmazonStockLines(item.productId, item.quantity, combos)
+        .map((line) => ({ amazonOrderItemId: item.amazonOrderItemId, listingId: item.listingId, ...line })));
+    } catch (error) {
+      if (!(error instanceof AmazonComboStockError)) throw error;
+      expansionError = error.message;
+      desired = items.map((item) => ({ ...item, comboProductId: null }));
+    }
+
     const existing = await prisma.amazonOrderStockReservation.findMany({
       where: { orderId: order.id, status: 'RESERVED', inventoryOwnership: 'SELLER' },
     });
-    const alreadyReserved = desired.length === existing.length && desired.every((item) => existing.some((reservation) =>
+    const alreadyReserved = expansionError === null && desired.length === existing.length && desired.every((item) => existing.some((reservation) =>
       reservation.amazonOrderItemId === item.amazonOrderItemId
       && reservation.productId === item.productId
       && reservation.quantity === item.quantity
+      && reservation.comboProductId === item.comboProductId
     ));
     if (alreadyReserved) return { success: true, reason: null, stockIds: [] as bigint[] };
 
@@ -162,13 +200,15 @@ export class AmazonOrderRoutingService {
       : [];
 
     try {
+      if (expansionError !== null) throw new Error(expansionError);
       const reservedStockIds = await prisma.$transaction(async (transaction) => {
+        await removeStaleSellerRows(transaction, order.id, desired);
         const changedStockIds: bigint[] = [];
         for (const item of desired) {
           const stock = await transaction.platformStock.findFirst({
             where: { productid: item.productId, platform: { equals: 'amazon', mode: 'insensitive' } },
           });
-          if (!stock) throw new Error(`Amazon platform stock is missing for product ${item.productId}`);
+          if (!stock) throw new Error(`Amazon platform stock is missing for product ${await productLabel(transaction, item.productId)}`);
           const reserved = await transaction.platformStock.updateMany({
             where: { id: stock.id, availableqty: { gte: item.quantity } },
             data: {
@@ -177,7 +217,7 @@ export class AmazonOrderRoutingService {
               modifieddate: BigInt(Date.now()),
             },
           });
-          if (reserved.count !== 1) throw new Error(`Insufficient Amazon platform stock for product ${item.productId}`);
+          if (reserved.count !== 1) throw new Error(`Insufficient Amazon platform stock for product ${await productLabel(transaction, item.productId)}`);
           changedStockIds.push(stock.id);
           const updatedStock = await transaction.platformStock.findUnique({ where: { id: stock.id } });
           if (updatedStock) {
@@ -191,7 +231,7 @@ export class AmazonOrderRoutingService {
             select: { availablequantity: true, orderedquantity: true },
           });
           if (!product || Number(product.availablequantity ?? 0) < item.quantity) {
-            throw new Error(`Insufficient product stock for product ${item.productId}`);
+            throw new Error(`Insufficient product stock for product ${await productLabel(transaction, item.productId)}`);
           }
           const productAvailable = Number(product.availablequantity ?? 0) - item.quantity;
           await transaction.product.update({
@@ -204,11 +244,12 @@ export class AmazonOrderRoutingService {
             },
           });
           await transaction.amazonOrderStockReservation.upsert({
-            where: { orderId_amazonOrderItemId: { orderId: order.id, amazonOrderItemId: item.amazonOrderItemId } },
+            where: { orderId_amazonOrderItemId_productId: { orderId: order.id, amazonOrderItemId: item.amazonOrderItemId, productId: item.productId } },
             create: {
               orderId: order.id,
               amazonOrderItemId: item.amazonOrderItemId,
               productId: item.productId,
+              comboProductId: item.comboProductId,
               listingId: item.listingId,
               platformStockId: stock.id,
               quantity: item.quantity,
@@ -217,7 +258,7 @@ export class AmazonOrderRoutingService {
               reservedAt: new Date(),
             },
             update: {
-              productId: item.productId,
+              comboProductId: item.comboProductId,
               listingId: item.listingId,
               platformStockId: stock.id,
               quantity: item.quantity,
@@ -237,33 +278,37 @@ export class AmazonOrderRoutingService {
       return { success: true, reason: null, stockIds };
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Amazon seller stock reservation failed';
-      for (const item of desired) {
-        await prisma.amazonOrderStockReservation.upsert({
-          where: { orderId_amazonOrderItemId: { orderId: order.id, amazonOrderItemId: item.amazonOrderItemId } },
-          create: {
-            orderId: order.id,
-            amazonOrderItemId: item.amazonOrderItemId,
-            productId: item.productId,
-            listingId: item.listingId,
-            quantity: item.quantity,
-            inventoryOwnership: 'SELLER',
-            status: 'FAILED',
-            errorMessage: reason,
-          },
-          update: {
-            productId: item.productId,
-            listingId: item.listingId,
-            platformStockId: null,
-            quantity: item.quantity,
-            inventoryOwnership: 'SELLER',
-            status: 'FAILED',
-            errorMessage: reason,
-            reservedAt: null,
-            releasedAt: null,
-            soldAt: null,
-          },
-        });
-      }
+      await prisma.$transaction(async (transaction) => {
+        await removeStaleSellerRows(transaction, order.id, desired);
+        for (const item of desired) {
+          await transaction.amazonOrderStockReservation.upsert({
+            where: { orderId_amazonOrderItemId_productId: { orderId: order.id, amazonOrderItemId: item.amazonOrderItemId, productId: item.productId } },
+            create: {
+              orderId: order.id,
+              amazonOrderItemId: item.amazonOrderItemId,
+              productId: item.productId,
+              comboProductId: item.comboProductId,
+              listingId: item.listingId,
+              quantity: item.quantity,
+              inventoryOwnership: 'SELLER',
+              status: 'FAILED',
+              errorMessage: reason,
+            },
+            update: {
+              comboProductId: item.comboProductId,
+              listingId: item.listingId,
+              platformStockId: null,
+              quantity: item.quantity,
+              inventoryOwnership: 'SELLER',
+              status: 'FAILED',
+              errorMessage: reason,
+              reservedAt: null,
+              releasedAt: null,
+              soldAt: null,
+            },
+          });
+        }
+      });
       if (reconcile) await this.reconcilePlatformStocks(releasedStockIds);
       return { success: false, reason, stockIds: releasedStockIds };
     }
@@ -305,23 +350,14 @@ export class AmazonOrderRoutingService {
       });
 
       for (const item of desired) {
-        const previous = await transaction.amazonOrderStockReservation.findUnique({
-          where: {
-            orderId_amazonOrderItemId: {
-              orderId: order.id,
-              amazonOrderItemId: item.amazonOrderItemId,
-            },
-          },
-          select: { status: true, quantity: true },
+        // FBA keeps one row per order item on the mapped product (combo included: Amazon owns the stock)
+        const previous = await transaction.amazonOrderStockReservation.findFirst({
+          where: { orderId: order.id, amazonOrderItemId: item.amazonOrderItemId },
+          select: { id: true, status: true, quantity: true },
         });
         const soldDelta = calculateFbaSoldDelta(previous, item.quantity, sold);
         await transaction.amazonOrderStockReservation.upsert({
-          where: {
-            orderId_amazonOrderItemId: {
-              orderId: order.id,
-              amazonOrderItemId: item.amazonOrderItemId,
-            },
-          },
+          where: { id: previous?.id ?? -1n },
           create: {
             orderId: order.id,
             amazonOrderItemId: item.amazonOrderItemId,

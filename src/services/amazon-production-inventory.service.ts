@@ -11,6 +11,7 @@ import {
   normalizeAmazonListingStatus,
 } from './amazon-listing-normalizer.js';
 import { amazonProductionWriteGuardService } from './amazon-production-write-guard.service.js';
+import { amazonAvailableByProduct } from './amazon-combo-stock.service.js';
 
 export type AmazonInventoryActor = {
   requestedByUserId?: number;
@@ -179,14 +180,16 @@ export class AmazonProductionInventoryService {
     if (!listing) throw new AmazonProductionInventoryError('Amazon listing was not found', 404, 'AMAZON_LISTING_NOT_FOUND');
     assertAmazonInventoryListingEligible(listing);
 
-    const platformStock = await prisma.platformStock.findFirst({
-      where: { productid: listing.productId!, platform: { equals: 'amazon', mode: 'insensitive' } },
-      select: { availableqty: true },
-    });
-    if (!platformStock) {
+    // A combo has no stock of its own: its Amazon stock is what its components allow (AMZ-PLAN-27)
+    const { available, combos } = await amazonAvailableByProduct([listing.productId!]);
+    const components = combos.get(String(listing.productId));
+    if (components && components.length === 0) {
+      throw new AmazonProductionInventoryError('The mapped combo product has no active components; map its components in Inventory first', 409, 'AMAZON_COMBO_NO_COMPONENTS');
+    }
+    const nivaanaQuantity = available.get(String(listing.productId));
+    if (nivaanaQuantity === undefined) {
       throw new AmazonProductionInventoryError('No Amazon platform stock exists for the mapped Nivaana product', 409, 'AMAZON_PLATFORM_STOCK_MISSING');
     }
-    const nivaanaQuantity = Math.max(0, Math.trunc(platformStock.availableqty));
     const targetQuantity = calculateAmazonTargetQuantity(nivaanaQuantity, listing.unitsPerListing);
     return { listing, nivaanaQuantity, targetQuantity };
   }

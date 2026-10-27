@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
 import { AmazonListingScope, amazonListingScopeService } from './amazon-listing-scope.service.js';
 import { amazonInventorySyncService } from './amazon-inventory-sync.service.js';
+import { AmazonComboStockError, expandAmazonStockLines, loadComboComponents } from './amazon-combo-stock.service.js';
 
 export type AmazonReturnFulfilmentType = 'FBA' | 'FBM';
 export type AmazonReturnQcDisposition = 'RESTOCKABLE' | 'DAMAGED' | 'UNSELLABLE';
@@ -344,7 +345,7 @@ export class AmazonReturnService {
     actor: Actor
   ) {
     if (!/^[1-9]\d*$/.test(returnId)) throw new AmazonReturnError('Invalid return ID');
-    let platformStockId: bigint | null = null;
+    const platformStockIds: bigint[] = [];
     const result = await prisma.$transaction(async (transaction) => {
       const item = await transaction.amazonReturnEvent.findFirst({
         where: { id: BigInt(returnId), sellerId: scope.sellerId, marketplaceId: scope.marketplaceId },
@@ -358,20 +359,30 @@ export class AmazonReturnService {
       }
       let inventoryAction = input.qcDisposition === 'RESTOCKABLE' ? 'RESTOCKED' : 'QUARANTINED';
       if (input.qcDisposition === 'RESTOCKABLE') {
-        const stock = await transaction.platformStock.findFirst({
-          where: { productid: item.productId, platform: { equals: 'amazon', mode: 'insensitive' } },
-        });
-        if (!stock) throw new AmazonReturnError('Amazon platform stock is missing for the returned product', 409, 'AMAZON_PLATFORM_STOCK_MISSING');
-        const changed = await transaction.platformStock.updateMany({
-          where: { id: stock.id, soldqty: { gte: input.quantityReceived } },
-          data: {
-            availableqty: { increment: input.quantityReceived },
-            soldqty: { decrement: input.quantityReceived },
-            modifieddate: BigInt(Date.now()),
-          },
-        });
-        if (changed.count !== 1) throw new AmazonReturnError('Returned quantity exceeds sold Amazon stock', 409, 'AMAZON_RETURN_STOCK_CONFLICT');
-        platformStockId = stock.id;
+        // A returned combo goes back as its components (AMZ-PLAN-27: restock every component)
+        let lines: Array<{ productId: bigint; quantity: number }>;
+        try {
+          lines = expandAmazonStockLines(item.productId, input.quantityReceived, await loadComboComponents([item.productId], transaction));
+        } catch (error) {
+          if (error instanceof AmazonComboStockError) throw new AmazonReturnError(error.message, 409, error.code);
+          throw error;
+        }
+        for (const line of lines) {
+          const stock = await transaction.platformStock.findFirst({
+            where: { productid: line.productId, platform: { equals: 'amazon', mode: 'insensitive' } },
+          });
+          if (!stock) throw new AmazonReturnError('Amazon platform stock is missing for the returned product', 409, 'AMAZON_PLATFORM_STOCK_MISSING');
+          const changed = await transaction.platformStock.updateMany({
+            where: { id: stock.id, soldqty: { gte: line.quantity } },
+            data: {
+              availableqty: { increment: line.quantity },
+              soldqty: { decrement: line.quantity },
+              modifieddate: BigInt(Date.now()),
+            },
+          });
+          if (changed.count !== 1) throw new AmazonReturnError('Returned quantity exceeds sold Amazon stock', 409, 'AMAZON_RETURN_STOCK_CONFLICT');
+          platformStockIds.push(stock.id);
+        }
       }
       return transaction.amazonReturnEvent.update({
         where: { id: item.id },
@@ -384,7 +395,7 @@ export class AmazonReturnService {
         include: { product: { select: { id: true, puc: true, name: true } }, listing: { select: { id: true, sellerSku: true, title: true } } },
       });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-    if (platformStockId !== null) await amazonInventorySyncService.syncPlatformStockById(platformStockId).catch(() => undefined);
+    for (const platformStockId of platformStockIds) await amazonInventorySyncService.syncPlatformStockById(platformStockId).catch(() => undefined);
     return serialize(result);
   }
 

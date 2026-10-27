@@ -3,6 +3,7 @@ import { prisma } from '../models/prisma.js';
 import { NormalizedAmazonListing, isIncompleteAmazonListing } from '../services/amazon-listing-normalizer.js';
 import { buildCatalogWordStats, keyWords, scoreNameMatch, isSameAsin } from '../utils/amazonProductMatch.js';
 import { calculateAmazonTargetQuantity } from '../utils/amazonStockTarget.js';
+import { amazonAvailableByProduct } from '../services/amazon-combo-stock.service.js';
 
 export type AmazonListingUpsertResult = {
   outcome: 'CREATED' | 'UPDATED' | 'UNCHANGED';
@@ -631,14 +632,10 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     const fbaAccounting = await getFbaOrderAccounting(
       items.filter((item) => item.fulfilmentChannel === 'FBA').map((item) => item.id)
     );
-    // Stock Sync columns: Nivaana "amazon" platform stock and the quantity a sync would publish
+    // Stock Sync columns: Nivaana "amazon" platform stock (a combo: what its components allow) and the quantity a sync would publish
     const sellerFulfilledProductIds = [...new Set(items.flatMap((item) =>
-      item.productId !== null && item.mappingStatus === 'MAPPED' && item.fulfilmentChannel !== 'FBA' ? [item.productId] : []))];
-    const platformStocks = sellerFulfilledProductIds.length === 0 ? [] : await prisma.platformStock.findMany({
-      where: { productid: { in: sellerFulfilledProductIds }, platform: { equals: 'amazon', mode: 'insensitive' } },
-      select: { productid: true, availableqty: true },
-    });
-    const amazonStockByProduct = new Map(platformStocks.map((stock) => [String(stock.productid), Math.max(0, Math.trunc(stock.availableqty))]));
+      item.productId !== null && item.mappingStatus === 'MAPPED' && item.fulfilmentChannel !== 'FBA' ? [String(item.productId)] : []))].map(BigInt);
+    const { available: amazonStockByProduct } = await amazonAvailableByProduct(sellerFulfilledProductIds);
     const totalPages = Math.ceil(total / query.limit);
 
     return {
