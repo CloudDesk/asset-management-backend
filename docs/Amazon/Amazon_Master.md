@@ -6,8 +6,9 @@ One place for everything Amazon (SP-API) in Nivaana: how it works, where it is s
 - Every Amazon fix gets an entry in section 8 here **and** the usual entry in `docs/Fix_After_Sep30/Master.md` (same FIX number).
 - Every Amazon env / script / Cloud Scheduler change also gets a row in `docs/RELEASE_SCRIPTS_CHECKLIST.md` section 4e.
 - Amazon plans live in section 9 here as `AMZ-PLAN-xx` (not in `docs/Future_Plans.md`).
-- Last updated: 2026-10-26. Full gap list: section 10. **Deploying Amazon to SIT / UAT / Prod: section 4a.**
+- Last updated: 2026-10-27. Full gap list: section 10. **Deploying Amazon to SIT / UAT / Prod: section 4a.**
 - Order fulfilment flow (FBA / Easy Ship / Self Ship), client decisions (2026-10-26), Ship now, delivery status and plan: [`Amazon_Order_Fulfillment.md`](Amazon_Order_Fulfillment.md) (AMZ-PLAN-25).
+- Combo listings (Amazon combos vs Inventory combos, stock from components): AMZ-PLAN-27 in section 9; full listing comparison [`Amazon_Listings_vs_Inventory_UAT_2026-10-27.md`](Amazon_Listings_vs_Inventory_UAT_2026-10-27.md).
 
 ---
 
@@ -312,6 +313,10 @@ The time shown is the latest job, whatever its status (AMZ-PLAN-07).
 
 ## 8. Change log
 
+### 2026-10-27: Amazon — combo listings compared with Inventory; AMZ-PLAN-27 (docs only)
+- Read-only comparison of all 177 Amazon listings in `assetmanagement_uat` with Inventory products: 58 map to one product, 5 to pre-packed collections, 2 to the only combo (`AUO-0098`), **98 need a combo** (96 distinct), 7 products missing, 7 to check by hand. Report + CSV: `Amazon_Listings_vs_Inventory_UAT_2026-10-27.md` / `.csv`.
+- Found: Amazon stock sync, order reservation, sold / release and returns use the mapped product's own stock and never expand a combo into its components (a combo listing would sync 0 and block every order). Plan: AMZ-PLAN-27 (section 9). Until then, do not map listings to combo products.
+
 ### 2026-10-26: Amazon — Self Ship "Ship now" (Ekart / Shipmozo / Manual) and delivery status (FIX-162, backend + Inventory DEV-NEW, not committed)
 - Client decisions recorded (FBA sync only; Easy Ship stock sold on Amazon's Shipped; Self Ship like website orders) — section 7 and `Amazon_Order_Fulfillment.md` §2.
 - `POST /api/channels/amazon/orders/:orderId/fulfillment/ship-now` books the courier and confirms "Shipped" to Amazon in one call; `…/courier`, `…/delivery-status`, `GET …/label`. Ekart / Shipmozo webhooks and the Shipmozo scheduled sync update Amazon AWBs (Nivaana only).
@@ -542,6 +547,101 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 
 ### AMZ-PLAN-26: Buyer address from Amazon (PII role)
 **Status:** Parked 2026-10-26 by the client's choice: the developer profile was approved after a long review and a role change starts a new one. When wanted: request **Direct-to-Consumer Shipping (Restricted)** in the developer profile, then tick it on Nivaana-PROD, re-authorize (new refresh token → env + GCP secret), and fetch the address with a Restricted Data Token to pre-fill Ship now. Store only if needed (encrypted, deleted 30 days after delivery). Steps: `Amazon_Order_Fulfillment.md` section 7.
+### AMZ-PLAN-27: Amazon combo listings — stock from components
+**Status:** Planned 2026-10-27 (analysis only, no code changed). Needs the business decisions in 27.8 before building. Source list (every listing, proposed PUCs, stock): [`Amazon_Listings_vs_Inventory_UAT_2026-10-27.md`](Amazon_Listings_vs_Inventory_UAT_2026-10-27.md) / [`.csv`](Amazon_Listings_vs_Inventory_UAT_2026-10-27.csv), read-only on `assetmanagement_uat`.
+
+**Rule until this is built:** do **not** map an Amazon listing to a combo product. Stock Sync would send **0** to Amazon (e.g. `Auora_Pack6`: Amazon 100 → 0, components allow 85) and every order would be blocked.
+
+#### 27.1 What the UAT comparison found (2026-10-27)
+
+| Group | Listings | Meaning |
+| --- | ---: | --- |
+| 1. Map to one product | 58 | Normal mapping (pack size 1); 17 of these products have 0 Amazon stock in UAT |
+| 2. Pre-packed collection | 5 | Meditation / Sacred / Signature / Feel-Good / All-in-one 12 → `NIV-0055`–`0059`, stocked as **their own products** (stock not linked to the single incense packs) |
+| 3. Combo exists in Inventory | 2 | `Auora_Pack6`, `5P-GPQ1-FKCA` → `AUO-0098` (AUORA 6-in-1, the only combo in UAT) |
+| **4. Combo needed, components exist** | **98** | **96 distinct combos**: incense 62, AUORA sachets 25, soap 6, dhoop sticks 4, diffuser oil 1 |
+| 5. Product missing in Inventory | 7 | Golden Oudh incense, Kraftella wooden holder, 5 ceramic dhoop-cup holders |
+| 6. Check by hand | 7 | Ceramic incense holders Pack 2 / 3 / 4, vent-clip car diffuser |
+| **Total** | **177** | All unmapped in UAT; 34 Easy Ship orders blocked as unmapped |
+
+- 2 pairs of Amazon listings are the same combo (Kesar Chandan + Parijat; Nishigandha + Cherry Blossom + Jungle Vibe): one Inventory combo serves both.
+- 52 incense combos do not say the stick count; the list assumes the 30-stick Value Pack (`NIV-0004`–`0015`), only 8 are certain ("60 Sticks" = 2 × 30, "10's Pack" = Try-me-out `NIV-0033`–`0044`).
+- 9 combos would show 0 even when built (all 6 soap, 3 dhoop): their components have 0 Amazon stock in UAT.
+
+#### 27.2 How the code treats a combo today
+
+| # | Where | Today | Effect for a combo listing |
+| --- | --- | --- | --- |
+| G1 | `amazon-production-inventory.service.ts` `loadContext` (~154–191) → `calculateAmazonTargetQuantity` | Target = mapped product's **own** Amazon `platformstock.availableqty` ÷ pack size | Combo has no own stock (created with 0, `product.service.ts` ~1044) → Stock Sync / preview / listing table show **0** |
+| G2 | `syncAutomaticPlatformStock(platformStockId)` (~607) via `amazon-inventory-sync.service.ts` | A stock change re-syncs only listings mapped to **that** product | A component sale / restock never re-syncs the combo listings |
+| G3 | `amazon-order-routing.service.ts` `reserveSellerStock` (~133–230) | Reserves `quantityOrdered × unitsPerListing` on the mapped product's Amazon platform stock **and** `product.availablequantity` | Combo has 0 → "Insufficient Amazon platform stock" → order `BLOCKED_STOCK`; components untouched |
+| G4 | `amazon_order_stock_reservations`, unique `(orderId, amazonOrderItemId)` | One reservation row (one product) per order item | Cannot hold one row per component |
+| G5 | `finalizeReservationsAsSold` (~393), `releaseReservations` (~57) | Move the one row's quantity ordered → sold / back to available | Work per component once G4 is per component |
+| G6 | `amazon-return.service.ts` receive (~347–387) | Restocks the mapped product | Would restock the combo (no stock) instead of its components |
+| G7 | AMZ-PLAN-14 rule (one Automatic listing per product) | Stops two listings of the **same** product sharing stock | Does not see **shared components**: e.g. Kasturi 30-stick sits in its own listing + ~10 combos, each showing the full Kasturi number → oversell window |
+| G8 | Mapping dialog / Stock Sync tab (Inventory) | No combo awareness | Map to a combo without warning; Stock Sync shows 0 |
+| G9 | Inventory combo creation (`ProductForm.tsx` `comboSupportedTaxonomyValues`, PLAN-2026-10-26-164) | Combos only in 9 subcategories; components found by Scent in the **same** subcategory | `bath_body` (soap), `dhoop_sticks`, `fragrance_oils` cannot hold combos today; incense / sachet combos can (Scent mode) |
+| G10 | Amazon order page Stock card (Inventory, FIX-162) | One line per reservation | Needs component lines under the combo item |
+
+The website already expands combos into components for orders (`orders.service.ts` ~1595–1700, `productbundlemap`) and shows combo stock from component stock (`product.service.ts` `hydratePlatformProducts`, `nivapp` platform). Amazon uses the separate `amazon` platform stock, so the two channels do not share a pool.
+
+#### 27.3 Design
+
+1. **Combo Amazon stock** — new helper (e.g. `src/utils/amazonComboStock.ts`): `min over active components of floor(component Amazon availableqty / requiredqty)`; no active component → 0 and a clear "combo has no components" error. `loadContext` uses it when `product.iscombo`, then ÷ pack size as today. Same number in preview, sync, listing table and Stock Sync tab.
+2. **Reservations per component** — SQL migration: add `comboProductId BIGINT NULL` (the mapped combo) to `amazon_order_stock_reservations`; unique key becomes `(orderId, amazonOrderItemId, productId)`. For a combo item, `reserveSellerStock` writes one row per active component: `productId` = component, `quantity` = `quantityOrdered × unitsPerListing × requiredqty`, all in the same transaction (all or nothing → `BLOCKED_STOCK` names the short component). `alreadyReserved` compares per component. Non-combo items unchanged (`comboProductId` null). Release-script row in `RELEASE_SCRIPTS_CHECKLIST.md` 4b; run before the backend deploy (like the Ship now SQL).
+3. **Sold / release / returns** — `finalizeReservationsAsSold` and `releaseReservations` already loop over rows: no logic change beyond the row shape. Returns of a combo SKU: restock each component by `received × requiredqty` (option in 27.8).
+4. **Re-sync combos when a component changes** — `syncAutomaticPlatformStock`: after the product's own listings, find combos that contain the product (`productbundlemap`, active) and run their Automatic listings too. Still behind the same switches (`AMAZON_AUTO_SYNC_ENABLED`, writes, pause). Manual Stock Sync: a "re-check combos using this product" hint.
+5. **Shared components (G7)** — decision in 27.8. Recommended start: (a) keep publishing the computed number to every listing and re-sync all affected listings right after each order (point 4), and show in Stock Sync how many listings draw on a component; later, if oversells happen, (b) a per-listing cap (`maxPublishQuantity` on `marketplace_listings`).
+6. **FBA combos** (e.g. `QB-RO5J-B21W`) — stock is in Amazon's warehouse: keep today's FBA tracking on the mapped product, no component movement.
+7. **Mapping and UI** — mapping dialog: when the product is a combo, list its components with their Amazon stock and the resulting combo stock; block a combo without active components; pack size stays "how many combo sets per Amazon unit" (normally 1). Stock Sync tab: "Combo" badge and components on hover. Amazon order page Stock card: component lines grouped under the combo item.
+
+#### 27.4 Creating the 96 combos
+
+- Incense and AUORA sachet combos can be made in the product form today (Scent mode). Soap, dhoop sticks and diffuser oil need their subcategories added to the combo list, or PLAN-2026-10-26-164 Search mode (pick components from any subcategory).
+- 96 combos by hand is slow and error-prone: proposed one-off script `scripts/create-amazon-combos.ts` reading the reviewed CSV (combo name, subcategory, pack, components + qty, price), **dry run by default**, `--apply --confirm=…` to write, skips combos that already exist (`validate-combo` rule: same components = duplicate). PUC / HSN / GST as the product service does today. Script row in the release checklist.
+- After creation: map each listing (Amazon → Mappings), Sync mode Manual first; compare Nivaana target with Amazon quantity before the first send.
+
+#### 27.5 Phases
+
+| Phase | Work | Safe to ship alone? |
+| --- | --- | --- |
+| P0 | Business decisions (27.8); review the CSV (sizes, missing products, holders) | — |
+| P1 | Combo stock helper + `loadContext`; Stock Sync / listing table show the right number (read-only paths) | Yes (sends nothing new) |
+| P2 | Migration + per-component reservations, sold, release, returns | Yes, after SQL on that DB |
+| P3 | Combo re-sync on component change; shared-component policy | Yes (behind auto-sync switch, off today) |
+| P4 | Inventory: mapping dialog, Stock Sync badge, order page component lines | Yes |
+| P5 | Data: missing products, create combos (script, UAT first), map on UAT, test orders | — |
+| P6 | Prod: same read-only comparison on Prod, SQL, deploy, create combos, map, Manual sync first | — |
+
+#### 27.6 Tests
+
+- Combo stock: min over components, `requiredqty` > 1, inactive component ignored, no component → 0 + error, pack size on top.
+- Reservation: combo order reserves every component (platform + product counts); one component short → nothing reserved, `BLOCKED_STOCK` names it; re-import of the same order does not double reserve; quantity change releases and re-reserves.
+- Shipped / cancelled: components move to sold / back to available; Easy Ship flow (Amazon reports Shipped) and Self Ship (Ship now) both.
+- Returns: combo return restocks components.
+- Auto sync: component change re-syncs its combo listings; nothing sent while switches are off.
+- Regression: single-product listings and website combo orders unchanged (`nivapp` stock untouched).
+
+#### 27.7 Risks
+
+- Shared components can oversell between syncs (27.3 point 5).
+- Wrong stick size chosen for an incense combo moves the wrong stock — review the CSV before the script runs.
+- Collections (`NIV-0055`–`0059`) keep separate stock unless turned into combos (27.8).
+- UAT numbers only; Prod mappings and stock may differ.
+
+#### 27.8 Decisions needed
+
+| # | Question | Proposed default |
+| --- | --- | --- |
+| 1 | Incense combos: 30-stick Value Pack or 10-stick Try-me-out per scent? | 30-stick unless the title says "10's Pack" |
+| 2 | Collections `NIV-0055`–`0059` (and the 6-pack `Nivaana_10Pack_LuxuryMeditation_P6`): keep own stock or make them combos of the singles? | Keep own stock for now; the P6 becomes a combo of `NIV-0056` + `NIV-0058` |
+| 3 | Shared components: (a) re-sync after each order, (b) per-listing cap, (c) share % | (a), then (b) if needed |
+| 4 | Combo returns: restock all components, or let the team choose per return? | Restock all components |
+| 5 | Create the 7 missing products (Golden Oudh, Kraftella holder, 5 dhoop-cup holders)? | Yes, before mapping |
+| 6 | Ceramic holders: which product is the single unit, so Pack 2 / 3 / 4 use pack size? | One single holder product, pack size per listing |
+| 7 | Duplicate Amazon listings of the same combo: keep both or close one? | Keep both, map to one combo |
+| 8 | Combos via script (27.4) or by hand? | Script with dry run |
+
 ---
 
 ## 10. Gap register (2026-10-22)
