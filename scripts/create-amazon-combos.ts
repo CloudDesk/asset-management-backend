@@ -4,7 +4,8 @@
  * A combo is virtual stock (C = 1 x A + 1 x B is available as min(A, B)); from FIX-2026-10-27-168
  * an Amazon listing mapped to a combo syncs and reserves through its components. This script
  * creates the missing combos from the reviewed listing comparison CSV, through ProductService.create
- * (same validation, naming, PUC, platform stocks, bundle map and duplicate check as the product form).
+ * (same validation, naming, PUC, bundle map and duplicate check as the product form). Only an Amazon
+ * platform stock row is created, so these combos do not appear on the Nivaana website.
  *
  * 1. Review the CSV first (components per combo, incense 30-stick vs 10-stick):
  *      docs/Amazon/Amazon_Listings_vs_Inventory_UAT_2026-10-27.csv  (groups 3 and 4 are used)
@@ -88,14 +89,15 @@ async function main() {
 
     const bundles = await prisma.productBundleMap.findMany({
       where: { isactive: true, bundleproduct: { iscombo: true } },
-      select: { componentproductid: true, bundleproduct: { select: { puc: true } } },
+      select: { componentproductid: true, requiredqty: true, bundleproduct: { select: { puc: true } } },
     });
-    const componentsByCombo = new Map<string, bigint[]>();
+    const componentsByCombo = new Map<string, Array<{ id: bigint; qty: number }>>();
     for (const bundle of bundles) {
       const puc = bundle.bundleproduct.puc;
-      componentsByCombo.set(puc, [...(componentsByCombo.get(puc) ?? []), bundle.componentproductid]);
+      componentsByCombo.set(puc, [...(componentsByCombo.get(puc) ?? []), { id: bundle.componentproductid, qty: bundle.requiredqty }]);
     }
-    const existingCombos = new Map([...componentsByCombo].map(([puc, ids]) => [amazonComboComponentKey(ids), puc]));
+    const existingCombos = new Map([...componentsByCombo].map(([puc, items]) =>
+      [amazonComboComponentKey(items.map((item) => item.id), items.map((item) => item.qty)), puc]));
 
     const plan = buildComboPlan(rows, productsByPuc, existingCombos);
     // Same validation as the product form, so the dry run already shows what create would reject
@@ -124,7 +126,8 @@ async function main() {
       console.log('');
       for (const entry of count('CREATE')) {
         try {
-          const product: any = await service.create(entry.input as any);
+          // Amazon stock row only: a nivapp row would list the combo on the Nivaana website
+          const product: any = await service.create(entry.input as any, { platforms: ['amazon'] });
           results.push({ entry, createdPuc: product.puc });
           console.log(`  ✔ ${product.puc}  ${line(entry)}`);
         } catch (error: any) {

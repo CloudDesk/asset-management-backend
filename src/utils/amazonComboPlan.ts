@@ -75,12 +75,90 @@ const FAMILY_LABEL: Record<string, string> = {
   'Diffuser oil 10 ml': 'Diffuser Oil',
 };
 
+/** Combo label from the components' subcategory (combos picked by hand in the mapping dialog) */
+const SUBCATEGORY_LABEL: Record<string, string> = {
+  incense_sticks: 'Incense Sticks',
+  wardrobe_fragrance: 'Wardrobe Fragrance Sachets',
+  bath_body: 'Premium Glycerine Bathing Bar',
+  dhoop_sticks: 'Dhoop Sticks',
+  dhoop_cones: 'Dhoop Cones',
+  fragrance_oils: 'Diffuser Oil',
+  air_fresheners: 'Room Mist',
+};
+
+/** Pack picklist values (same in Dev/SIT, UAT and Prod on 2026-10-27); other counts leave pack empty */
+const PACK_SIZES = new Set([2, 3, 4, 5, 6, 9, 12]);
+
 const sameValue = (values: Array<string | null>) => {
   const unique = [...new Set(values.map((value) => value ?? ''))];
   return unique.length === 1 && unique[0] !== '' ? unique[0] : null;
 };
 
-const componentKey = (ids: Array<bigint | string>) => ids.map(String).sort().join(',');
+/** Key of a combo's component set: product IDs with their quantity per combo (1 when not given) */
+const componentKey = (ids: Array<bigint | string>, quantities: number[] = []) =>
+  ids.map((id, index) => `${String(id)}x${quantities[index] ?? 1}`).sort().join(',');
+
+const titleCase = (value: string) => value.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+export type ComboInputComponent = ComboPlanProduct & { requiredQty: number; shortname?: string | null };
+
+/**
+ * ProductService.create input for a combo of `components` (shared by the combo script and "Map as combo").
+ * Tax must be the same on every component; with `allowMixedTaxonomy` (picked by hand) brand / category /
+ * subcategory come from the first component, otherwise they must match too.
+ */
+export function buildComboProductInput(options: {
+  components: ComboInputComponent[];
+  label?: string;
+  scentText?: string;
+  price: number | null;
+  asin: string | null;
+  allowMixedTaxonomy?: boolean;
+}): { input: Record<string, unknown> } | { reason: string } {
+  const { components } = options;
+  if (components.length < 2) return { reason: 'A combo needs at least 2 different products' };
+  const nested = components.filter((product) => product.iscombo);
+  if (nested.length > 0) return { reason: `A combo cannot contain another combo: ${nested.map((product) => product.puc).join(', ')}` };
+  const hsn = sameValue(components.map((product) => product.hsn_code || null));
+  const gst = sameValue(components.map((product) => (product.gst_rate === '' || product.gst_rate === null ? null : String(Number(product.gst_rate)))));
+  const brand = sameValue(components.map((product) => product.brand));
+  const category = sameValue(components.map((product) => product.category));
+  const subcategory = sameValue(components.map((product) => product.subcategory));
+  if (!options.allowMixedTaxonomy && (!brand || !category || !subcategory)) {
+    return { reason: 'Components differ in brand, category or subcategory: create this combo by hand' };
+  }
+  if (!hsn || gst === null) return { reason: 'Components have different HSN code or GST rate: decide the combo tax by hand' };
+  const first = components[0]!;
+  const comboBrand = brand ?? first.brand;
+  if (!comboBrand) return { reason: 'The first product has no brand' };
+
+  const label = options.label ?? (subcategory ? SUBCATEGORY_LABEL[subcategory] ?? titleCase(subcategory) : 'Gift');
+  const names = components.map((product) => (product.fragnancetype && !product.fragnancetype.includes(',')
+    ? titleCase(product.fragnancetype) : product.shortname || product.puc));
+  const scentText = options.scentText || [...new Set(names)].join(' & ');
+  const units = components.reduce((sum, product) => sum + product.requiredQty, 0);
+  const fragrances = components.map((product) => product.fragnancetype).filter((value): value is string => Boolean(value));
+  return {
+    input: {
+      // ProductService.create builds the full name as "<Brand label> - <remarks>"
+      name: `${label} Combo Pack | ${scentText}`.slice(0, 1000),
+      remarks: `${label} Combo Pack | ${scentText}`.slice(0, 1000),
+      shortname: `${comboBrand.toUpperCase()} ${label} Combo - ${scentText}`.slice(0, 160),
+      brand: comboBrand,
+      ...(first.category ? { category: category ?? first.category } : {}),
+      ...(first.subcategory ? { subcategory: subcategory ?? first.subcategory } : {}),
+      ...(PACK_SIZES.has(units) ? { pack: `pack_of_${units}` } : {}),
+      ...(fragrances.length === components.length ? { fragnancetype: [...new Set(fragrances)].join(',') } : {}),
+      hsn_code: hsn,
+      gst_rate: Number(gst),
+      ...(options.price !== null && options.price > 0 ? { price: options.price } : {}),
+      ...(options.asin ? { asin: options.asin } : {}),
+      iscombo: true,
+      combotype: 'fixed',
+      components: components.map((product) => ({ productid: String(product.id), requiredqty: product.requiredQty })),
+    },
+  };
+}
 
 /** Combo entries for the "Combo needed" (group 4) and "Combo exists" (group 3) rows of the CSV */
 export function buildComboPlan(
@@ -116,38 +194,18 @@ export function buildComboPlan(
     const existing = existingCombos.get(componentKey(components.map((product) => product.id)));
     if (existing) { plan.push({ ...base, action: 'EXISTS', existingPuc: existing }); continue; }
 
-    const brand = sameValue(components.map((product) => product.brand));
-    const category = sameValue(components.map((product) => product.category));
-    const subcategory = sameValue(components.map((product) => product.subcategory));
-    const hsn = sameValue(components.map((product) => product.hsn_code));
-    const gst = sameValue(components.map((product) => String(Number(product.gst_rate))));
-    if (!brand || !category || !subcategory) { plan.push(skip('Components differ in brand, category or subcategory: create this combo by hand')); continue; }
-    if (!hsn || gst === null) { plan.push(skip('Components have different HSN code or GST rate: decide the combo tax by hand')); continue; }
     const price = listings.map((listing) => listing.price).find((value) => value !== null) ?? null;
     if (price === null) { plan.push(skip('No Amazon price to use as the combo price')); continue; }
-
     const scentNames = first.scents.split('+').map((scent) => scent.trim()).filter(Boolean);
-    const label = FAMILY_LABEL[first.family] ?? first.family;
-    const scentText = scentNames.length > 0 ? scentNames.join(' & ') : componentPucs.join(' & ');
-    const fragrances = components.map((product) => product.fragnancetype).filter((value): value is string => Boolean(value));
-    const input: Record<string, unknown> = {
-      // ProductService.create builds the full name as "<Brand label> - <remarks>"
-      name: `${label} Combo Pack | ${scentText}`,
-      remarks: `${label} Combo Pack | ${scentText}`,
-      shortname: `${brand.toUpperCase()} ${label} Combo - ${scentText}`.slice(0, 160),
-      brand,
-      category,
-      subcategory,
-      pack: `pack_of_${components.length}`,
-      ...(fragrances.length === components.length ? { fragnancetype: [...new Set(fragrances)].join(',') } : {}),
-      hsn_code: hsn,
-      gst_rate: Number(gst),
+    const built = buildComboProductInput({
+      components: components.map((product) => ({ ...product, requiredQty: 1 })),
+      label: FAMILY_LABEL[first.family] ?? first.family,
+      scentText: scentNames.length > 0 ? scentNames.join(' & ') : componentPucs.join(' & '),
       price,
-      ...(listings[0]!.asin ? { asin: listings[0]!.asin } : {}),
-      iscombo: true,
-      combotype: 'fixed',
-      components: components.map((product) => ({ productid: String(product.id), requiredqty: 1 })),
-    };
+      asin: listings[0]!.asin || null,
+    });
+    if ('reason' in built) { plan.push(skip(built.reason)); continue; }
+    const { input } = built;
     plan.push({ ...base, action: 'CREATE', input });
   }
   return plan.sort((left, right) => left.action.localeCompare(right.action) || left.family.localeCompare(right.family) || left.scents.localeCompare(right.scents));

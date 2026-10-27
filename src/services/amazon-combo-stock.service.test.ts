@@ -10,6 +10,9 @@ import {
 import { AmazonOrderRoutingService } from './amazon-order-routing.service.js';
 import { AmazonProductionInventoryService } from './amazon-production-inventory.service.js';
 import { AmazonReturnService } from './amazon-return.service.js';
+import { env } from '../config/env.js';
+import { amazonProductionWriteGuardService } from './amazon-production-write-guard.service.js';
+import { amazonListingScopeService } from './amazon-listing-scope.service.js';
 
 // AMZ-PLAN-27: a combo is virtual stock. C = 1 x A + 1 x B is available as min(A, B); an Amazon
 // order for C reserves, sells and releases A and B; a returned C restocks A and B.
@@ -35,7 +38,7 @@ function fakeDatabase(stock: Record<string, number>) {
   ];
   const stocks: Stock[] = [
     { id: 11n, productid: A, platform: 'amazon', availableqty: stock.A, orderedqty: 0, soldqty: stock.soldA ?? 0 },
-    { id: 12n, productid: B, platform: 'amazon', availableqty: stock.B, orderedqty: 0, soldqty: stock.soldB ?? 0 },
+    ...(stock.noStockRowB ? [] : [{ id: 12n, productid: B, platform: 'amazon', availableqty: stock.B, orderedqty: 0, soldqty: stock.soldB ?? 0 }]),
     { id: 13n, productid: C, platform: 'amazon', availableqty: 0, orderedqty: 0, soldqty: 0 },
     { id: 14n, productid: SINGLE, platform: 'amazon', availableqty: stock.SINGLE ?? 0, orderedqty: 0, soldqty: 0 },
   ];
@@ -49,6 +52,7 @@ function fakeDatabase(stock: Record<string, number>) {
     if (key === 'platform') return true;
     if (condition && typeof condition === 'object' && 'gte' in condition) return row[key] >= condition.gte;
     if (condition && typeof condition === 'object' && 'in' in condition) return inList(row[key], condition);
+    if (condition && typeof condition === 'object' && 'notIn' in condition) return !condition.notIn.map(String).includes(String(row[key]));
     return String(row[key]) === String(condition);
   });
   const apply = (row: Row, data: Row) => {
@@ -81,6 +85,11 @@ function fakeDatabase(stock: Record<string, number>) {
       update: async ({ where, data }: any) => apply(stocks.find((row) => row.id === where.id)!, data),
     },
     amazonOrderStockReservation: {
+      updateMany: async ({ where, data }: any) => {
+        const rows = reservations.filter((row) => meets(row, where));
+        rows.forEach((row) => apply(row, data));
+        return { count: rows.length };
+      },
       findMany: async ({ where }: any) => reservations.filter((row) => meets(row, where)),
       findFirst: async ({ where }: any) => reservations.find((row) => meets(row, where)) ?? null,
       deleteMany: async ({ where }: any) => {
@@ -259,5 +268,93 @@ test('a returned combo restocks every component', async () => {
     assert.deepEqual([stockOf(db.stocks, B).availableqty, stockOf(db.stocks, B).soldqty], [7, 1]);
     assert.equal(stockOf(db.stocks, C).availableqty, 0);
     assert.equal(returnEvent.inventoryAction, 'RESTOCKED');
+  } finally { restore(); }
+});
+
+test('a component stock change re-syncs its own listing and the listings of combos that contain it (P3)', async () => {
+  const db = fakeDatabase({ A: 15, B: 10 });
+  const listings = [
+    { id: 60n, sellerId: 'S', marketplaceId: 'M', sellerSku: 'A-SINGLE', productId: A },
+    { id: 61n, sellerId: 'S', marketplaceId: 'M', sellerSku: 'C-COMBO', productId: C },
+  ];
+  let listingQuery: any;
+  const restore = useFake({
+    ...db.fake,
+    productBundleMap: {
+      findMany: async ({ where }: any) => (where.componentproductid === A ? [{ bundleproductid: C }] : []),
+    },
+    marketplaceListing: {
+      findMany: async ({ where }: any) => { listingQuery = where; return listings.filter((listing) => where.productId.in.includes(listing.productId)); },
+    },
+  }, [
+    [env, 'AMAZON_AUTO_SYNC_ENABLED', true],
+    [env, 'AMAZON_PRODUCTION_WRITES_ENABLED', true],
+    [env, 'AMAZON_ENVIRONMENT', 'PRODUCTION'],
+    [amazonProductionWriteGuardService, 'assertEnabled', async () => {}],
+    [amazonListingScopeService, 'resolveForSeller', async () => ({ sellerId: 'S', marketplaceId: 'M' })],
+  ]);
+  try {
+    const service = new AmazonProductionInventoryService() as any;
+    const synced: string[] = [];
+    service.preview = async (listingId: string) => { synced.push(listingId); return { mismatch: false }; };
+    const result = await service.syncAutomaticPlatformStock('11'); // A's Amazon stock row
+    assert.deepEqual(listingQuery.productId.in.map(String), [String(A), String(C)]);
+    assert.deepEqual(synced.sort(), ['60', '61']);
+    assert.equal(result.status, 'SYNCED');
+
+    // Two Automatic listings on the combo: the combo is reported, A's own listing still syncs
+    listings.push({ id: 62n, sellerId: 'S', marketplaceId: 'M', sellerSku: 'C-COMBO-2', productId: C });
+    synced.length = 0;
+    const shared = await service.syncAutomaticPlatformStock('11');
+    assert.deepEqual(synced, ['60']);
+    assert.match(String(shared.results.find((entry: any) => !entry.success)?.message), /C-COMBO, C-COMBO-2/);
+  } finally { restore(); }
+});
+
+test('nothing is sent while automatic sending is switched off', async () => {
+  const restore = useFake({}, [[env, 'AMAZON_AUTO_SYNC_ENABLED', false]]);
+  try {
+    const result = await (new AmazonProductionInventoryService() as any).syncAutomaticPlatformStock('11');
+    assert.equal(result.status, 'SKIPPED');
+  } finally { restore(); }
+});
+
+test('pack size and quantity per combo multiply: Stock Sync target and the reserved units', async () => {
+  const db = fakeDatabase({ A: 15, B: 10, requiredB: 2 });
+  const listing = { id: 50n, sellerSku: 'COMBO-P2', productType: 'X', listingStatus: 'BUYABLE,DISCOVERABLE', fulfilmentChannel: 'MFN',
+    mappingStatus: 'MAPPED', productId: C, unitsPerListing: 2, inventorySyncMode: 'MANUAL', price: 299 };
+  const restore = useFake({ ...db.fake, marketplaceListing: { findFirst: async () => listing } });
+  try {
+    const context = await (new AmazonProductionInventoryService() as any).loadContext('50', { sellerId: 'S', marketplaceId: 'M' });
+    assert.equal(context.nivaanaQuantity, 5, 'min(15, 10 ÷ 2)');
+    assert.equal(context.targetQuantity, 2, '5 combos ÷ 2 per Amazon unit');
+    // 1 Amazon unit = 2 combos = 2 × A and 4 × B
+    const result = await (new AmazonOrderRoutingService() as any).reserveSellerStock(comboOrder(1, C, 2), false);
+    assert.equal(result.success, true);
+    assert.deepEqual(db.reservations.map((row) => [row.productId, row.quantity]), [[A, 2], [B, 4]]);
+  } finally { restore(); }
+});
+
+test('a component without an Amazon stock row: combo shows 0 and its order is blocked with the PUC', async () => {
+  const db = fakeDatabase({ A: 15, B: 10, noStockRowB: 1 });
+  const restore = useFake(db.fake);
+  try {
+    const { available } = await amazonAvailableByProduct([C]);
+    assert.equal(available.get(String(C)), 0);
+    const result = await (new AmazonOrderRoutingService() as any).reserveSellerStock(comboOrder(1), false);
+    assert.equal(result.success, false);
+    assert.match(result.reason, /Amazon platform stock is missing for product NIV-B/);
+  } finally { restore(); }
+});
+
+test('FBA combo orders stay on the combo row (Amazon owns the stock); components are not touched', async () => {
+  const db = fakeDatabase({ A: 15, B: 10 });
+  const restore = useFake(db.fake);
+  try {
+    await (new AmazonOrderRoutingService() as any).trackFbaStock(comboOrder(1), true);
+    assert.deepEqual(db.reservations.map((row) => [row.productId, row.inventoryOwnership, row.status]), [[C, 'AMAZON_FBA', 'SOLD']]);
+    assert.equal(stockOf(db.stocks, C).soldqty, 1);
+    assert.deepEqual([stockOf(db.stocks, A).availableqty, stockOf(db.stocks, A).soldqty], [15, 0]);
+    assert.deepEqual([stockOf(db.stocks, B).availableqty, stockOf(db.stocks, B).soldqty], [10, 0]);
   } finally { restore(); }
 });

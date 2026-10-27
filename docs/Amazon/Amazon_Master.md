@@ -313,6 +313,12 @@ The time shown is the latest job, whatever its status (AMZ-PLAN-07).
 
 ## 8. Change log
 
+### 2026-10-27: Amazon — "Map as combo" (FIX-171, backend + Inventory DEV-NEW, not committed)
+- Mapping dialog: **Several products (combo)** — pick the products and quantities; Nivaana reuses the combo with exactly those products or creates it, then maps. Combos made for Amazon (here and by `amazon:combos`) get only an Amazon stock row, so they do not appear on the Nivaana website. Details: `docs/Fix_After_Sep30/Master.md` FIX-2026-10-27-171.
+
+### 2026-10-27: Amazon — combo re-sync and combo view (FIX-170, AMZ-PLAN-27 P3 + P4, backend + Inventory DEV-NEW, not committed)
+- A component's stock change re-syncs the Automatic listings of every combo that contains it (only when automatic sending is on); mapping to a combo without products is refused; Stock Sync, the sync dialog and the mapping dialog show combo stock per product. Details: `docs/Fix_After_Sep30/Master.md` FIX-2026-10-27-170.
+
 ### 2026-10-27: Amazon — combo creation script (FIX-169, AMZ-PLAN-27 P5 tooling, backend DEV-NEW, not committed)
 - `npm run amazon:combos -- <env>` plans and (with `--apply --confirm=NIVAANA_AMAZON_COMBOS`) creates the Inventory combos for Amazon combo listings from the reviewed CSV, through the normal product create. UAT dry run: 95 to create, 1 exists, 1 skipped. Nothing created yet. Details: `docs/Fix_After_Sep30/Master.md` FIX-2026-10-27-169.
 
@@ -555,7 +561,7 @@ All 8 backend suggestions shown (was 4) as crisp cards; suggestion candidate poo
 ### AMZ-PLAN-26: Buyer address from Amazon (PII role)
 **Status:** Parked 2026-10-26 by the client's choice: the developer profile was approved after a long review and a role change starts a new one. When wanted: request **Direct-to-Consumer Shipping (Restricted)** in the developer profile, then tick it on Nivaana-PROD, re-authorize (new refresh token → env + GCP secret), and fetch the address with a Restricted Data Token to pre-fill Ship now. Store only if needed (encrypted, deleted 30 days after delivery). Steps: `Amazon_Order_Fulfillment.md` section 7.
 ### AMZ-PLAN-27: Amazon combo listings — stock from components
-**Status:** **P1 + P2 implemented 2026-10-27** (FIX-2026-10-27-168, not committed; SQL `20261027_amazon_combo_stock_reservations.sql` run on Dev/SIT 2026-10-27; UAT / Prod pending): combo stock from components in Stock Sync / listing table / test orders, per-component reservations, sold, release, combo returns restock all components (decision 4), order page lists components. **P5 tooling 2026-10-27** (FIX-2026-10-27-169): `npm run amazon:combos -- <env>` creates the combos from the reviewed CSV (dry run by default; UAT dry run: 95 to create, 1 exists, 1 skipped). Open: P3 (combo re-sync on component change, with the auto-sync go-live), P4 (mapping dialog combo view), applying P5 after the CSV review, mapping, P6 Prod, decisions 1–3 and 5–8. Source list (every listing, proposed PUCs, stock): [`Amazon_Listings_vs_Inventory_UAT_2026-10-27.md`](Amazon_Listings_vs_Inventory_UAT_2026-10-27.md) / [`.csv`](Amazon_Listings_vs_Inventory_UAT_2026-10-27.csv), read-only on `assetmanagement_uat`.
+**Status:** **P1 + P2 implemented 2026-10-27** (FIX-2026-10-27-168, not committed; SQL `20261027_amazon_combo_stock_reservations.sql` run on Dev/SIT 2026-10-27; UAT / Prod pending): combo stock from components in Stock Sync / listing table / test orders, per-component reservations, sold, release, combo returns restock all components (decision 4), order page lists components. **P5 tooling 2026-10-27** (FIX-2026-10-27-169): `npm run amazon:combos -- <env>` creates the combos from the reviewed CSV (dry run by default; UAT dry run: 95 to create, 1 exists, 1 skipped). **P3 + P4 implemented 2026-10-27** (FIX-2026-10-27-170): combo listings re-sync when a component changes (behind the auto-sync switch), mapping to a combo without products refused, Stock Sync / sync dialog / mapping dialog show combo stock. **"Map as combo" 2026-10-27** (FIX-2026-10-27-171): the mapping dialog maps a listing to several products; the combo with exactly those products is reused or created (Amazon stock row only, so not on the website). Combos can now be made one by one while mapping, or in bulk with the script. Open: applying the script after the CSV review (decision 1) if bulk is wanted, mapping the listings, P6 Prod (push, SQL per database, deploy), decisions 2, 3 (default (a) built) and 5–8. Source list (every listing, proposed PUCs, stock): [`Amazon_Listings_vs_Inventory_UAT_2026-10-27.md`](Amazon_Listings_vs_Inventory_UAT_2026-10-27.md) / [`.csv`](Amazon_Listings_vs_Inventory_UAT_2026-10-27.csv), read-only on `assetmanagement_uat`.
 
 **Rule until FIX-168 is deployed (SQL first) in that environment:** do **not** map an Amazon listing to a combo product. Stock Sync would send **0** to Amazon (e.g. `Auora_Pack6`: Amazon 100 → 0, components allow 85) and every order would be blocked.
 
@@ -642,7 +648,7 @@ The website already expands combos into components for orders (`orders.service.t
 | --- | --- | --- |
 | 1 | Incense combos: 30-stick Value Pack or 10-stick Try-me-out per scent? | 30-stick unless the title says "10's Pack" |
 | 2 | Collections `NIV-0055`–`0059` (and the 6-pack `Nivaana_10Pack_LuxuryMeditation_P6`): keep own stock or make them combos of the singles? | Keep own stock for now; the P6 becomes a combo of `NIV-0056` + `NIV-0058` |
-| 3 | Shared components: (a) re-sync after each order, (b) per-listing cap, (c) share % | (a), then (b) if needed |
+| 3 | Shared components: (a) re-sync after each order, (b) per-listing cap, (c) share % | (a), then (b) if needed — **(a) built in FIX-170** |
 | 4 | Combo returns: restock all components, or let the team choose per return? | **Decided 2026-10-27: restock all components** (built in FIX-168) |
 | 5 | Create the 7 missing products (Golden Oudh, Kraftella holder, 5 dhoop-cup holders)? | Yes, before mapping |
 | 6 | Ceramic holders: which product is the single unit, so Pack 2 / 3 / 4 use pack size? | One single holder product, pack size per listing |

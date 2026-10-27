@@ -72,7 +72,8 @@ export async function amazonAvailableByProduct(productIds: bigint[], client: Pri
       available.set(key, own.get(key)!);
     }
   }
-  return { available, combos };
+  // own: each product's (and component's) own Amazon stock, for showing what a combo is made of
+  return { available, combos, own };
 }
 
 /**

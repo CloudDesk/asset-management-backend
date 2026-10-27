@@ -125,6 +125,16 @@ test('passes an explicit remap confirmation to the repository', async () => {
   assert.equal(repository.mapInputs[0]?.allowRemap, true);
 });
 
+test('refuses to map a listing to a combo that has no products in it (AMZ-PLAN-27)', async () => {
+  const repository = new FakeMappingRepository();
+  repository.mapResult = { status: 'COMBO_WITHOUT_COMPONENTS' };
+  await assert.rejects(
+    createService(repository).mapListing({ listingId: '101', productId: '200', unitsPerListing: 1, allowRemap: false }),
+    (error: unknown) => error instanceof AmazonListingMappingError
+      && error.statusCode === 409 && error.code === 'AMAZON_COMBO_NO_COMPONENTS',
+  );
+});
+
 test('returns a safe not-found error when the Nivaana product does not exist', async () => {
   const repository = new FakeMappingRepository();
   repository.mapResult = { status: 'PRODUCT_NOT_FOUND' };
