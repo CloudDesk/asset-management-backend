@@ -1,3 +1,6 @@
+import { AmazonSpApiError } from '../services/amazon-production-listings.client.js';
+import { AmazonAuthorizationError } from '../services/amazon-lwa-token.service.js';
+import { logAmazonFailure } from '../utils/amazonFailureLog.js';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
@@ -7,8 +10,10 @@ import {
   amazonOrderShippingMethodSchema, amazonOrderTrackingSchema, amazonTestOrderCreateSchema,
   amazonTestOrderStatusSchema,
   amazonFulfillmentExceptionResolutionSchema,
+  amazonCourierUpdateSchema, amazonDeliveryStatusSchema, amazonShipNowSchema,
 } from '../schemas/amazon-order.schema.js';
-import { amazonListingScopeService } from '../services/amazon-listing-scope.service.js';
+import { amazonOrderShippingService } from '../services/amazon-order-shipping.service.js';
+import { amazonListingScopeService, AmazonListingScopeError } from '../services/amazon-listing-scope.service.js';
 import { AmazonOrderImportError, amazonOrderImportService } from '../services/amazon-order-import.service.js';
 import { amazonOrderJobService } from '../services/amazon-order-job.service.js';
 import { AmazonFulfillmentError, amazonOrderFulfillmentService } from '../services/amazon-order-fulfillment.service.js';
@@ -16,8 +21,12 @@ import { createSuccessResponse } from '../utils/errorHandler.js';
 import { amazonTestOrderService } from '../services/amazon-test-order.service.js';
 
 const sendError = (reply: FastifyReply, error: unknown) => {
-  if (error instanceof ZodError) return reply.code(400).send({ success: false, message: 'Invalid Amazon order request', code: 'VALIDATION_ERROR' });
-  const known = error instanceof AmazonOrderImportError || error instanceof AmazonFulfillmentError
+  if (error instanceof ZodError) {
+    const issue = error.issues[0];
+    const message = issue ? `Invalid Amazon order request: ${issue.path.join('.') || 'body'} ${issue.message}` : 'Invalid Amazon order request';
+    return reply.code(400).send({ success: false, message, details: message, statusCode: 400, code: 'VALIDATION_ERROR' });
+  }
+  const known = error instanceof AmazonOrderImportError || error instanceof AmazonFulfillmentError || error instanceof AmazonSpApiError || error instanceof AmazonAuthorizationError || error instanceof AmazonListingScopeError
     ? error : new AmazonOrderImportError('Amazon order operation failed', 500, 'AMAZON_ORDER_OPERATION_FAILED');
   return reply.code(known.statusCode).send({ success: false, message: known.message, details: known.message, statusCode: known.statusCode, code: known.code });
 };
@@ -51,7 +60,7 @@ export class AmazonOrderController {
         ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
       });
       return reply.code(202).send(createSuccessResponse(data.existing ? 'Amazon order import is already running' : 'Amazon order import queued', data.job));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   getImportJob = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -62,7 +71,7 @@ export class AmazonOrderController {
       const job = await amazonOrderJobService.getJob(jobId, scope.sellerId, scope.marketplaceId);
       if (!job) return reply.code(404).send({ success: false, message: 'Amazon order import job not found' });
       return reply.code(200).send(createSuccessResponse('Amazon order import job retrieved', job));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   getLatestImportJob = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -71,7 +80,7 @@ export class AmazonOrderController {
       const scope = await this.resolveScope(request);
       const job = await amazonOrderJobService.getLatestJob(scope.sellerId, scope.marketplaceId);
       return reply.code(200).send(createSuccessResponse('Latest Amazon order import job retrieved', job));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   getOrders = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -83,7 +92,7 @@ export class AmazonOrderController {
         summary: result.summary,
         pagination: result.pagination,
       });
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   createTestOrder = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -91,7 +100,7 @@ export class AmazonOrderController {
       const input = amazonTestOrderCreateSchema.parse(request.body);
       const data = await amazonTestOrderService.create(await this.resolveScope(request), input);
       return reply.code(201).send(createSuccessResponse('Amazon test order created', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   updateTestOrderStatus = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -99,21 +108,21 @@ export class AmazonOrderController {
       const input = amazonTestOrderStatusSchema.parse(request.body);
       const data = await amazonTestOrderService.updateStatus(this.orderId(request), await this.resolveScope(request), input.status);
       return reply.code(200).send(createSuccessResponse(`Amazon test order marked ${input.status.toLowerCase()}`, data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   getFulfillment = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const data = await amazonOrderFulfillmentService.get(this.orderId(request), await this.resolveScope(request));
       return reply.code(200).send(createSuccessResponse('Amazon fulfillment retrieved', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   createPickTask = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const data = await amazonOrderFulfillmentService.createPickTask(this.orderId(request), await this.resolveScope(request), this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon MFN pick task created', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   packOrder = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -121,7 +130,7 @@ export class AmazonOrderController {
       const input = amazonOrderPackSchema.parse(request.body);
       const data = await amazonOrderFulfillmentService.pack(this.orderId(request), await this.resolveScope(request), input, this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon MFN order packed', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   selectShipping = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -129,7 +138,7 @@ export class AmazonOrderController {
       const input = amazonOrderShippingMethodSchema.parse(request.body);
       const data = await amazonOrderFulfillmentService.selectShipping(this.orderId(request), await this.resolveScope(request), input, this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon MFN shipping method selected', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   attachDocuments = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -137,7 +146,7 @@ export class AmazonOrderController {
       const input = amazonOrderDocumentsSchema.parse(request.body);
       const data = await amazonOrderFulfillmentService.attachDocuments(this.orderId(request), await this.resolveScope(request), input, this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon fulfillment documents attached', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   addTracking = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -145,14 +154,14 @@ export class AmazonOrderController {
       const input = amazonOrderTrackingSchema.parse(request.body);
       const data = await amazonOrderFulfillmentService.addTracking(this.orderId(request), await this.resolveScope(request), input, this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon MFN tracking added', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   markShipped = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const data = await amazonOrderFulfillmentService.markShipped(this.orderId(request), await this.resolveScope(request), this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon order marked shipped in Nivaana', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   shipAndConfirm = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -163,14 +172,14 @@ export class AmazonOrderController {
         this.actor(request),
       );
       return reply.code(200).send(createSuccessResponse('Nivaana shipment marked shipped and confirmed to Amazon', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   confirmShipment = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const data = await amazonOrderFulfillmentService.confirmToAmazon(this.orderId(request), await this.resolveScope(request), this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon shipment confirmed', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   listEasyShipSlots = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -178,7 +187,7 @@ export class AmazonOrderController {
       const input = amazonEasyShipPackageSchema.parse(request.body);
       const data = await amazonOrderFulfillmentService.listEasyShipSlots(this.orderId(request), await this.resolveScope(request), input, this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon Easy Ship slots retrieved', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   scheduleEasyShip = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -186,14 +195,14 @@ export class AmazonOrderController {
       const input = amazonEasyShipScheduleSchema.parse(request.body);
       const data = await amazonOrderFulfillmentService.scheduleEasyShip(this.orderId(request), await this.resolveScope(request), input, this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon Easy Ship handover scheduled', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   refreshEasyShip = async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const data = await amazonOrderFulfillmentService.refreshEasyShip(this.orderId(request), await this.resolveScope(request), this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon Easy Ship handover refreshed', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   rescheduleEasyShip = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -201,7 +210,7 @@ export class AmazonOrderController {
       const input = amazonEasyShipRescheduleSchema.parse(request.body);
       const data = await amazonOrderFulfillmentService.rescheduleEasyShip(this.orderId(request), await this.resolveScope(request), input.slot, this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon Easy Ship handover rescheduled', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   retryFulfillmentException = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -209,7 +218,7 @@ export class AmazonOrderController {
       const exceptionId = (request.params as { exceptionId?: string }).exceptionId ?? '';
       const data = await amazonOrderFulfillmentService.retryException(this.orderId(request), exceptionId, await this.resolveScope(request), this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon fulfillment operation retried', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 
   resolveFulfillmentException = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -218,6 +227,41 @@ export class AmazonOrderController {
       const input = amazonFulfillmentExceptionResolutionSchema.parse(request.body);
       const data = await amazonOrderFulfillmentService.resolveException(this.orderId(request), exceptionId, await this.resolveScope(request), input.note, this.actor(request));
       return reply.code(200).send(createSuccessResponse('Amazon fulfillment exception resolved', data));
-    } catch (error) { return sendError(reply, error); }
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
+  };
+
+  shipNow = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const input = amazonShipNowSchema.parse(request.body);
+      const data = await amazonOrderShippingService.shipNow(this.orderId(request), await this.resolveScope(request), input, this.actor(request));
+      const message = !data.contactsAmazon ? 'Test order shipped in Nivaana (Amazon not contacted)'
+        : data.amazonConfirmed ? 'Shipped and confirmed to Amazon'
+          : 'Courier booked; Amazon confirmation failed';
+      return reply.code(200).send(createSuccessResponse(message, data));
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
+  };
+
+  updateCourier = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const input = amazonCourierUpdateSchema.parse(request.body);
+      const data = await amazonOrderShippingService.updateCourier(this.orderId(request), await this.resolveScope(request), input, this.actor(request));
+      return reply.code(200).send(createSuccessResponse('Courier for Amazon updated', data));
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
+  };
+
+  getShippingLabel = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const label = await amazonOrderShippingService.getLabel(this.orderId(request), await this.resolveScope(request));
+      if ('pdf' in label) return reply.code(200).header('Content-Type', label.contentType).send(label.pdf);
+      return reply.code(200).send(createSuccessResponse('Courier label ready', label));
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
+  };
+
+  updateDeliveryStatus = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const input = amazonDeliveryStatusSchema.parse(request.body);
+      const data = await amazonOrderShippingService.updateDeliveryStatusManually(this.orderId(request), await this.resolveScope(request), input, this.actor(request));
+      return reply.code(200).send(createSuccessResponse('Delivery status updated in Nivaana', data));
+    } catch (error) { logAmazonFailure(request, error); return sendError(reply, error); }
   };
 }

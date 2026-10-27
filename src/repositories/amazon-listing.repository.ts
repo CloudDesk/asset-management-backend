@@ -1,6 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
-import { NormalizedAmazonListing } from '../services/amazon-listing-normalizer.js';
+import { NormalizedAmazonListing, isIncompleteAmazonListing } from '../services/amazon-listing-normalizer.js';
+import { buildCatalogWordStats, keyWords, scoreNameMatch, isSameAsin } from '../utils/amazonProductMatch.js';
+import { calculateAmazonTargetQuantity } from '../utils/amazonStockTarget.js';
 
 export type AmazonListingUpsertResult = {
   outcome: 'CREATED' | 'UPDATED' | 'UNCHANGED';
@@ -20,7 +22,9 @@ export type AmazonListingQuery = {
   mappingStatus?: string | undefined;
   fulfilmentChannel?: string | undefined;
   listingStatus?: string | undefined;
+  productId?: string | undefined;
   activeOnly?: boolean | undefined;
+  incomplete?: boolean | undefined;
   page: number;
   limit: number;
 };
@@ -62,6 +66,8 @@ export interface AmazonListingMappingPersistence {
 }
 
 export interface AmazonListingPersistence {
+  /** Marks imports left RUNNING by a stopped server as FAILED (optional so test doubles can omit it) */
+  closeInterruptedSyncLogs?(): Promise<number>;
   startSyncLog(input: {
     sellerId: string;
     marketplaceId: string;
@@ -257,6 +263,7 @@ const serializeListing = (
     source: 'AMAZON_READ_ONLY',
   } : null,
   price: listing.price?.toString() ?? null,
+  incomplete: isIncompleteAmazonListing(listing),
   currency: listing.currency,
   amazonLastUpdatedAt: listing.amazonLastUpdatedAt?.toISOString() ?? null,
   productId: listing.productId === null ? null : String(listing.productId),
@@ -329,11 +336,29 @@ const listingIssues = (listing: any) => {
   return issues;
 };
 
-const normalizedWords = (value?: string | null) => new Set(
-  (value ?? '').toLowerCase().split(/[^a-z0-9]+/).filter((word) => word.length >= 3)
-);
+export const INTERRUPTED_IMPORT_AFTER_MS = 30 * 60 * 1000;
+
+// Mapping suggestions (FIX-126): weaker ones are noise, and the dialog shows a short list
+const SUGGESTION_MIN_SCORE = 25;
+const SUGGESTION_LIMIT = 4;
+const SUGGESTION_CATALOG_LIMIT = 5000;
 
 export class AmazonListingRepository implements AmazonListingPersistence, AmazonListingMappingPersistence {
+  // A listing import takes about a minute; one still RUNNING after this long was cut off by a server restart
+  // or crash and will never finish. Old enough that a run in progress on another instance is not touched.
+  async closeInterruptedSyncLogs(olderThanMs = INTERRUPTED_IMPORT_AFTER_MS): Promise<number> {
+    const result = await prisma.channelSyncLog.updateMany({
+      where: { marketplace: 'AMAZON', status: 'RUNNING', startedAt: { lt: new Date(Date.now() - olderThanMs) } },
+      data: {
+        status: 'FAILED',
+        finishedAt: new Date(),
+        errorCode: 'AMAZON_IMPORT_INTERRUPTED',
+        errorMessage: 'Interrupted: the server stopped during this import. A later import replaces it.',
+      },
+    });
+    return result.count;
+  }
+
   async startSyncLog(input: {
     sellerId: string;
     marketplaceId: string;
@@ -486,7 +511,8 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     if (missing.length === 0) return 0;
 
     await prisma.$transaction(async (transaction) => {
-      for (const listing of missing) {
+      for (let offset = 0; offset < missing.length; offset += 500) {
+        const batch = missing.slice(offset, offset + 500);
         const changedFields = [
           'listingStatus',
           'publishedQuantity',
@@ -496,21 +522,25 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           'fbaTotalQuantity',
           'inventorySyncMode',
         ];
-        await transaction.marketplaceListing.update({
-          where: { id: listing.id },
-          data: {
-            listingStatus: 'DELETED',
-            publishedQuantity: 0,
-            fbaFulfillableQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
-            fbaReservedQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
-            fbaPendingOrderQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
-            fbaTotalQuantity: listing.fulfilmentChannel === 'FBA' ? 0 : null,
-            inventorySyncMode: 'DISABLED',
-            lastImportedAt: new Date(),
-          },
-        });
-        await transaction.marketplaceListingAudit.create({
-          data: {
+        for (const isFba of [true, false]) {
+          const ids = batch.filter((listing) => (listing.fulfilmentChannel === 'FBA') === isFba).map((listing) => listing.id);
+          if (ids.length === 0) continue;
+          await transaction.marketplaceListing.updateMany({
+            where: { id: { in: ids } },
+            data: {
+              listingStatus: 'DELETED',
+              publishedQuantity: 0,
+              fbaFulfillableQuantity: isFba ? 0 : null,
+              fbaReservedQuantity: isFba ? 0 : null,
+              fbaPendingOrderQuantity: isFba ? 0 : null,
+              fbaTotalQuantity: isFba ? 0 : null,
+              inventorySyncMode: 'DISABLED',
+              lastImportedAt: new Date(),
+            },
+          });
+        }
+        await transaction.marketplaceListingAudit.createMany({
+          data: batch.map((listing) => ({
             listingId: listing.id,
             ...(input.auditContext?.syncLogId
               ? { syncLogId: BigInt(input.auditContext.syncLogId) }
@@ -543,7 +573,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
             previousProductId: listing.productId,
             productId: listing.productId,
             ...actorData(input.auditContext),
-          },
+          })),
         });
       }
     });
@@ -561,10 +591,15 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
 
     if (query.mappingStatus) where.mappingStatus = query.mappingStatus;
     if (query.fulfilmentChannel) where.fulfilmentChannel = query.fulfilmentChannel;
+    if (query.productId) where.productId = BigInt(query.productId);
     if (query.listingStatus) {
       where.listingStatus = { contains: query.listingStatus, mode: 'insensitive' };
     }
-    if (query.activeOnly) {
+    // Incomplete = no offer price on Amazon (see isIncompleteAmazonListing)
+    if (query.incomplete !== undefined) where.price = query.incomplete ? null : { not: null };
+    // Default catalogue/mapping requests show current listings. An explicit
+    // status filter or activeOnly=false still provides access to history.
+    if (query.activeOnly ?? !query.listingStatus) {
       where.NOT = {
         listingStatus: { contains: 'DELETED', mode: 'insensitive' },
       };
@@ -596,10 +631,27 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     const fbaAccounting = await getFbaOrderAccounting(
       items.filter((item) => item.fulfilmentChannel === 'FBA').map((item) => item.id)
     );
+    // Stock Sync columns: Nivaana "amazon" platform stock and the quantity a sync would publish
+    const sellerFulfilledProductIds = [...new Set(items.flatMap((item) =>
+      item.productId !== null && item.mappingStatus === 'MAPPED' && item.fulfilmentChannel !== 'FBA' ? [item.productId] : []))];
+    const platformStocks = sellerFulfilledProductIds.length === 0 ? [] : await prisma.platformStock.findMany({
+      where: { productid: { in: sellerFulfilledProductIds }, platform: { equals: 'amazon', mode: 'insensitive' } },
+      select: { productid: true, availableqty: true },
+    });
+    const amazonStockByProduct = new Map(platformStocks.map((stock) => [String(stock.productid), Math.max(0, Math.trunc(stock.availableqty))]));
     const totalPages = Math.ceil(total / query.limit);
 
     return {
-      data: items.map((item) => serializeListing(item, fbaAccounting.get(String(item.id)))),
+      data: items.map((item) => {
+        const available = item.productId === null ? undefined : amazonStockByProduct.get(String(item.productId));
+        return {
+          ...serializeListing(item, fbaAccounting.get(String(item.id))),
+          nivaanaStock: available === undefined ? null : {
+            available,
+            target: calculateAmazonTargetQuantity(available, item.unitsPerListing),
+          },
+        };
+      }),
       pagination: {
         page: query.page,
         limit: query.limit,
@@ -645,7 +697,6 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     });
     if (!listing) return null;
 
-    const titleWords = [...normalizedWords(listing.title)].slice(0, 6);
     const relatedMappings = await prisma.marketplaceListing.findMany({
       where: {
         marketplace: 'AMAZON',
@@ -661,19 +712,14 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     const historicalIds = [...new Set(
       relatedMappings.flatMap((item) => item.productId === null ? [] : [item.productId])
     )];
-    const candidateFilters: Prisma.ProductWhereInput[] = [
-      { puc: { equals: listing.sellerSku, mode: 'insensitive' } },
-      { puc: { contains: listing.sellerSku, mode: 'insensitive' } },
-      ...titleWords.map((word): Prisma.ProductWhereInput => ({ name: { contains: word, mode: 'insensitive' } })),
-      ...(historicalIds.length > 0 ? [{ id: { in: historicalIds } }] : []),
-      ...(listing.productId ? [{ id: listing.productId }] : []),
-    ];
+    // Whole catalogue: word frequencies need every product name, and every product can be scored
     const products = await prisma.product.findMany({
-      where: { OR: candidateFilters },
-      select: { id: true, puc: true, name: true, productstatus: true },
-      take: 30,
+      select: { id: true, puc: true, name: true, productstatus: true, asin: true },
+      orderBy: { id: 'asc' },
+      take: SUGGESTION_CATALOG_LIMIT,
     });
-    const listingWords = normalizedWords(`${listing.sellerSku} ${listing.title ?? ''}`);
+    const catalogStats = buildCatalogWordStats(products.map((product) => product.name));
+    const listingWords = keyWords(`${listing.sellerSku} ${listing.title ?? ''}`, catalogStats);
 
     return products
       .map((product) => {
@@ -682,6 +728,11 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
         if (product.id === listing.productId) {
           score += 100;
           reasons.push('Current mapping');
+        }
+        // Same ASIN on the product (D4): the strongest signal, enough for HIGH on its own
+        if (isSameAsin(product.asin, listing.asin)) {
+          score += 90;
+          reasons.push('Same ASIN');
         }
         if (product.puc.toLowerCase() === listing.sellerSku.toLowerCase()) {
           score += 80;
@@ -697,11 +748,10 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           score += 35;
           reasons.push('Previously mapped signal');
         }
-        const productWords = normalizedWords(product.name);
-        const overlap = [...productWords].filter((word) => listingWords.has(word)).length;
-        if (overlap > 0) {
-          score += Math.min(40, overlap * 10);
-          reasons.push(`${overlap} title word${overlap === 1 ? '' : 's'} matched`);
+        const nameMatch = scoreNameMatch(product.name, listingWords, catalogStats);
+        if (nameMatch.score > 0) {
+          score += nameMatch.score;
+          reasons.push(`Name match ${nameMatch.matched.length}/${nameMatch.total}: ${nameMatch.matched.join(', ')}`);
         }
         return {
           product: { id: String(product.id), puc: product.puc, name: product.name, status: product.productstatus },
@@ -710,9 +760,12 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           reasons,
         };
       })
-      .filter((suggestion) => suggestion.score > 0)
-      .sort((left, right) => right.score - left.score || left.product.name.localeCompare(right.product.name))
-      .slice(0, 8);
+      .filter((suggestion) => suggestion.score >= SUGGESTION_MIN_SCORE)
+      // Equal scores: the shorter (more specific) product name first
+      .sort((left, right) => right.score - left.score
+        || left.product.name.length - right.product.name.length
+        || left.product.name.localeCompare(right.product.name))
+      .slice(0, SUGGESTION_LIMIT);
   }
 
   async listMappingAudits(input: { listingId: string; sellerId: string; marketplaceId: string }) {
@@ -735,6 +788,28 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 100,
     });
+    // Names for the history: who changed it (Inventory staff or Ecom user) and which products
+    const userIds = (type: 'inventory' | 'ecommerce') => [...new Set(audits.flatMap((audit) =>
+      audit.requestedByUserId !== null && (audit.requestedByUserType ?? 'inventory') === type ? [audit.requestedByUserId] : []))];
+    const productIds = [...new Set(audits.flatMap((audit) =>
+      [audit.previousProductId, audit.productId].filter((id): id is bigint => id !== null)))];
+    const [inventoryUsers, ecommerceUsers, products] = await Promise.all([
+      userIds('inventory').length
+        ? prisma.inventoryusers.findMany({ where: { id: { in: userIds('inventory') } }, select: { id: true, firstname: true, lastname: true } })
+        : [],
+      userIds('ecommerce').length
+        ? prisma.users.findMany({ where: { id: { in: userIds('ecommerce') } }, select: { id: true, firstname: true, lastname: true } })
+        : [],
+      productIds.length
+        ? prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, puc: true, name: true } })
+        : [],
+    ]);
+    const fullName = (user: { firstname: string | null; lastname: string | null }) =>
+      [user.firstname, user.lastname].map((part) => part?.trim()).filter(Boolean).join(' ') || null;
+    const inventoryNames = new Map(inventoryUsers.map((user) => [user.id, fullName(user)]));
+    const ecommerceNames = new Map(ecommerceUsers.map((user) => [user.id, fullName(user)]));
+    const productById = new Map(products.map((product) => [product.id, { id: String(product.id), puc: product.puc, name: product.name }]));
+
     return audits.map((audit) => ({
       id: String(audit.id),
       operation: audit.operation,
@@ -743,8 +818,12 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
       afterValues: audit.afterValues,
       previousProductId: audit.previousProductId === null ? null : String(audit.previousProductId),
       productId: audit.productId === null ? null : String(audit.productId),
+      previousProduct: audit.previousProductId === null ? null : productById.get(audit.previousProductId) ?? null,
+      product: audit.productId === null ? null : productById.get(audit.productId) ?? null,
       requestedByUserId: audit.requestedByUserId,
       requestedByUserType: audit.requestedByUserType,
+      requestedByName: audit.requestedByUserId === null ? null
+        : ((audit.requestedByUserType ?? 'inventory') === 'ecommerce' ? ecommerceNames : inventoryNames).get(audit.requestedByUserId) ?? null,
       createdAt: audit.createdAt.toISOString(),
     }));
   }
@@ -779,6 +858,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           mappingStatus: true,
           unitsPerListing: true,
           mappedAt: true,
+          inventorySyncMode: true,
         },
       });
 
@@ -801,6 +881,21 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
         } as const;
       }
 
+      // P7: an Automatic listing moved to a product that already has an Automatic listing drops to Manual
+      const automaticConflict = listing.inventorySyncMode === 'AUTOMATIC'
+        && listing.productId !== product.id
+        && await transaction.marketplaceListing.count({
+          where: {
+            marketplace: 'AMAZON',
+            environment: 'PRODUCTION',
+            productId: product.id,
+            mappingStatus: 'MAPPED',
+            fulfilmentChannel: { in: ['MFN', 'EASY_SHIP'] },
+            inventorySyncMode: 'AUTOMATIC',
+            id: { not: listing.id },
+          },
+        }) > 0;
+
       const mapped = await transaction.marketplaceListing.update({
         where: { id: BigInt(input.listingId) },
         data: {
@@ -808,6 +903,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           mappingStatus: 'MAPPED',
           unitsPerListing: input.unitsPerListing,
           mappedAt: new Date(),
+          ...(automaticConflict ? { inventorySyncMode: 'MANUAL' as const } : {}),
         },
         include: {
           product: {
@@ -822,12 +918,14 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
         mappingStatus: listing.mappingStatus,
         unitsPerListing: listing.unitsPerListing,
         mappedAt: listing.mappedAt?.toISOString() ?? null,
+        inventorySyncMode: listing.inventorySyncMode,
       };
       const after = {
         productId: String(product.id),
         mappingStatus: mapped.mappingStatus,
         unitsPerListing: mapped.unitsPerListing,
         mappedAt: mapped.mappedAt?.toISOString() ?? null,
+        inventorySyncMode: mapped.inventorySyncMode,
       };
       const changedFields = changedSnapshotFields(before, after);
       await transaction.marketplaceListingAudit.create({

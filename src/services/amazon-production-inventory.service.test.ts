@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   AmazonProductionInventoryError,
+  assertAmazonInventorySubmissionAccepted,
   assertAmazonInventoryListingEligible,
   calculateAmazonTargetQuantity,
   resolveAmazonInventoryConfirmation,
@@ -15,6 +16,15 @@ import {
 } from '../schemas/amazon-listing.schema.js';
 import { amazonOfferApplySchema, amazonOfferUpdateSchema } from '../schemas/amazon-offer.schema.js';
 import { normalizeAmazonOperation } from './amazon-api-telemetry.service.js';
+
+test('inventory rejection preserves the Amazon field and reason', () => {
+  assert.throws(() => assertAmazonInventorySubmissionAccepted({ status: 'INVALID', issues: [{
+    code: 'InvalidQuantity', message: 'Quantity exceeds the listing limit',
+  }] }), (error: unknown) => error instanceof AmazonProductionInventoryError
+    && error.code === 'AMAZON_INVENTORY_REJECTED' && error.message.includes('InvalidQuantity')
+    && error.message.includes('Quantity exceeds the listing limit'));
+  assert.doesNotThrow(() => assertAmazonInventorySubmissionAccepted({ status: 'ACCEPTED', issues: [] }));
+});
 
 test('calculates Amazon listing quantity from Nivaana units per listing', () => {
   assert.equal(calculateAmazonTargetQuantity(11, 2), 5);
@@ -46,6 +56,7 @@ test('allows stock handoff only for active mapped seller-fulfilled listings', ()
       productId: 42n,
       fulfilmentChannel: 'MFN',
       productType: 'PRODUCT',
+      price: '199',
     }));
   }
   assert.doesNotThrow(() => assertAmazonInventoryListingEligible({
@@ -54,6 +65,7 @@ test('allows stock handoff only for active mapped seller-fulfilled listings', ()
     productId: 42n,
     fulfilmentChannel: 'EASY_SHIP',
     productType: 'PRODUCT',
+    price: '199',
   }));
 });
 
@@ -64,6 +76,7 @@ test('blocks inactive, unmapped, FBA, and incomplete listings before stock hando
     productId: 42n as bigint | null,
     fulfilmentChannel: 'MFN',
     productType: 'PRODUCT' as string | null,
+    price: '199' as string | null,
   };
   const expected: Array<[Partial<typeof base>, string]> = [
     [{ listingStatus: 'SUPPRESSED' }, 'AMAZON_LISTING_NOT_ACTIVE'],
@@ -72,6 +85,7 @@ test('blocks inactive, unmapped, FBA, and incomplete listings before stock hando
     [{ productId: null }, 'AMAZON_LISTING_NOT_MAPPED'],
     [{ fulfilmentChannel: 'FBA' }, 'AMAZON_INVENTORY_NOT_MFN'],
     [{ productType: null }, 'AMAZON_PRODUCT_TYPE_MISSING'],
+    [{ price: null }, 'AMAZON_LISTING_INCOMPLETE'],
   ];
 
   for (const [changes, code] of expected) {

@@ -4,6 +4,11 @@ import { AmazonTokenCryptoService, AmazonTokenEncryptionError } from './amazon-t
 
 const key = Buffer.alloc(32, 7).toString('base64');
 
+test('rejects malformed configured keys without changing the encrypted token format', () => {
+  const malformed = key.slice(0, 8) + ' ' + key.slice(8);
+  assert.throws(() => new AmazonTokenCryptoService(malformed).encrypt('refresh-token'), AmazonTokenEncryptionError);
+});
+
 test('encrypts and decrypts Amazon refresh tokens with authenticated encryption', () => {
   const service = new AmazonTokenCryptoService(key);
   const encrypted = service.encrypt('Atzr|secret-refresh-token');

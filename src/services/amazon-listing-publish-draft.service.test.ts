@@ -947,6 +947,39 @@ test('submits only the exact recently validated payload after explicit confirmat
   assert.equal(guardChecks, 1);
   assert.equal(repository.acceptedSubmissionInput.amazonSubmissionId, 'submission-123');
   assert.equal(repository.acceptedSubmissionInput.payloadHash, preview.validatedPayloadHash);
+  repository.getValidationAttempt = async () => ({ status: 'STARTED' }) as any;
+  await assert.rejects(() => validationService.submit('100', {
+    draftRevision: 3, confirmed: true, confirmationText: 'NIV-NIV-0042',
+    idempotencyKey: 'another-click-key',
+  }, scope, {}), (error: unknown) => error instanceof AmazonListingPublishDraftError
+    && error.code === 'AMAZON_SUBMISSION_OUTCOME_UNKNOWN');
+  assert.equal(submitted, 1);
+  repository.getValidationAttempt = async () => null;
+  repository.createValidationAttempt = async () => { throw Object.assign(new Error('Concurrent claim'), { code: 'P2002' }); };
+  await assert.rejects(() => validationService.submit('100', {
+    draftRevision: 3, confirmed: true, confirmationText: 'NIV-NIV-0042',
+    idempotencyKey: 'concurrent-click-key',
+  }, scope, {}), (error: unknown) => error instanceof AmazonListingPublishDraftError
+    && error.code === 'AMAZON_SUBMISSION_OUTCOME_UNKNOWN');
+  assert.equal(submitted, 1);
+  repository.getValidationAttempt = async () => ({ id: 500n, status: 'FAILED', errorCode: 'AMAZON_WRITE_NOT_SENT' }) as any;
+  const claimed = new Set<string>();
+  repository.createValidationAttempt = async (input: any) => {
+    if (claimed.has(input.requestKey)) throw Object.assign(new Error('Concurrent claim'), { code: 'P2002' });
+    claimed.add(input.requestKey);
+    return { id: 501n, status: 'STARTED', ...input };
+  };
+  const safeRetries = await Promise.allSettled(['retry-1', 'retry-2'].map((idempotencyKey) => validationService.submit('100', {
+    draftRevision: 3, confirmed: true, confirmationText: 'NIV-NIV-0042', idempotencyKey,
+  }, scope, {})));
+  assert.equal(safeRetries.filter((item) => item.status === 'fulfilled').length, 1);
+  assert.deepEqual([...claimed], ['PUBLISH:100:REVISION:3:RETRY:500']);
+  assert.equal(submitted, 2);
+  repository.getValidationAttempt = async () => ({ id: 501n, status: 'FAILED', errorCode: 'AMAZON_WRITE_OUTCOME_UNKNOWN' }) as any;
+  await assert.rejects(() => validationService.submit('100', {
+    draftRevision: 3, confirmed: true, confirmationText: 'NIV-NIV-0042', idempotencyKey: 'unsafe-retry',
+  }, scope, {}));
+  assert.equal(submitted, 2);
 });
 
 test('blocks submission when the dedicated listing creation switch is off', async () => {

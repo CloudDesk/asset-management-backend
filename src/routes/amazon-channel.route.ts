@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { AmazonListingController } from '../controllers/amazon-listing.controller.js';
 import { AmazonOrderController } from '../controllers/amazon-order.controller.js';
-import { requireAuthentication } from '../middleware/auth.middleware.js';
+import { AuthenticatedRequest, requireAuthentication } from '../middleware/auth.middleware.js';
 import { requireAmazonChannelPermission } from '../middleware/amazon-channel-permission.middleware.js';
 import { getAmazonIntegrationStatus } from '../services/amazon-integration-status.service.js';
 import { timingSafeEqual } from 'node:crypto';
@@ -11,6 +11,7 @@ import { amazonOrderNotificationService } from '../services/amazon-order-notific
 import { amazonReturnService } from '../services/amazon-return.service.js';
 import { amazonListingScopeService } from '../services/amazon-listing-scope.service.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
+import { amazonConnectionCheckService } from '../services/amazon-connection-check.service.js';
 
 const requireAmazonNotificationSecret = async (request: FastifyRequest, reply: FastifyReply) => {
   const expected = env.AMAZON_NOTIFICATION_INGEST_SECRET;
@@ -31,7 +32,7 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
   fastify.get('/status', {
     preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
     schema: {
-      description: 'Report the configured Amazon production and sandbox modes without exposing credentials',
+      description: 'Report the configured Amazon production and OAuth setup without exposing credentials',
       tags: ['Amazon Integration'],
       security: [{ bearerAuth: [] }],
     },
@@ -40,6 +41,29 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
     message: 'Amazon integration status retrieved successfully',
     data: getAmazonIntegrationStatus(),
   }));
+
+  fastify.get<{ Querystring: { fresh?: boolean } }>('/connection-check', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
+    schema: {
+      description: 'Ask Amazon for an access token with the current credentials and report the latest listing / order imports (no credentials returned)',
+      tags: ['Amazon Integration'],
+      security: [{ bearerAuth: [] }],
+      querystring: {
+        type: 'object',
+        properties: { fresh: { type: 'boolean', default: false } },
+        additionalProperties: false,
+      },
+    },
+  }, async (request, reply) => {
+    const user = (request as AuthenticatedRequest).user;
+    reply.header('Cache-Control', 'no-store');
+    const data = await amazonConnectionCheckService.check({
+      ...(user?.id !== undefined ? { userId: user.id } : {}),
+      ...(user?.userType !== undefined ? { userType: user.userType } : {}),
+      fresh: request.query.fresh === true,
+    });
+    return reply.code(200).send(createSuccessResponse('Amazon connection checked', data));
+  });
 
   fastify.post('/listings/import', {
     preHandler: [requireAuthentication, requireAmazonChannelPermission(['import', 'create'])],
@@ -408,6 +432,42 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
       body: { type: 'object', required: ['slot'], properties: { slot: slotSchema }, additionalProperties: false } },
   }, orderController.rescheduleEasyShip);
 
+  // Self Ship "Ship now" and delivery status (AMZ-PLAN-25); bodies are validated in the controller
+  fastify.post('/orders/:orderId/fulfillment/ship-now', {
+    preHandler: fulfillmentWrite,
+    schema: {
+      description: 'Book Ekart / Shipmozo or save a manual courier for a Self Ship order, then confirm the shipment to Amazon',
+      tags: ['Amazon Fulfillment'], security: [{ bearerAuth: [] }], params: fulfillmentParams,
+      body: { type: 'object', required: ['provider'], additionalProperties: true },
+    },
+  }, orderController.shipNow);
+
+  fastify.post('/orders/:orderId/fulfillment/courier', {
+    preHandler: fulfillmentWrite,
+    schema: {
+      description: 'Change the courier sent to Amazon before Amazon accepted the shipment (then retry the confirmation)',
+      tags: ['Amazon Fulfillment'], security: [{ bearerAuth: [] }], params: fulfillmentParams,
+      body: { type: 'object', required: ['carrierCode', 'courierName'], additionalProperties: true },
+    },
+  }, orderController.updateCourier);
+
+  fastify.get('/orders/:orderId/fulfillment/label', {
+    preHandler: fulfillmentWrite,
+    schema: {
+      description: 'Courier label (PDF, or a label link) for an Amazon order shipped with Ekart or Shipmozo',
+      tags: ['Amazon Fulfillment'], security: [{ bearerAuth: [] }], params: fulfillmentParams,
+    },
+  }, orderController.getShippingLabel);
+
+  fastify.post('/orders/:orderId/fulfillment/delivery-status', {
+    preHandler: fulfillmentWrite,
+    schema: {
+      description: 'Set the delivery status shown in Nivaana (never sent to Amazon; Amazon tracks the courier)',
+      tags: ['Amazon Fulfillment'], security: [{ bearerAuth: [] }], params: fulfillmentParams,
+      body: { type: 'object', required: ['status'], additionalProperties: true },
+    },
+  }, orderController.updateDeliveryStatus);
+
   const fulfillmentExceptionParams = {
     type: 'object', required: ['orderId', 'exceptionId'], properties: {
       orderId: { type: 'string', pattern: '^\\d+$' }, exceptionId: { type: 'string', pattern: '^\\d+$' },
@@ -436,6 +496,9 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
           mappingStatus: { type: 'string', enum: ['UNMAPPED', 'MAPPED', 'CONFLICT'] },
           fulfilmentChannel: { type: 'string', enum: ['MFN', 'EASY_SHIP', 'FBA', 'UNKNOWN'] },
           listingStatus: { type: 'string', minLength: 1, maxLength: 255 },
+          productId: { type: 'string', pattern: '^[1-9][0-9]*$' },
+          activeOnly: { type: 'boolean' },
+          incomplete: { type: 'boolean' },
           page: { type: 'integer', minimum: 1, default: 1 },
           limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
         },
@@ -707,6 +770,21 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
       },
     },
   }, controller.setInventorySyncMode);
+
+  fastify.get('/listings/:listingId/inventory/check', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],
+    schema: {
+      description: 'Re-read the Amazon quantity and confirm a stock send Amazon accepted but has not applied yet (records nothing new)',
+      tags: ['Amazon Production Inventory'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        required: ['listingId'],
+        properties: { listingId: { type: 'string', pattern: '^[1-9]\\d*$' } },
+        additionalProperties: false,
+      },
+    },
+  }, controller.checkPendingInventorySync);
 
   fastify.get('/listings/:listingId/inventory/history', {
     preHandler: [requireAuthentication, requireAmazonChannelPermission(['read'])],

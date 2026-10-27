@@ -1658,6 +1658,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               nullable: true,
               description: "GST Rate percentage",
             },
+            asin: {
+              type: ["string", "null"],
+              maxLength: 20,
+              description: "Amazon ASIN (10 letters/digits); empty or null clears it",
+            },
             // Additional Product Information
             material: {
               type: "string",
@@ -2220,6 +2225,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               maximum: 100,
               nullable: true,
               description: "GST Rate percentage",
+            },
+            asin: {
+              type: ["string", "null"],
+              maxLength: 20,
+              description: "Amazon ASIN (10 letters/digits); empty or null clears it",
             },
             // Size array fields
             large: {
@@ -2916,6 +2926,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               maximum: 100,
               nullable: true,
               description: "Product GST percentage when classified",
+            },
+            asin: {
+              type: ["string", "null"],
+              maxLength: 20,
+              description: "Amazon ASIN (10 letters/digits); empty or null clears it",
             },
             // Size-related fields
             large: {

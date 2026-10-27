@@ -42,8 +42,12 @@ steps:
       - "5600"
       - "--memory"
       - "512Mi"
+      # Above the 10-minute attempt deadline of the Amazon Cloud Scheduler jobs (order / listing sync wait for the import).
+      - "--timeout"
+      - "900"
       - "--env-vars-file"
       - ".env.sit"
+      # Amazon credentials stay in Secret Manager: GitHub push protection blocks them in .env.sit.
       - "--set-secrets"
       - "AMAZON_CLIENT_ID=nivaana-sit-amazon-client-id:latest,AMAZON_CLIENT_SECRET=nivaana-sit-amazon-client-secret:latest,AMAZON_REFRESH_TOKEN=nivaana-sit-amazon-refresh-token:latest"
 

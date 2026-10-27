@@ -40,6 +40,7 @@ import { amazonRoutes } from './amazon.route.js';
 import { amazonChannelRoutes } from './amazon-channel.route.js';
 import { amazonListingPublishRoutes } from './amazon-listing-publish.route.js';
 import { amazonOperationsRoutes } from './amazon-operations.route.js';
+import { amazonSchedulerJobsRoutes } from './amazon-scheduler-jobs.route.js';
 import { smartAuthentication } from '../middleware/smartAuth.middleware.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 import { permissionRoutes } from './permission.route.js';
@@ -170,6 +171,7 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(amazonChannelRoutes, { prefix: '/api/channels/amazon' });
     await fastify.register(amazonListingPublishRoutes, { prefix: '/api/channels/amazon' });
     await fastify.register(amazonOperationsRoutes, { prefix: '/api/channels/amazon/operations' });
+    await fastify.register(amazonSchedulerJobsRoutes, { prefix: '/api/channels/amazon/jobs' });
   }
 
   // API v2 routes

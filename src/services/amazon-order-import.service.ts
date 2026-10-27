@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
+import { logger } from '../config/logger.js';
 import { AmazonListingScope } from './amazon-listing-scope.service.js';
 import { AmazonRawOrder } from './amazon-production-listings.client.js';
 import { amazonOrderRoutingService } from './amazon-order-routing.service.js';
@@ -92,6 +93,8 @@ const serializeOrder = (order: any) => ({
     quantity: reservation.quantity,
     status: reservation.status,
     errorMessage: reservation.errorMessage,
+    reservedAt: reservation.reservedAt?.toISOString() ?? null,
+    releasedAt: reservation.releasedAt?.toISOString() ?? null,
     soldAt: reservation.soldAt?.toISOString() ?? null,
   })),
   fulfillment: order.fulfillment ? {
@@ -123,6 +126,14 @@ const serializeOrder = (order: any) => ({
     amazonConfirmationStatus: order.fulfillment.amazonConfirmationStatus,
     amazonConfirmedAt: order.fulfillment.amazonConfirmedAt?.toISOString() ?? null,
     lastError: order.fulfillment.lastError,
+    shippingProvider: order.fulfillment.shippingProvider,
+    providerOrderId: order.fulfillment.providerOrderId,
+    publicTrackingLink: order.fulfillment.publicTrackingLink,
+    deliveryStatus: order.fulfillment.deliveryStatus,
+    deliveryStatusSource: order.fulfillment.deliveryStatusSource,
+    deliveryProviderStatus: order.fulfillment.deliveryProviderStatus,
+    deliveryUpdatedAt: order.fulfillment.deliveryUpdatedAt?.toISOString() ?? null,
+    deliveredAt: order.fulfillment.deliveredAt?.toISOString() ?? null,
   } : null,
   items: (order.items ?? []).map((item: any) => ({
     id: String(item.id),
@@ -176,6 +187,7 @@ export class AmazonOrderImportService {
     let unmapped = 0;
     let cancelled = 0;
     let pagesProcessed = 0;
+    let failed = 0;
 
     do {
       const page = await scope.client.searchOrders({
@@ -183,11 +195,18 @@ export class AmazonOrderImportService {
         ...(paginationToken ? { paginationToken } : {}),
       });
       for (const raw of page.orders) {
-        const outcome = await this.upsertOrder(raw, scope, actor);
         fetched += 1;
-        if (outcome.created) created += 1; else updated += 1;
-        if (outcome.hasUnmappedItems) unmapped += 1;
-        if (outcome.isCancelled) cancelled += 1;
+        try {
+          const outcome = await this.upsertOrder(raw, scope, actor);
+          if (outcome.created) created += 1; else updated += 1;
+          if (outcome.hasUnmappedItems) unmapped += 1;
+          if (outcome.isCancelled) cancelled += 1;
+        } catch (error) {
+          failed += 1;
+          logger.error({ sellerId: scope.sellerId, marketplaceId: scope.marketplaceId,
+            amazonOrderId: raw.orderId, error: error instanceof Error ? error.message : 'Unknown import failure' },
+            'Amazon order import failed for order');
+        }
         if (onProgress && fetched % 10 === 0) {
           await onProgress({ fetched, created, updated, unmapped, cancelled, pagesProcessed, searchStart });
         }
@@ -196,6 +215,10 @@ export class AmazonOrderImportService {
       if (onProgress) await onProgress({ fetched, created, updated, unmapped, cancelled, pagesProcessed, searchStart });
       paginationToken = page.nextToken ?? undefined;
     } while (paginationToken);
+
+    if (failed > 0) throw new AmazonOrderImportError(
+      `Amazon order import completed with ${failed} failed orders out of ${fetched}; review the order-specific server logs`,
+      502, 'AMAZON_ORDER_IMPORT_PARTIAL_FAILURE');
 
     return {
       fetched,
@@ -247,7 +270,9 @@ export class AmazonOrderImportService {
     });
     const hasUnmappedItems = items.some((item) => item.mappingStatus !== 'MAPPED');
     const buyerRequestedCancellation = items.some((item) => item.cancellationRequester?.toUpperCase() === 'BUYER');
+    // No items: nothing to map or ship (seen on the July 2026 full-history import); never "ready"
     const syncState = classification.isCancelled ? 'CANCELLED'
+      : items.length === 0 ? 'BLOCKED_ITEMS_MISSING'
       : hasUnmappedItems ? 'BLOCKED_UNMAPPED'
         : classification.fulfilmentType === 'FBA' ? 'READ_ONLY_RECONCILIATION'
           : classification.fulfilmentType === 'EASY_SHIP' ? 'EASY_SHIP_READY'
