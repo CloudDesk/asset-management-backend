@@ -358,3 +358,30 @@ test('FBA combo orders stay on the combo row (Amazon owns the stock); components
     assert.deepEqual([stockOf(db.stocks, B).availableqty, stockOf(db.stocks, B).soldqty], [10, 0]);
   } finally { restore(); }
 });
+
+test('listing details: a combo listing shows its products with their stock; a single product has no combo detail', async () => {
+  const { fake } = fakeDatabase({ A: 15, B: 10, SINGLE: 4 });
+  const { AmazonListingRepository } = await import('../repositories/amazon-listing.repository.js');
+  const listingRow = (productId: bigint, puc: string, iscombo: boolean) => ({
+    id: 178n, marketplace: 'AMAZON', environment: 'PRODUCTION', sellerId: 'S', marketplaceId: 'M', sellerSku: 'I6-BN4F-MVX7',
+    asin: 'B0HKZPJHMK', title: 'Dhoop combo', status: 'ACTIVE', fulfilmentChannel: 'MFN', mappingStatus: 'MAPPED', productId,
+    unitsPerListing: 1, publishedQuantity: 50, price: '199.00', currency: 'INR', issues: [], lastImportedAt: new Date(), createdAt: new Date(), updatedAt: new Date(),
+    product: { id: productId, puc, name: `${puc} name`, iscombo },
+  });
+  let row: Row = listingRow(C, 'NIV-C', true);
+  const restore = useFake({ ...fake, marketplaceListing: { findFirst: async () => row } });
+  try {
+    const repository = new AmazonListingRepository();
+    const details: any = await repository.getListingDetails({ listingId: '178', sellerId: 'S', marketplaceId: 'M' });
+    assert.equal(details.mappedProduct.iscombo, true);
+    assert.equal(details.nivaanaStock.available, 10);
+    assert.equal(details.nivaanaStock.target, 10);
+    assert.deepEqual(details.nivaanaStock.combo.components.map((part: any) => [part.puc, part.requiredQty, part.available]),
+      [['NIV-A', 1, 15], ['NIV-B', 1, 10]]);
+
+    row = listingRow(SINGLE, 'NIV-S', false);
+    const single: any = await repository.getListingDetails({ listingId: '178', sellerId: 'S', marketplaceId: 'M' });
+    assert.equal(single.nivaanaStock.available, 4);
+    assert.equal(single.nivaanaStock.combo, null);
+  } finally { restore(); }
+});
