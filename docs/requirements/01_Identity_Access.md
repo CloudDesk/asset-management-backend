@@ -19,7 +19,7 @@ Lets two kinds of people sign in and controls what each can do:
 - **ACC-01** A customer requests an OTP for a mobile number (`POST /v1/mobile-auth/request-otp`; Twilio variants also exist) and verifies it (`/verify-otp`).
 - **ACC-02** The OTP expires after `OTP_EXPIRY_SECONDS` (default **60 s**) and allows at most `OTP_MAX_ATTEMPTS` (default **3**) verify attempts.
 - **ACC-03** Sending is rate-limited: `RATE_LIMIT_SEND_MAX` (default 3) per `RATE_LIMIT_SEND_WINDOW`; verify is limited by `RATE_LIMIT_VERIFY_*`. A blocked number stays blocked for `BLOCK_DURATION` (default **3600 s**).
-- **ACC-04** SMS providers: Exotel (DLT template, primary in India), Twilio, Infobip (`/v1/sms/*`, `send-otp-with-fallback`). OTP state is stored in Redis.
+- **ACC-04** **OTP is sent by SMS only**, never by email or another channel (decision 2026-10-28). SMS providers: Exotel (DLT template, primary in India), Twilio, Infobip (`/v1/sms/*`, `send-otp-with-fallback`). OTP state is stored in Redis. SMS is not used for anything else (NTF-10).
 - **ACC-05** A first-time number creates a customer. Registering a number that already exists is refused: "This phone number is already registered. Please login instead."
 - **ACC-06** A customer can delete their account (`POST /v1/mobile-auth/delete-account`; E-com page `/delete-my-account`).
 

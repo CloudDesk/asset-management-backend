@@ -34,7 +34,7 @@ Covers buying stock from suppliers: supplier master â†’ purchase request (PR) â†
   - products, subtotal, discount, SGST / CGST, tax, total
   - payment terms, overdue date, instructions, comments
   - supplier type, and the PO file / invoice URLs
-- **PUR-10** PO status is changed with `PUT /:id/status`. Values come from the PO-status picklist (for example Draft / In Progress / Completed / Cancelled; confirm the final list with the BA).
+- **PUR-10** PO status is changed with `PUT /:id/status`. Values come from the PO-status picklist (for example Draft / In Progress / Completed / Cancelled); see PUR-18.
 - **PUR-11** **Generate PO** builds the PDF through the file service (`/generate-document/po`):
   - the URL comes from the environment config, never hard-coded (FIX-62)
   - the request sends the user's token, so the file service callback can update the PO (FIX-64)
@@ -47,7 +47,7 @@ Covers buying stock from suppliers: supplier master â†’ purchase request (PR) â†
   - credit payment flag and due date, payment data
   - transport charges
   - for import suppliers: exchange amount, customs duty, duty challan and bill of entry URLs
-- **PUR-14** Saving an invoice updates the PO's purchase-order status ("Failed to update purchase order status" if this cannot be done). Invoice statuses seen: Pending / Paid / Fully Paid (confirm).
+- **PUR-14** Saving an invoice updates the PO's purchase-order status ("Failed to update purchase order status" if this cannot be done). Invoice statuses come from the picklist (seen: Pending / Paid / Fully Paid).
 
 ## 7. Sample purchase requests
 
@@ -57,12 +57,19 @@ Covers buying stock from suppliers: supplier master â†’ purchase request (PR) â†
 
 Suppliers, Purchase Requests (add / edit), Purchase Orders (create / detail with PO PDF), Sample Purchase Requests (create / detail / create shipment). All detail pages show full-page loading skeletons.
 
-## 9. Gaps and items to confirm
+## 9. Decision (2026-10-28): keep the current flow
 
-- **There is no written business requirement for this module.** These must be confirmed with the BA: PR â†’ PO approval rules, who can approve, PO status list and allowed transitions, partial receipt, and invoice-to-PO matching.
-- There is no goods receipt step. Stock is added through Bulk Add / Import with an optional PO ID; confirm whether receipt against PO quantities is needed.
+**The current PR / PO flow described above is the approved requirement. No change is planned.** This means:
+- **PUR-16** A PR is approved or rejected by any user who has edit access to purchase requests. There are no approval levels.
+- **PUR-17** A PO is created manually and may reference a PR number. An approved PR is not required, and approving a PR does not create a PO.
+- **PUR-18** PO and invoice status values come from their picklists. There are no fixed transition rules.
+- **PUR-19** There is **no goods-receipt step**. Stock is added through Bulk Add / Import, and the PO ID on a stock row is optional. Received quantities are not compared with PO quantities, and the PO status does not change when stock is added.
+- **PUR-20** There is no automatic matching between supplier invoices and POs beyond the PO number and the status update in PUR-14.
+
+## 10. Remaining item to confirm
+
 - `servicecostestimation`, `tickets` and `revoinvoice` tables exist (service / repair tickets) but have no routes. Confirm whether they are retired.
 
-## 10. Source documents
+## 11. Source documents
 
 `POINVOICE_API_DOCUMENTATION.md`, `POINVOICE_TEST_PLAN.md`, `PURCHASE_ORDER_STATUS_TEST_PLAN.md`, `SAMPLE_PURCHASE_REQUEST_API_DOCUMENTATION.md`, `QUOTE_ATTACHMENT_DOCUMENTATION.md`, `POST_Supplier_API_Test_Results.md`.

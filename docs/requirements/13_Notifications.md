@@ -35,23 +35,28 @@ Tells customers what is happening with their orders, returns and offers through 
 
 ## 4. SMS
 
-- **NTF-10** SMS is used for OTP only (module 01): Exotel with DLT entity / template ids, Twilio, and Infobip as fallback.
+- **NTF-10** **SMS is used only to send OTPs** (decision 2026-10-28). No order, payment, return or offer message is ever sent by SMS. Providers: Exotel with DLT entity / template ids, Twilio, and Infobip as fallback (module 01).
 
-## 5. Gaps and items to confirm
+## 5. Event × channel matrix
 
-- **There is no written list of which events notify which channel.** Confirm this event × channel matrix with the BA:
+**Decision 2026-10-28:** no SMS notifications.
 
-  | Event | Push | Email | SMS |
-  | --- | --- | --- | --- |
-  | Payment success | ✅ | ✅ | ❓ |
-  | Order shipped / delivered | ✅ | ✅ | ❓ |
-  | Order cancelled / refunded | ✅ | ✅ | ❓ |
-  | Return status | ✅ | ❓ | ❓ |
-  | Offers | ✅ (broadcast) | ✅ (voucher) | ❓ |
+| Event | Push | Email | SMS |
+| --- | --- | --- | --- |
+| Login OTP | — | — | ✅ (only SMS use) |
+| Payment success / failure | ✅ | ✅ (payment confirmation) | ❌ |
+| Order confirmed | ✅ | ✅ | ❌ |
+| Order shipped / delivered | ✅ | ✅ | ❌ |
+| Order cancelled / refunded | ✅ | ✅ | ❌ |
+| Return / replacement status | ✅ | ❓ (not built; confirm if wanted) | ❌ |
+| Offers | ✅ (broadcast) | ✅ (voucher) | ❌ |
 
+## 6. Gaps and items to confirm
+
+- Return status emails are not built. Confirm whether push alone is enough.
 - Nothing runs the cart reminders and promotion broadcasts on a schedule; they are triggered manually through the API. Confirm whether a Cloud Scheduler job is wanted.
 - There is no customer opt-out or notification preference setting. The mobile Fragrance Preferences screen covers scents, not notifications.
 
-## 6. Source documents
+## 7. Source documents
 
 `SMS_API_DOCUMENTATION.md`, `SMS_QUICK_REFERENCE.md`, `DLT_SETUP_VERIFICATION_GUIDE.md`, `TWILIO_INTEGRATION_SUMMARY.md`, mobile `APP_UPDATE_FEATURE.md`, Firebase / APNs setup notes in the mobile repo.

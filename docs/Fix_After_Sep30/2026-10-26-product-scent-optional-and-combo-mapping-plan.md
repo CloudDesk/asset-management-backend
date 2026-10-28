@@ -113,6 +113,9 @@ All existing combos have quantity 1 per component. Combo 94 already has no Scent
 | R5 | Only **active, e-commerce-published** products with stock should be offered | Popup filter + optional backend check (§4.6) | Dispatch auto-picks only `ecompublish = true` stock (`orders.service.ts:1661-1668`); otherwise the order stops at Ready for Dispatch |
 | R6 | No other combo with **the same products and quantities** | Backend (exists, `findExistingComboByComponents`) | A × 2 + B × 1 and A × 1 + B × 2 count as **different** combos (correct) |
 | R7 | One product with quantity = pack is allowed (A × 2 for Pack of 2) | Popup (new) | Backend already accepts a single component |
+| R8 | **HSN code and GST rate are entered by the admin** on every combo: required, **not pre-filled** from the subcategory tax preset and not copied from the components | Form (changed) + backend (exists: Zod `hsn_code` min 1, `gst_rate` 0-100, `product.schema.ts:62-63`) | A combo can mix products with different HSN / GST (e.g. incense + holder) |
+
+**Examples (agreed 2026-10-28):** with Combo 1 = Kesar Chandan × 1 + Kasturi × 1 already saved, Combo 2 = Kesar Chandan × 1 + Kasturi × 1 + Holder × 1 (Pack of 3) and Combo 3 = Kesar Chandan × 1 + Kasturi × 2 (Pack of 3) are **both allowed** — `findExistingComboByComponents` treats a different number of components or a different quantity as a different combo. Only an exact repeat (same products, same quantities) is blocked.
 
 Pack values available (picklist, Dev 2026-10-28): `single`, `pack_of_2`, `pack_of_3`, `pack_of_4`, `pack_of_5`, `pack_of_6`, `pack_of_9`, `pack_of_12`. A combo total that is not one of these (e.g. 7) cannot be saved — the user picks the pack first, so R4 covers it.
 
@@ -136,6 +139,7 @@ Pack values available (picklist, Dev 2026-10-28): `single`, `pack_of_2`, `pack_o
 | 604-635 (Scent render / required) | Shown if options exist or subcategory is combo-enabled; `required` when combo ticked | **Combo ticked → hide Scent** (fixes the "No options available" dead end). Single → show only when options exist, optional. |
 | 893-930 (Map / View Combo Components link) | Needs `fragranceList.length === packCount` | Show **Map Combo Components** whenever combo is ticked, a pack is picked and it is create mode. View link unchanged. |
 | 1394-1576 (`fetchComponentProducts` effect) | Fetches by Scent in the same subcategory; resets mapping when Scent is empty | **Remove the Scent fetch for create mode** — the popup searches itself. Keep the read-only branch (edit mode builds products from `existingProduct.components`). Reset mapped components only when combo is unticked or the pack changes. |
+| 300-322 (HSN / GST initial values from `matchedTaxPreset`) | Pre-filled from the subcategory tax preset | **Combo: leave empty** so the admin enters HSN and GST (R8). Single products: unchanged. |
 | 1330-1340 (submit payload) | Sends `components` when mapped | Send `components` as `[{ productid, requiredqty }]` (one row per product). **Auto-fill** before submit: `fragnancetype` = distinct component scents joined by `,` (skip blanks; null if none; ≤ 255 chars); `numberofitems` = total quantity (optional, field exists on `product`). |
 | Name / short name | Built from Scent picks | When Scent is auto-filled the existing name builder keeps working (e.g. "Combo Kasturi,Kesar Chandan"). Check the generated name for gift combos without scents — user can still edit Remarks/Name. |
 | 1630-1655 (Submit hidden until mapped) | Hidden if combo and no components | No change. |
@@ -292,6 +296,9 @@ Example: A has 141 available, combo = A × 2 → shows **70**.
 | TC-18 | In-store order, A × 2 + B × 1 combo, quantity 2 | Allocates 4 A + 2 B |
 | TC-19 | Ecom web + mobile: list, product page, cart for TC-07 / TC-08 combos | Stock = min(floor(stock ÷ qty)); appears under Gift Sets and its Scent filter |
 | TC-20 | Existing combos 78-94 | Unchanged: list, cart, order, dispatch |
+| TC-21 | Combo 1 exists (Kesar Chandan × 1 + Kasturi × 1); create Combo 2 = same + Holder × 1 (Pack of 3) | Allowed |
+| TC-22 | Combo 1 exists; create Combo 3 = Kesar Chandan × 1 + Kasturi × 2 (Pack of 3) | Allowed |
+| TC-23 | New combo: HSN / GST fields | Empty (no preset); Submit blocked until both are entered; saved values shown on the combo |
 
 ---
 
@@ -302,7 +309,7 @@ Example: A has 141 available, combo = A × 2 → shows **70**.
 | 1 | Add `fragrance_oils` and `air_fresheners` to the combo list? | Default: No — keep the 9 |
 | 2 | Limit the product search to some categories? | Default: all active, published single products |
 | 3 | Allow quantity > 1 per product (A × 2, A × 2 + B × 1)? | **✅ Yes (agreed 2026-10-28)** — total quantity = pack |
-| 4 | Allow mixed subcategories in one combo (e.g. incense + dhoop)? Which subcategory / HSN / GST does the combo get? | Default: allowed; combo keeps the subcategory and HSN / GST entered on the form (as today) |
+| 4 | Allow mixed subcategories in one combo (e.g. incense + holder)? Which subcategory / HSN / GST does the combo get? | **✅ Allowed (agreed 2026-10-28)** — combo keeps the subcategory on the form; **HSN and GST entered by the admin** during create (R8) |
 | 5 | Do the optional backend checks B1-B3 (§4.6) in the same release? | Recommended: B1 + B2 yes, B3 when convenient |
 | 6 | Amazon same-product packs: units per listing vs Nivaana A × 2 combo | Default: Amazon keeps units per listing (§5.6) |
 

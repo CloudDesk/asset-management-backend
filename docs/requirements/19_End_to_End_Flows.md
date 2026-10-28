@@ -51,10 +51,11 @@ Supplier ─► Purchase Request ─► Quotes ─► Purchase Order ─► Gene
 | A10 | **Move to another channel** | Stock edit (platform change) | Transfer between platforms | Old platform's quantities go down and the new platform's go up (transfer operation) |
 | A11 | **Mark damaged** | Stocks → Mark as Damaged | **Blocked (409)** if the platform has `orderedqty + lockqty > 0` and `availableqty < 1` | Status `damaged`. Platform stock recount: `ecomqty −1` (if it was published), `damagedqty +1`, `availableqty` recalculated. |
 
-### Gaps in Buy-to-Stock (to confirm with the BA)
-- **There is no goods-receipt step.** Nothing compares the units received with the PO quantity, and the PO does not move to "Received" or "Partially received" when stock is added. The PO id on a stock row is optional.
-- **PR → PO is manual.** There are no approval levels and no rule that a PO needs an approved PR.
-- The PO and invoice status lists come from picklists; their allowed transitions are not defined.
+### Buy-to-Stock decision (2026-10-28)
+**The current flow above is the approved requirement; no change is planned** (module 04, PUR-16 – PUR-20):
+- **No goods-receipt step.** Stock is added through Bulk Add / Import with an optional PO id. Received units are not compared with PO quantities.
+- **PR → PO is manual.** There are no approval levels, and a PO does not need an approved PR.
+- PO and invoice statuses come from picklists, with no fixed transition rules.
 
 ---
 
@@ -160,7 +161,7 @@ Both guides now carry a "Superseded" note at the top. `docs/phonepe/payment-flow
    Example: `ecomqty 10, soldqty 5`, lock 1 → the payment path writes `availableqty 4` instead of 9. The storefront can then show the product as low or out of stock until the next recount or Ready for Dispatch puts it back.
 
    **Needs a dev check and a fix:** use one shared formula.
-2. **No goods receipt** (Part A gaps).
+2. ~~No goods receipt~~: accepted as the current flow (decision 2026-10-28, Part A).
 3. Automatic allocation always uses platform `nivapp`; the code notes "can be enhanced to use order's platform". This is fine while only website and app orders go through Ready for Dispatch. Confirm before Self Ship Amazon orders use the same path.
 4. Manual unit selection is not supported for combo components.
 5. **The product row does not reflect locks.** `product.availablequantity` drops only when the order is created, so for up to 120 s during payment the product total is higher than the platform's available quantity. This is harmless today, because the payment check also uses the platform row, but screens that read `product.availablequantity` can briefly show more stock than can be sold.
