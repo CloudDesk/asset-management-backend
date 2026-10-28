@@ -664,7 +664,7 @@ The website already expands combos into components for orders (`orders.service.t
 
 ### AMZ-PLAN-28: Amazon sales must mark stock units sold (single and combo)
 
-**Status:** **Implemented 2026-10-28 (FIX-2026-10-28-174, not committed)** with the 28.7 proposed defaults; SQL run on Dev/SIT 2026-10-28 (UAT / Prod pending). Found while checking whether Amazon orders move Nivaana stock correctly after the combo work (FIX-173). Affects **single products and combos alike**; it existed before AMZ-PLAN-27.
+**Status:** **Implemented 2026-10-28 (FIX-2026-10-28-174, not committed)** with the 28.7 proposed defaults; SQL run on Dev/SIT and UAT 2026-10-28 (Prod pending). Found while checking whether Amazon orders move Nivaana stock correctly after the combo work (FIX-173). Affects **single products and combos alike**; it existed before AMZ-PLAN-27.
 
 #### 28.1 The problem
 
