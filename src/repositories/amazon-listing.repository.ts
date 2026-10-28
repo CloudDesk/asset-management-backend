@@ -734,7 +734,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     )];
     // Whole catalogue: word frequencies need every product name, and every product can be scored
     const products = await prisma.product.findMany({
-      select: { id: true, puc: true, name: true, productstatus: true, asin: true, iscombo: true },
+      select: { id: true, puc: true, name: true, productstatus: true, asin: true, iscombo: true, pack: true },
       orderBy: { id: 'asc' },
       take: SUGGESTION_CATALOG_LIMIT,
     });
@@ -774,7 +774,8 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           reasons.push(`Name match ${nameMatch.matched.length}/${nameMatch.total}: ${nameMatch.matched.join(', ')}`);
         }
         return {
-          product: { id: String(product.id), puc: product.puc, name: product.name, status: product.productstatus, iscombo: product.iscombo === true },
+          // pack: the mapping dialog warns when the Amazon title says "Pack of N" but the product is a single piece
+          product: { id: String(product.id), puc: product.puc, name: product.name, status: product.productstatus, iscombo: product.iscombo === true, pack: product.pack ?? null },
           score: Math.min(score, 100),
           confidence: score >= 80 ? 'HIGH' : score >= 45 ? 'MEDIUM' : 'LOW',
           reasons,
