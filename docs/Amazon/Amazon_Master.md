@@ -6,8 +6,9 @@ One place for everything Amazon (SP-API) in Nivaana: how it works, where it is s
 - Every Amazon fix gets an entry in section 8 here **and** the usual entry in `docs/Fix_After_Sep30/Master.md` (same FIX number).
 - Every Amazon env / script / Cloud Scheduler change also gets a row in `docs/RELEASE_SCRIPTS_CHECKLIST.md` section 4e.
 - Amazon plans live in section 9 here as `AMZ-PLAN-xx` (not in `docs/Future_Plans.md`).
-- Last updated: 2026-10-27. Full gap list: section 10. **Deploying Amazon to SIT / UAT / Prod: section 4a.**
+- Last updated: 2026-10-28. Full gap list: section 10. **Deploying Amazon to SIT / UAT / Prod: section 4a.**
 - Order fulfilment flow (FBA / Easy Ship / Self Ship), client decisions (2026-10-26), Ship now, delivery status and plan: [`Amazon_Order_Fulfillment.md`](Amazon_Order_Fulfillment.md) (AMZ-PLAN-25).
+- Amazon sales and stock units (shipped units not marked sold today): AMZ-PLAN-28 in section 9.
 - Combo listings (Amazon combos vs Inventory combos, stock from components): AMZ-PLAN-27 in section 9; full listing comparison [`Amazon_Listings_vs_Inventory_UAT_2026-10-27.md`](Amazon_Listings_vs_Inventory_UAT_2026-10-27.md).
 
 ---
@@ -312,6 +313,12 @@ The time shown is the latest job, whatever its status (AMZ-PLAN-07).
 ---
 
 ## 8. Change log
+
+### 2026-10-28: Amazon — sales mark stock units sold (FIX-174, AMZ-PLAN-28, backend + Inventory DEV-NEW, not committed)
+- Shipped seller-fulfilled orders mark the oldest available Amazon units `sold` (linked to the reservation; combos per component) and lower `ecomqty`; returns put the same units back or mark them `damaged`; shortfalls reported. New column `stock."amazonReservationId"` (SQL `20261028_amazon_sold_stock_units.sql`, not in Prisma; without it the old behaviour stays with a "migration missing" note). Backfill `npm run amazon:sold-units`. `sold:update` without credentials in the file, available units only, `ecomqty` too. Details: Master.md FIX-2026-10-28-174.
+
+### 2026-10-28: Amazon — sold Amazon units are not marked in stock; AMZ-PLAN-28 (docs only)
+- Found while checking order → stock after the combo SIT test: a shipped Amazon order moves `platformstock` counters but never marks unit rows `sold` or lowers `ecomqty`, so the next stock-in or recount brings the sold units back (single and combo). Plan AMZ-PLAN-28 in section 9 (unit marking on sold, returns, SQL column, data clean-up, decisions). SIT / UAT have no integrated Amazon sales yet (read-only check); Prod to be checked. Also noted: `scripts/external-sold-update.ts` has a database password in the file (gap H3).
 
 ### 2026-10-27: Amazon — "Map as combo" (FIX-171, backend + Inventory DEV-NEW, not committed)
 - Mapping dialog: **Several products (combo)** — pick the products and quantities; Nivaana reuses the combo with exactly those products or creates it, then maps. Combos made for Amazon (here and by `amazon:combos`) get only an Amazon stock row, so they do not appear on the Nivaana website. Details: `docs/Fix_After_Sep30/Master.md` FIX-2026-10-27-171.
@@ -655,6 +662,94 @@ The website already expands combos into components for orders (`orders.service.t
 | 7 | Duplicate Amazon listings of the same combo: keep both or close one? | Keep both, map to one combo |
 | 8 | Combos via script (27.4) or by hand? | Script with dry run |
 
+### AMZ-PLAN-28: Amazon sales must mark stock units sold (single and combo)
+
+**Status:** **Implemented 2026-10-28 (FIX-2026-10-28-174, not committed)** with the 28.7 proposed defaults; SQL run on Dev/SIT 2026-10-28 (UAT / Prod pending). Found while checking whether Amazon orders move Nivaana stock correctly after the combo work (FIX-173). Affects **single products and combos alike**; it existed before AMZ-PLAN-27.
+
+#### 28.1 The problem
+
+Nivaana stock has two layers:
+- **Unit rows** (`stock` table): one row per physical unit, with `platform` (amazon / flipkart / nivapp), `stockstatus` (available / sold / damaged) and `ecompublish`.
+- **Counters** (`platformstock`): `ecomqty` (= unit rows available + e-com published), `orderedqty`, `soldqty`, `lockqty`, and **`availableqty = ecomqty − orderedqty − lockqty`** (INV-09).
+
+A website order at Ready for Dispatch marks the allocated **unit rows** `sold` (order id, line, sold date) and moves the counters `orderedqty −`, `soldqty +`, **`ecomqty −`** (INV-16; combos per component). An Amazon order only moves counters:
+
+| Step | Code | `availableqty` | `orderedqty` | `soldqty` | `ecomqty` | Unit rows |
+| --- | --- | --- | --- | --- | --- | --- |
+| Start | — | 10 | 0 | 0 | 10 | 10 available |
+| Order imported (UNSHIPPED) | `reserveSellerStock` | 9 | 1 | 0 | 10 | 10 available |
+| Shipped / picked up | `finalizeReservationsAsSold` | 9 | 0 | 1 | **10** | **10 available** (none marked) |
+| Next stock-in of 1 unit | `updatePlatformStockQuantities` create | **11** (should be 10) | 0 | 1 | 11 | 11 available |
+| Any unit edit / damage / delete | `recalculatePlatformStockQuantities` | 11 | 0 | **0** | 11 | 11 available |
+
+So every shipped Amazon unit **comes back as available** at the product's next stock change, and the sale disappears from `soldqty`. Stock Sync would then publish stock Nivaana no longer has (oversell). The same happens on `product` (`updateStockTotals` recounts from unit rows). For a combo the units come back on each component, so the combo's stock rises too.
+
+No Amazon code touches the `stock` table today. The manual `npm run sold:update` (`scripts/external-sold-update.ts`) was the workaround for marketplace sales: it marks the oldest N unit rows `sold` and moves `availableqty − / soldqty +`, but not `ecomqty −` — the source of the 21 Amazon platformstock rows / 150 units where `ecomqty ≠ available + ordered + lock` on SIT and UAT (FIX-2026-10-07-56 "open finding").
+
+#### 28.2 Where Amazon stock is sold or given back (all paths)
+
+| Path | Function | Today | Needed |
+| --- | --- | --- | --- |
+| MFN shipped (Easy Ship picked up / Self Ship shipped / order SHIPPED on sync) | `AmazonOrderRoutingService.finalizeReservationsAsSold` — called from `reconcile` and twice from `amazon-order-fulfillment.service.ts` | counters only | **mark unit rows sold** (28.3) |
+| MFN cancelled before shipping | `releaseReservations` | counters back | unchanged (units were never marked) |
+| MFN return received, RESTOCKABLE | `AmazonReturnService.receive` | `availableqty +`, `soldqty −` | **put the order's unit rows back to available** (28.4) |
+| MFN return DAMAGED / UNSELLABLE | `receive` → QUARANTINED | nothing | decision 3 (28.7) |
+| FBA | `trackFbaStock` | `soldqty` on the Nivaana amazon row | out of scope: Amazon owns FBA stock (decision 5) |
+
+Every seller-fulfilled sale goes through **one function** (`finalizeReservationsAsSold`), and a combo order already has one reservation row per component (FIX-168), so one change covers singles and combos.
+
+#### 28.3 Fix — sold marks unit rows (P1)
+
+In `finalizeReservationsAsSold`, inside the existing Serializable transaction, for each `RESERVED` seller reservation (each combo component row too):
+1. Pick `quantity` unit rows: `puc` = the reservation's product, `platform` = amazon (case-insensitive), `stockstatus` available (case-insensitive), `ecompublish = true`, not deleted / archived; **oldest first** (`createddate`, then `id`), `FOR UPDATE SKIP LOCKED`-style so two orders never take the same unit — same rule as INV-16 automatic allocation.
+2. Mark them `stockstatus = 'sold'`, `solddate` = now, link them to the reservation (28.5), `description` "Amazon order <amazonOrderId>" (readable in the Stocks screen).
+3. Counters: `orderedqty −q`, `soldqty +q` (as today) **and `ecomqty −q`**; `availableqty` stays the same (ecom − ordered both drop by q). Product row: also `ecompublishedquantity −q` so `updateStockTotals` agrees.
+4. **Fewer unit rows than the reservation** (counters and units already drifted): Amazon has already shipped, so **do not block**. Mark what exists, set the reservation `SOLD` with `errorMessage` "N unit row(s) missing — stock rows need correction", count `ecomqty −` only for the units marked, and show it in Needs attention (order detail + Stock Sync warning). Decision 2.
+5. Already `SOLD` reservations are skipped (idempotent, as today), so a re-run of reconcile never marks units twice.
+
+#### 28.4 Fix — returns give the same units back (P2)
+
+`AmazonReturnService.receive`, RESTOCKABLE: find the unit rows linked to the order's SOLD reservations for the returned product (each component of a combo, decision 4 of AMZ-PLAN-27), oldest sold first, `quantityReceived` × quantity per combo; set them `available` (keep `ecompublish`), clear `solddate`, note "Returned — Amazon order …"; counters `soldqty −`, `ecomqty +`, `availableqty +`. If fewer linked units than returned (sold before this fix / backfill gap): restore what is linked and report the rest, like 28.3 point 4.
+
+#### 28.5 Data change (P0, SQL before the deploy)
+
+`stock` has `orderid` / `orderlinenumber`, but they are foreign keys to the website `orders` / `orderline` tables, so an Amazon order id cannot go there. Add one nullable column:
+
+```sql
+ALTER TABLE stock ADD COLUMN IF NOT EXISTS "amazonReservationId" BIGINT
+  REFERENCES amazon_order_stock_reservations(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_stock_amazon_reservation ON stock ("amazonReservationId");
+```
+
+Script `scripts/migrations/<date>_amazon_sold_stock_units.sql` (idempotent, verification + rollback in comments), Prisma field on `Stock`, release-checklist row; run on Dev/SIT, UAT, Prod before each backend deploy (Prod: backup first). UAT also still needs `20261027_amazon_combo_stock_reservations.sql` (column missing on `assetmanagement_uat` 2026-10-28).
+
+#### 28.6 Existing data (P3)
+
+- **Integrated Amazon sales already counted but not marked:** SIT 0, UAT 0 (2026-10-28, read-only: no SOLD seller reservations; SIT has 1 FAILED — NIV-0091 had 0 Amazon stock, correct). **Prod: not checked** (production read not allowed from this session) — run read-only before the release:
+  `SELECT status, "inventoryOwnership", count(*), sum(quantity) FROM amazon_order_stock_reservations GROUP BY 1,2;`
+  If Prod has SOLD seller rows, a one-off script (dry run by default, `--apply --confirm=…`) marks their units with the 28.3 rule, oldest first, using each reservation's `soldAt`.
+- **Old drift from the manual script** (`ecomqty` not reduced; SIT / UAT 21 Amazon rows, 150 units): dry run `scripts/recount-platform-stock.ts --platform=amazon` per environment, review, then apply — the recount sets `ecomqty` / `soldqty` from unit rows and keeps `orderedqty`. Do it **after** P1 is live, so new sales stop adding drift.
+- **Manual `sold:update` for Amazon:** stop using it for Amazon once P1 is live (it would double-count integrated orders); keep it for Flipkart until Flipkart is integrated, and fix it to also do `ecomqty −` (or switch it to the recount). The script also has a **database password written in the file** (tracked in git, on DEV-NEW and other branches) — move it to the environment-file pattern and rotate the password (gap H3 below).
+
+#### 28.7 Decisions needed
+
+| # | Question | Proposed default |
+| --- | --- | --- |
+| 1 | Which units are sold: oldest Amazon unit first (FIFO), or a batch / expiry rule? | FIFO by `createddate`, same as website automatic allocation |
+| 2 | Shipped order but not enough unit rows: block, or mark what exists and flag? | Mark what exists and flag (Amazon has already shipped) |
+| 3 | Return DAMAGED / UNSELLABLE: leave units `sold`, or mark them `damaged`? | Mark the linked units `damaged` (`soldqty −`, `damagedqty +`), so the Stocks screen shows them |
+| 4 | Self Ship (Ekart / Shipmozo / Manual): sell at "shipped" like Easy Ship, or at Ready for Dispatch like the website? | Keep today's trigger (shipped); unit marking follows it |
+| 5 | FBA: any Nivaana unit rows? | None — FBA stock is Amazon's; `trackFbaStock` stays counter-only |
+
+#### 28.8 Tests and checks
+
+- Backend (fake DB, `amazon-combo-stock.service.test.ts` style): single order shipped → N oldest Amazon units sold, linked, `ecomqty −N`, `availableqty` unchanged, then a stock-in / recount keeps the sale (the bug today); combo order → units of each component; cancel before ship → no units touched; shipped twice → no double marking; fewer units than ordered → SOLD + warning; two orders at once → different units; return RESTOCKABLE → the same units back; DAMAGED → units damaged.
+- SIT, with test orders (no Amazon contact; Inventory `npm run dev` → Create Amazon test order, order page → Mark shipped / Cancel): single and combo (`I6-BN4F-MVX7` → NIV-0094), read `platformstock` + unit rows before and after each step, then add one unit and confirm the sold units stay sold.
+
+#### 28.9 Order of work
+
+P0 SQL (Dev/SIT) → P1 sold marks units + tests → P2 returns → SIT test orders → P3 data (Prod check, backfill if any, amazon recount) → stop `sold:update` for Amazon → UAT → Prod.
+
 ---
 
 ## 10. Gap register (2026-10-22)
@@ -692,6 +787,7 @@ Every known gap across the Amazon modules, in one list. Severity: **Critical** =
 | D6 | Nivaana "amazon" platform allocation must be maintained correctly (it is what Stock Sync publishes); e.g. KRA-0049 = 5 vs Amazon 29 | High | Section 5a | Business process |
 | D7 | Mappings are stored per database (local+SIT share one; UAT and Prod separate) — mapping done outside Prod does not reach Prod | High | AMZ-PLAN-23 | ✅ Tool ready 2026-10-22 (FIX-144): `npm run amazon:mappings -- export <env>` / `import <env> --file=…` (dry run, then `--apply --confirm=NIVAANA_AMAZON_MAPPINGS`); matches by seller SKU + PUC |
 | D8 | All environments use the same live Amazon account — writes or fulfilment from SIT / UAT would change the real listings | High | Section 1a | Writes off outside Prod |
+| D9 | Shipped Amazon (MFN) orders move `platformstock` counters only: unit rows stay `available` and `ecomqty` is not lowered, so the next stock-in / recount brings sold units back (single and combo); old `sold:update` drift 150 units on SIT / UAT | High | AMZ-PLAN-28 | 🟡 Implemented 2026-10-28 (FIX-174, not committed); SQL + release pending |
 
 ### 10.3 Inventory screens
 
@@ -716,3 +812,4 @@ Every known gap across the Amazon modules, in one list. Severity: **Critical** =
 | --- | --- | --- |
 | H1 | Work from 2026-10-21 not committed: backend FIX-124 – FIX-129 + docs; Inventory Channels / Amazon Operations UI | ✅ Committed 2026-10-22 (backend `ff24126`, Inventory `3d8da3a`; FIX-124 – FIX-140) |
 | H2 | Inventory UI backup branch `backup/amazon-ui-before-redesign-2026-10-21` (pushed) | Keep until the redesign is released |
+| H3 | `scripts/external-sold-update.ts` (tracked, on DEV-NEW and other branches) has a database host, user and password written in the file; move it to the environment-file pattern (`scripts/lib/release-environments.ts`) and rotate the password | 🟡 Credentials removed from the file 2026-10-28 (FIX-174, not committed); **rotate the password** (it is still in git history) |

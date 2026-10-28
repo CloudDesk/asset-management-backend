@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
 import { amazonInventorySyncService } from './amazon-inventory-sync.service.js';
 import { AmazonComboStockError, expandAmazonStockLines, loadComboComponents } from './amazon-combo-stock.service.js';
+import { sellAmazonUnits } from './amazon-stock-units.service.js';
 
 export type AmazonOrderRoutingDecision = {
   route: 'FBA_RECONCILIATION' | 'EASY_SHIP_HANDLING' | 'NIVAANA_SHIPPING' | 'BLOCKED';
@@ -440,17 +441,33 @@ export class AmazonOrderRoutingService {
       const stockIds: bigint[] = [];
       let converted = 0;
       let alreadySold = 0;
+      let amazonOrderId: string | null = null;
       for (const reservation of reservations) {
         if (reservation.status === 'SOLD') {
           alreadySold += 1;
           continue;
         }
         if (reservation.status !== 'RESERVED' || reservation.platformStockId === null) continue;
+        amazonOrderId ??= (await transaction.amazonMarketplaceOrder.findUnique({ where: { id: orderId }, select: { amazonOrderId: true } }))?.amazonOrderId
+          ?? String(orderId);
+        // AMZ-PLAN-28: the sold units leave the unit rows too (oldest Amazon units first), so a later
+        // stock-in or recount does not bring them back; ecomqty drops with them, availableqty is unchanged
+        const units = await sellAmazonUnits(transaction, {
+          reservationId: reservation.id,
+          puc: await productLabel(transaction, reservation.productId),
+          quantity: reservation.quantity,
+          amazonOrderId,
+        });
+        const stock = await transaction.platformStock.findUnique({
+          where: { id: reservation.platformStockId },
+          select: { ecomqty: true },
+        });
         const updated = await transaction.platformStock.updateMany({
           where: { id: reservation.platformStockId, orderedqty: { gte: reservation.quantity } },
           data: {
             orderedqty: { decrement: reservation.quantity },
             soldqty: { increment: reservation.quantity },
+            ecomqty: Math.max(0, Number(stock?.ecomqty ?? 0) - units.moved),
             modifieddate: BigInt(Date.now()),
           },
         });
@@ -459,7 +476,7 @@ export class AmazonOrderRoutingService {
         }
         const product = await transaction.product.findUnique({
           where: { id: reservation.productId },
-          select: { orderedquantity: true, soldquantity: true },
+          select: { orderedquantity: true, soldquantity: true, ecompublishedquantity: true },
         });
         if (!product) throw new Error(`Product ${reservation.productId} was not found`);
         await transaction.product.update({
@@ -467,12 +484,14 @@ export class AmazonOrderRoutingService {
           data: {
             orderedquantity: Math.max(0, Number(product.orderedquantity ?? 0) - reservation.quantity),
             soldquantity: Number(product.soldquantity ?? 0) + reservation.quantity,
+            ecompublishedquantity: Math.max(0, Number(product.ecompublishedquantity ?? 0) - units.moved),
             modifieddate: BigInt(Date.now()),
           },
         });
         await transaction.amazonOrderStockReservation.update({
           where: { id: reservation.id },
-          data: { status: 'SOLD', soldAt: new Date(), errorMessage: null },
+          // Sold either way (Amazon has shipped); the note says when unit rows were missing
+          data: { status: 'SOLD', soldAt: new Date(), errorMessage: units.note },
         });
         stockIds.push(reservation.platformStockId);
         converted += 1;

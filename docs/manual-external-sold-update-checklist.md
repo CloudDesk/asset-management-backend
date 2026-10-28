@@ -4,6 +4,12 @@ Use this checklist when doing a manual stock sold update with [`scripts/external
 
 This process is for stock sold on external platforms like Amazon or Flipkart that did not come through the normal order flow.
 
+> **Amazon (from FIX-2026-10-28-174, AMZ-PLAN-28):** orders of Amazon listings **mapped** in Nivaana mark their stock units sold automatically when they ship. Enter only sales of listings that are **not** mapped; entering a mapped listing's order here counts it twice. The script prints a warning on every Amazon row.
+>
+> **Connection:** the database is no longer written in the script. Set `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` (or `DATABASE_URL`) in the terminal before running, e.g. PowerShell `$env:DB_HOST="…"; $env:DB_PASSWORD="…"`. Never paste the password into the file.
+>
+> **Units:** only available, e-com published units of the platform are marked sold (damaged / on-hold units are skipped), and `ecomqty` drops with them, so a later recount keeps the sale.
+
 ## Basic Details
 
 - Client name:
@@ -15,7 +21,8 @@ This process is for stock sold on external platforms like Amazon or Flipkart tha
 
 ## 1. Pre-Run Checks
 
-- [ ] Confirm you are using the correct database connection in [`scripts/external-sold-update.ts`](/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/scripts/external-sold-update.ts).
+- [ ] Confirm the database connection set in the terminal (`DB_HOST` / `DB_NAME` …) is the intended one — the script prints the DB host before anything else.
+- [ ] Amazon rows: confirm each listing is **not** mapped in Nivaana (mapped listings are sold automatically).
 - [ ] Confirm the update must be done in the intended environment only.
 - [ ] Confirm the script command exists in [`package.json`](/Users/jeyakumarn/Documents/GitHub/Suresh-on-cloud/asset-management-backend/package.json) as `npm run sold:update`.
 - [ ] Confirm the client-shared Excel file is the latest final version.
