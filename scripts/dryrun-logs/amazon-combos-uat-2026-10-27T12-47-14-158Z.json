@@ -1,0 +1,4167 @@
+{
+  "environment": "uat",
+  "database": "assetmanagement_uat",
+  "file": "docs/Amazon/Amazon_Listings_vs_Inventory_UAT_2026-10-27.csv",
+  "applied": false,
+  "plan": [
+    {
+      "family": "Dhoop sticks",
+      "scents": "Evening In Paris + Vaishnavi",
+      "componentPucs": [
+        "NIV-0096",
+        "NIV-0097"
+      ],
+      "listings": [
+        {
+          "sku": "I6-BN4F-MVX7",
+          "asin": "B0HKZPJHMK",
+          "price": 199
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Dhoop Sticks Combo Pack | Evening In Paris & Vaishnavi",
+        "remarks": "Dhoop Sticks Combo Pack | Evening In Paris & Vaishnavi",
+        "shortname": "NIVAANA Dhoop Sticks Combo - Evening In Paris & Vaishnavi",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "dhoop_sticks",
+        "pack": "pack_of_2",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 199,
+        "asin": "B0HKZPJHMK",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "96",
+            "requiredqty": 1
+          },
+          {
+            "productid": "97",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Dhoop sticks",
+      "scents": "Fresh Jasmine + Kesar Chandan",
+      "componentPucs": [
+        "NIV-0075",
+        "NIV-0078"
+      ],
+      "listings": [
+        {
+          "sku": "HA-H2X1-0A94",
+          "asin": "B0HF8WFV13",
+          "price": 199
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Dhoop Sticks Combo Pack | Fresh Jasmine & Kesar Chandan",
+        "remarks": "Dhoop Sticks Combo Pack | Fresh Jasmine & Kesar Chandan",
+        "shortname": "NIVAANA Dhoop Sticks Combo - Fresh Jasmine & Kesar Chandan",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "dhoop_sticks",
+        "pack": "pack_of_2",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 199,
+        "asin": "B0HF8WFV13",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "75",
+            "requiredqty": 1
+          },
+          {
+            "productid": "78",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Dhoop sticks",
+      "scents": "Fresh Jasmine + Sacred Kasturi",
+      "componentPucs": [
+        "NIV-0074",
+        "NIV-0078"
+      ],
+      "listings": [
+        {
+          "sku": "RG-TS3K-39HS",
+          "asin": "B0HF8HP9L3",
+          "price": 199
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Dhoop Sticks Combo Pack | Fresh Jasmine & Sacred Kasturi",
+        "remarks": "Dhoop Sticks Combo Pack | Fresh Jasmine & Sacred Kasturi",
+        "shortname": "NIVAANA Dhoop Sticks Combo - Fresh Jasmine & Sacred Kasturi",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "dhoop_sticks",
+        "pack": "pack_of_2",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 199,
+        "asin": "B0HF8HP9L3",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "74",
+            "requiredqty": 1
+          },
+          {
+            "productid": "78",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Dhoop sticks",
+      "scents": "Sacred Kasturi + Spiritual Bliss",
+      "componentPucs": [
+        "NIV-0074",
+        "NIV-0076"
+      ],
+      "listings": [
+        {
+          "sku": "QP-L0SC-07BZ",
+          "asin": "B0HF8LB32M",
+          "price": 199
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Dhoop Sticks Combo Pack | Sacred Kasturi & Spiritual Bliss",
+        "remarks": "Dhoop Sticks Combo Pack | Sacred Kasturi & Spiritual Bliss",
+        "shortname": "NIVAANA Dhoop Sticks Combo - Sacred Kasturi & Spiritual Bliss",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "dhoop_sticks",
+        "pack": "pack_of_2",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 199,
+        "asin": "B0HF8LB32M",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "74",
+            "requiredqty": 1
+          },
+          {
+            "productid": "76",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Diffuser oil 10 ml",
+      "scents": "Lavender + Teakwood",
+      "componentPucs": [
+        "NIV-0027",
+        "NIV-0031"
+      ],
+      "listings": [
+        {
+          "sku": "Nivaana_DiffuserOil_LAVTEAK_Pack2",
+          "asin": "B0GJQ3Z5DQ",
+          "price": 199
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Diffuser Oil Combo Pack | Lavender & Teakwood",
+        "remarks": "Diffuser Oil Combo Pack | Lavender & Teakwood",
+        "shortname": "NIVAANA Diffuser Oil Combo - Lavender & Teakwood",
+        "brand": "nivaana",
+        "category": "home_car_fragrance",
+        "subcategory": "fragrance_oils",
+        "pack": "pack_of_2",
+        "fragnancetype": "lavender,teakwood",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 199,
+        "asin": "B0GJQ3Z5DQ",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "27",
+            "requiredqty": 1
+          },
+          {
+            "productid": "31",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Black Oudh + Davana",
+      "componentPucs": [
+        "NIV-0010",
+        "NIV-0012"
+      ],
+      "listings": [
+        {
+          "sku": "EY-IN05-XDKO",
+          "asin": "B0FM492JSK",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Black Oudh & Davana",
+        "remarks": "Incense Sticks Combo Pack | Black Oudh & Davana",
+        "shortname": "NIVAANA Incense Sticks Combo - Black Oudh & Davana",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "davana,black_oudh",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM492JSK",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "10",
+            "requiredqty": 1
+          },
+          {
+            "productid": "12",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Black Oudh + Kesar Chandan",
+      "componentPucs": [
+        "NIV-0007",
+        "NIV-0012"
+      ],
+      "listings": [
+        {
+          "sku": "5L-PEY9-SD6W",
+          "asin": "B0FM8GYCX6",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Black Oudh & Kesar Chandan",
+        "remarks": "Incense Sticks Combo Pack | Black Oudh & Kesar Chandan",
+        "shortname": "NIVAANA Incense Sticks Combo - Black Oudh & Kesar Chandan",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kesar_chandan,black_oudh",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM8GYCX6",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "7",
+            "requiredqty": 1
+          },
+          {
+            "productid": "12",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Black Oudh + Paradise Garden",
+      "componentPucs": [
+        "NIV-0006",
+        "NIV-0012"
+      ],
+      "listings": [
+        {
+          "sku": "E9-IZVR-2A5Z",
+          "asin": "B0FMYFLPC6",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Black Oudh & Paradise Garden",
+        "remarks": "Incense Sticks Combo Pack | Black Oudh & Paradise Garden",
+        "shortname": "NIVAANA Incense Sticks Combo - Black Oudh & Paradise Garden",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "paradise_garden,black_oudh",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FMYFLPC6",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "6",
+            "requiredqty": 1
+          },
+          {
+            "productid": "12",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Black Oudh + Vanilla",
+      "componentPucs": [
+        "NIV-0012",
+        "NIV-0014"
+      ],
+      "listings": [
+        {
+          "sku": "GE-2MMO-SHU7",
+          "asin": "B0FM44Z1XS",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Black Oudh & Vanilla",
+        "remarks": "Incense Sticks Combo Pack | Black Oudh & Vanilla",
+        "shortname": "NIVAANA Incense Sticks Combo - Black Oudh & Vanilla",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "black_oudh,vanilla",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM44Z1XS",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "12",
+            "requiredqty": 1
+          },
+          {
+            "productid": "14",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Black Oudh + Wild Canopy",
+      "componentPucs": [
+        "NIV-0011",
+        "NIV-0012"
+      ],
+      "listings": [
+        {
+          "sku": "CR-22H6-KUFD",
+          "asin": "B0FM4DDMF1",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Black Oudh & Wild Canopy",
+        "remarks": "Incense Sticks Combo Pack | Black Oudh & Wild Canopy",
+        "shortname": "NIVAANA Incense Sticks Combo - Black Oudh & Wild Canopy",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "wild_canopy,black_oudh",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM4DDMF1",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "11",
+            "requiredqty": 1
+          },
+          {
+            "productid": "12",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Davana + Floral Valley",
+      "componentPucs": [
+        "NIV-0009",
+        "NIV-0010"
+      ],
+      "listings": [
+        {
+          "sku": "F0-SWZK-6651",
+          "asin": "B0FMYBVSN7",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Davana & Floral Valley",
+        "remarks": "Incense Sticks Combo Pack | Davana & Floral Valley",
+        "shortname": "NIVAANA Incense Sticks Combo - Davana & Floral Valley",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "floral_valley,davana",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FMYBVSN7",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "9",
+            "requiredqty": 1
+          },
+          {
+            "productid": "10",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Davana + Spiritual Harmony",
+      "componentPucs": [
+        "NIV-0008",
+        "NIV-0010"
+      ],
+      "listings": [
+        {
+          "sku": "7C-ZVTE-QIEX",
+          "asin": "B0FN4S2PCZ",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Davana & Spiritual Harmony",
+        "remarks": "Incense Sticks Combo Pack | Davana & Spiritual Harmony",
+        "shortname": "NIVAANA Incense Sticks Combo - Davana & Spiritual Harmony",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "spiritual_harmony,davana",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FN4S2PCZ",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "8",
+            "requiredqty": 1
+          },
+          {
+            "productid": "10",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Davana + Wild Canopy",
+      "componentPucs": [
+        "NIV-0010",
+        "NIV-0011"
+      ],
+      "listings": [
+        {
+          "sku": "WK-V4KY-QU9W",
+          "asin": "B0FM8L7DZ2",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Davana & Wild Canopy",
+        "remarks": "Incense Sticks Combo Pack | Davana & Wild Canopy",
+        "shortname": "NIVAANA Incense Sticks Combo - Davana & Wild Canopy",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "davana,wild_canopy",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM8L7DZ2",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "10",
+            "requiredqty": 1
+          },
+          {
+            "productid": "11",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "First Rains + Black Oudh",
+      "componentPucs": [
+        "NIV-0012",
+        "NIV-0015"
+      ],
+      "listings": [
+        {
+          "sku": "6C-HYG4-MBPY",
+          "asin": "B0FM4B92RP",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | First Rains & Black Oudh",
+        "remarks": "Incense Sticks Combo Pack | First Rains & Black Oudh",
+        "shortname": "NIVAANA Incense Sticks Combo - First Rains & Black Oudh",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "black_oudh,first_rains",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM4B92RP",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "12",
+            "requiredqty": 1
+          },
+          {
+            "productid": "15",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "First Rains + Davana",
+      "componentPucs": [
+        "NIV-0010",
+        "NIV-0015"
+      ],
+      "listings": [
+        {
+          "sku": "64-CXRE-86SE",
+          "asin": "B0FM8HSGZH",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | First Rains & Davana",
+        "remarks": "Incense Sticks Combo Pack | First Rains & Davana",
+        "shortname": "NIVAANA Incense Sticks Combo - First Rains & Davana",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "davana,first_rains",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM8HSGZH",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "10",
+            "requiredqty": 1
+          },
+          {
+            "productid": "15",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "First Rains + Kasturi",
+      "componentPucs": [
+        "NIV-0004",
+        "NIV-0015"
+      ],
+      "listings": [
+        {
+          "sku": "5P-0V8F-NY0W",
+          "asin": "B0FMFQZD6Y",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | First Rains & Kasturi",
+        "remarks": "Incense Sticks Combo Pack | First Rains & Kasturi",
+        "shortname": "NIVAANA Incense Sticks Combo - First Rains & Kasturi",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kasturi,first_rains",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FMFQZD6Y",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "4",
+            "requiredqty": 1
+          },
+          {
+            "productid": "15",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "First Rains + Kesar Chandan",
+      "componentPucs": [
+        "NIV-0007",
+        "NIV-0015"
+      ],
+      "listings": [
+        {
+          "sku": "V4-3UQU-JBS0",
+          "asin": "B0FM8JS6T8",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | First Rains & Kesar Chandan",
+        "remarks": "Incense Sticks Combo Pack | First Rains & Kesar Chandan",
+        "shortname": "NIVAANA Incense Sticks Combo - First Rains & Kesar Chandan",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kesar_chandan,first_rains",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM8JS6T8",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "7",
+            "requiredqty": 1
+          },
+          {
+            "productid": "15",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "First Rains + Parijat",
+      "componentPucs": [
+        "NIV-0005",
+        "NIV-0015"
+      ],
+      "listings": [
+        {
+          "sku": "U8-ZT35-MRE7",
+          "asin": "B0FN83B9DT",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | First Rains & Parijat",
+        "remarks": "Incense Sticks Combo Pack | First Rains & Parijat",
+        "shortname": "NIVAANA Incense Sticks Combo - First Rains & Parijat",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "parijat,first_rains",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FN83B9DT",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "5",
+            "requiredqty": 1
+          },
+          {
+            "productid": "15",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Floral Valley + Black Oudh",
+      "componentPucs": [
+        "NIV-0009",
+        "NIV-0012"
+      ],
+      "listings": [
+        {
+          "sku": "4W-XAB1-DYNN",
+          "asin": "B0FMFT1XZ5",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Floral Valley & Black Oudh",
+        "remarks": "Incense Sticks Combo Pack | Floral Valley & Black Oudh",
+        "shortname": "NIVAANA Incense Sticks Combo - Floral Valley & Black Oudh",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "floral_valley,black_oudh",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FMFT1XZ5",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "9",
+            "requiredqty": 1
+          },
+          {
+            "productid": "12",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Floral Valley + First Rains",
+      "componentPucs": [
+        "NIV-0009",
+        "NIV-0015"
+      ],
+      "listings": [
+        {
+          "sku": "NH-K82R-1E29",
+          "asin": "B0FMYDZG7J",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Floral Valley & First Rains",
+        "remarks": "Incense Sticks Combo Pack | Floral Valley & First Rains",
+        "shortname": "NIVAANA Incense Sticks Combo - Floral Valley & First Rains",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "floral_valley,first_rains",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FMYDZG7J",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "9",
+            "requiredqty": 1
+          },
+          {
+            "productid": "15",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Floral Valley + Himalayan Cedar",
+      "componentPucs": [
+        "NIV-0041",
+        "NIV-0042"
+      ],
+      "listings": [
+        {
+          "sku": "9E-MN20-NIJ6",
+          "asin": "B0HJNFL1FC",
+          "price": 120
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Floral Valley & Himalayan Cedar",
+        "remarks": "Incense Sticks Combo Pack | Floral Valley & Himalayan Cedar",
+        "shortname": "NIVAANA Incense Sticks Combo - Floral Valley & Himalayan Cedar",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "floral_valley,himalayan_cedar",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 120,
+        "asin": "B0HJNFL1FC",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "41",
+            "requiredqty": 1
+          },
+          {
+            "productid": "42",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Floral Valley + Paradise Garden",
+      "componentPucs": [
+        "NIV-0006",
+        "NIV-0009"
+      ],
+      "listings": [
+        {
+          "sku": "QM-MXUQ-UJDI",
+          "asin": "B0FLVPJG1S",
+          "price": 290
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Floral Valley & Paradise Garden",
+        "remarks": "Incense Sticks Combo Pack | Floral Valley & Paradise Garden",
+        "shortname": "NIVAANA Incense Sticks Combo - Floral Valley & Paradise Garden",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "paradise_garden,floral_valley",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 290,
+        "asin": "B0FLVPJG1S",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "6",
+            "requiredqty": 1
+          },
+          {
+            "productid": "9",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Floral Valley + Spiritual Harmony",
+      "componentPucs": [
+        "NIV-0038",
+        "NIV-0041"
+      ],
+      "listings": [
+        {
+          "sku": "5A-O7CV-NAX3",
+          "asin": "B0HJNLCVN6",
+          "price": 120
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Floral Valley & Spiritual Harmony",
+        "remarks": "Incense Sticks Combo Pack | Floral Valley & Spiritual Harmony",
+        "shortname": "NIVAANA Incense Sticks Combo - Floral Valley & Spiritual Harmony",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "spiritual_harmony,floral_valley",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 120,
+        "asin": "B0HJNLCVN6",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "38",
+            "requiredqty": 1
+          },
+          {
+            "productid": "41",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Floral Valley + Vanilla",
+      "componentPucs": [
+        "NIV-0009",
+        "NIV-0014"
+      ],
+      "listings": [
+        {
+          "sku": "8H-U6IP-Q37S",
+          "asin": "B0FMYD6LQH",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Floral Valley & Vanilla",
+        "remarks": "Incense Sticks Combo Pack | Floral Valley & Vanilla",
+        "shortname": "NIVAANA Incense Sticks Combo - Floral Valley & Vanilla",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "floral_valley,vanilla",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FMYD6LQH",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "9",
+            "requiredqty": 1
+          },
+          {
+            "productid": "14",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Floral Valley + Wild Canopy",
+      "componentPucs": [
+        "NIV-0009",
+        "NIV-0011"
+      ],
+      "listings": [
+        {
+          "sku": "5S-785Y-EHEI",
+          "asin": "B0FMYD1KNM",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Floral Valley & Wild Canopy",
+        "remarks": "Incense Sticks Combo Pack | Floral Valley & Wild Canopy",
+        "shortname": "NIVAANA Incense Sticks Combo - Floral Valley & Wild Canopy",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "floral_valley,wild_canopy",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FMYD1KNM",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "9",
+            "requiredqty": 1
+          },
+          {
+            "productid": "11",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Himalayan Cedar + Black Oudh",
+      "componentPucs": [
+        "NIV-0012",
+        "NIV-0013"
+      ],
+      "listings": [
+        {
+          "sku": "X8-8UKR-XQSC",
+          "asin": "B0FM49BW7H",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Himalayan Cedar & Black Oudh",
+        "remarks": "Incense Sticks Combo Pack | Himalayan Cedar & Black Oudh",
+        "shortname": "NIVAANA Incense Sticks Combo - Himalayan Cedar & Black Oudh",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "black_oudh,himalayan_cedar",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM49BW7H",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "12",
+            "requiredqty": 1
+          },
+          {
+            "productid": "13",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Himalayan Cedar + Davana",
+      "componentPucs": [
+        "NIV-0010",
+        "NIV-0013"
+      ],
+      "listings": [
+        {
+          "sku": "O3-RMAD-D5K8",
+          "asin": "B0FM47VMLD",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Himalayan Cedar & Davana",
+        "remarks": "Incense Sticks Combo Pack | Himalayan Cedar & Davana",
+        "shortname": "NIVAANA Incense Sticks Combo - Himalayan Cedar & Davana",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "davana,himalayan_cedar",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM47VMLD",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "10",
+            "requiredqty": 1
+          },
+          {
+            "productid": "13",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Himalayan Cedar + First Rains",
+      "componentPucs": [
+        "NIV-0013",
+        "NIV-0015"
+      ],
+      "listings": [
+        {
+          "sku": "H4-KNJ6-69WY",
+          "asin": "B0FM47SW8K",
+          "price": 280
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Himalayan Cedar & First Rains",
+        "remarks": "Incense Sticks Combo Pack | Himalayan Cedar & First Rains",
+        "shortname": "NIVAANA Incense Sticks Combo - Himalayan Cedar & First Rains",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "himalayan_cedar,first_rains",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 280,
+        "asin": "B0FM47SW8K",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "13",
+            "requiredqty": 1
+          },
+          {
+            "productid": "15",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Himalayan Cedar + Floral Valley",
+      "componentPucs": [
+        "NIV-0009",
+        "NIV-0013"
+      ],
+      "listings": [
+        {
+          "sku": "68-FXNB-QI5B",
+          "asin": "B0FMFQ2J32",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Himalayan Cedar & Floral Valley",
+        "remarks": "Incense Sticks Combo Pack | Himalayan Cedar & Floral Valley",
+        "shortname": "NIVAANA Incense Sticks Combo - Himalayan Cedar & Floral Valley",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "floral_valley,himalayan_cedar",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FMFQ2J32",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "9",
+            "requiredqty": 1
+          },
+          {
+            "productid": "13",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kasturi + Black Oudh",
+      "componentPucs": [
+        "NIV-0004",
+        "NIV-0012"
+      ],
+      "listings": [
+        {
+          "sku": "29-TT2J-VKNT",
+          "asin": "B0FMFQ3GDD",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kasturi & Black Oudh",
+        "remarks": "Incense Sticks Combo Pack | Kasturi & Black Oudh",
+        "shortname": "NIVAANA Incense Sticks Combo - Kasturi & Black Oudh",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kasturi,black_oudh",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FMFQ3GDD",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "4",
+            "requiredqty": 1
+          },
+          {
+            "productid": "12",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kasturi + Davana",
+      "componentPucs": [
+        "NIV-0004",
+        "NIV-0010"
+      ],
+      "listings": [
+        {
+          "sku": "TL-Y5SS-XU4T",
+          "asin": "B0FMFQ9XF4",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kasturi & Davana",
+        "remarks": "Incense Sticks Combo Pack | Kasturi & Davana",
+        "shortname": "NIVAANA Incense Sticks Combo - Kasturi & Davana",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kasturi,davana",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FMFQ9XF4",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "4",
+            "requiredqty": 1
+          },
+          {
+            "productid": "10",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kasturi + Himalayan Cedar",
+      "componentPucs": [
+        "NIV-0004",
+        "NIV-0013"
+      ],
+      "listings": [
+        {
+          "sku": "VQ-TYM0-UMVI",
+          "asin": "B0FMFQ5BYP",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kasturi & Himalayan Cedar",
+        "remarks": "Incense Sticks Combo Pack | Kasturi & Himalayan Cedar",
+        "shortname": "NIVAANA Incense Sticks Combo - Kasturi & Himalayan Cedar",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kasturi,himalayan_cedar",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FMFQ5BYP",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "4",
+            "requiredqty": 1
+          },
+          {
+            "productid": "13",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kasturi + Paradise Garden",
+      "componentPucs": [
+        "NIV-0004",
+        "NIV-0006"
+      ],
+      "listings": [
+        {
+          "sku": "NJ-MZZ2-Q8IR",
+          "asin": "B0FLY8CV6V",
+          "price": 290
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kasturi & Paradise Garden",
+        "remarks": "Incense Sticks Combo Pack | Kasturi & Paradise Garden",
+        "shortname": "NIVAANA Incense Sticks Combo - Kasturi & Paradise Garden",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kasturi,paradise_garden",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 290,
+        "asin": "B0FLY8CV6V",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "4",
+            "requiredqty": 1
+          },
+          {
+            "productid": "6",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kasturi + Parijat",
+      "componentPucs": [
+        "NIV-0004",
+        "NIV-0005"
+      ],
+      "listings": [
+        {
+          "sku": "PC-4W25-EQAK",
+          "asin": "B0FLY66L3Y",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kasturi & Parijat",
+        "remarks": "Incense Sticks Combo Pack | Kasturi & Parijat",
+        "shortname": "NIVAANA Incense Sticks Combo - Kasturi & Parijat",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kasturi,parijat",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FLY66L3Y",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "4",
+            "requiredqty": 1
+          },
+          {
+            "productid": "5",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kasturi + Parijat + Kesar Chandan + Davana + Black Oudh",
+      "componentPucs": [
+        "NIV-0004",
+        "NIV-0005",
+        "NIV-0007",
+        "NIV-0010",
+        "NIV-0012"
+      ],
+      "listings": [
+        {
+          "sku": "JX-N8ZE-FDHN",
+          "asin": "B0FT7SZY6L",
+          "price": 600
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kasturi & Parijat & Kesar Chandan & Davana & Black Oudh",
+        "remarks": "Incense Sticks Combo Pack | Kasturi & Parijat & Kesar Chandan & Davana & Black Oudh",
+        "shortname": "NIVAANA Incense Sticks Combo - Kasturi & Parijat & Kesar Chandan & Davana & Black Oudh",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_5",
+        "fragnancetype": "kasturi,parijat,kesar_chandan,davana,black_oudh",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 600,
+        "asin": "B0FT7SZY6L",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "4",
+            "requiredqty": 1
+          },
+          {
+            "productid": "5",
+            "requiredqty": 1
+          },
+          {
+            "productid": "7",
+            "requiredqty": 1
+          },
+          {
+            "productid": "10",
+            "requiredqty": 1
+          },
+          {
+            "productid": "12",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kasturi + Spiritual Harmony",
+      "componentPucs": [
+        "NIV-0004",
+        "NIV-0008"
+      ],
+      "listings": [
+        {
+          "sku": "YE-YT2W-W6BA",
+          "asin": "B0FLWP5VNC",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kasturi & Spiritual Harmony",
+        "remarks": "Incense Sticks Combo Pack | Kasturi & Spiritual Harmony",
+        "shortname": "NIVAANA Incense Sticks Combo - Kasturi & Spiritual Harmony",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kasturi,spiritual_harmony",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FLWP5VNC",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "4",
+            "requiredqty": 1
+          },
+          {
+            "productid": "8",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kasturi + Vanilla",
+      "componentPucs": [
+        "NIV-0004",
+        "NIV-0014"
+      ],
+      "listings": [
+        {
+          "sku": "S6-4T0J-N3C1",
+          "asin": "B0FMFR8N9L",
+          "price": 269
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kasturi & Vanilla",
+        "remarks": "Incense Sticks Combo Pack | Kasturi & Vanilla",
+        "shortname": "NIVAANA Incense Sticks Combo - Kasturi & Vanilla",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kasturi,vanilla",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 269,
+        "asin": "B0FMFR8N9L",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "4",
+            "requiredqty": 1
+          },
+          {
+            "productid": "14",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kesar Chandan + Davana",
+      "componentPucs": [
+        "NIV-0007",
+        "NIV-0010"
+      ],
+      "listings": [
+        {
+          "sku": "6F-51YV-TEMQ",
+          "asin": "B0FM8JTHSX",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kesar Chandan & Davana",
+        "remarks": "Incense Sticks Combo Pack | Kesar Chandan & Davana",
+        "shortname": "NIVAANA Incense Sticks Combo - Kesar Chandan & Davana",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kesar_chandan,davana",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM8JTHSX",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "7",
+            "requiredqty": 1
+          },
+          {
+            "productid": "10",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kesar Chandan + Himalayan Cedar",
+      "componentPucs": [
+        "NIV-0007",
+        "NIV-0013"
+      ],
+      "listings": [
+        {
+          "sku": "EG-ATGA-JQUT",
+          "asin": "B0FM8LWXX4",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kesar Chandan & Himalayan Cedar",
+        "remarks": "Incense Sticks Combo Pack | Kesar Chandan & Himalayan Cedar",
+        "shortname": "NIVAANA Incense Sticks Combo - Kesar Chandan & Himalayan Cedar",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kesar_chandan,himalayan_cedar",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM8LWXX4",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "7",
+            "requiredqty": 1
+          },
+          {
+            "productid": "13",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kesar Chandan + Parijat",
+      "componentPucs": [
+        "NIV-0005",
+        "NIV-0007"
+      ],
+      "listings": [
+        {
+          "sku": "GS-QTEN-LQ18",
+          "asin": "B0FLY86FGL",
+          "price": 290
+        },
+        {
+          "sku": "LJ-5IST-2RFP",
+          "asin": "B0FLWLW7ZF",
+          "price": 290
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kesar Chandan & Parijat",
+        "remarks": "Incense Sticks Combo Pack | Kesar Chandan & Parijat",
+        "shortname": "NIVAANA Incense Sticks Combo - Kesar Chandan & Parijat",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "parijat,kesar_chandan",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 290,
+        "asin": "B0FLY86FGL",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "5",
+            "requiredqty": 1
+          },
+          {
+            "productid": "7",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kesar Chandan + Spiritual Harmony",
+      "componentPucs": [
+        "NIV-0007",
+        "NIV-0008"
+      ],
+      "listings": [
+        {
+          "sku": "4Z-Y3KT-VC3P",
+          "asin": "B0FLVQ5YWL",
+          "price": 290
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kesar Chandan & Spiritual Harmony",
+        "remarks": "Incense Sticks Combo Pack | Kesar Chandan & Spiritual Harmony",
+        "shortname": "NIVAANA Incense Sticks Combo - Kesar Chandan & Spiritual Harmony",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kesar_chandan,spiritual_harmony",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 290,
+        "asin": "B0FLVQ5YWL",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "7",
+            "requiredqty": 1
+          },
+          {
+            "productid": "8",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kesar Chandan + Vanilla",
+      "componentPucs": [
+        "NIV-0007",
+        "NIV-0014"
+      ],
+      "listings": [
+        {
+          "sku": "1T-85XL-J5FO",
+          "asin": "B0FM8LFXWN",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kesar Chandan & Vanilla",
+        "remarks": "Incense Sticks Combo Pack | Kesar Chandan & Vanilla",
+        "shortname": "NIVAANA Incense Sticks Combo - Kesar Chandan & Vanilla",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kesar_chandan,vanilla",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM8LFXWN",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "7",
+            "requiredqty": 1
+          },
+          {
+            "productid": "14",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Kesar Chandan + Wild Canopy",
+      "componentPucs": [
+        "NIV-0007",
+        "NIV-0011"
+      ],
+      "listings": [
+        {
+          "sku": "J2-N9SD-A0HG",
+          "asin": "B0FMFMS41G",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Kesar Chandan & Wild Canopy",
+        "remarks": "Incense Sticks Combo Pack | Kesar Chandan & Wild Canopy",
+        "shortname": "NIVAANA Incense Sticks Combo - Kesar Chandan & Wild Canopy",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kesar_chandan,wild_canopy",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FMFMS41G",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "7",
+            "requiredqty": 1
+          },
+          {
+            "productid": "11",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Paradise Garden + Davana",
+      "componentPucs": [
+        "NIV-0006",
+        "NIV-0010"
+      ],
+      "listings": [
+        {
+          "sku": "H5-NW5Q-JQZV",
+          "asin": "B0FMYH62YP",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Paradise Garden & Davana",
+        "remarks": "Incense Sticks Combo Pack | Paradise Garden & Davana",
+        "shortname": "NIVAANA Incense Sticks Combo - Paradise Garden & Davana",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "paradise_garden,davana",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FMYH62YP",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "6",
+            "requiredqty": 1
+          },
+          {
+            "productid": "10",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Paradise Garden + Himalayan Cedar",
+      "componentPucs": [
+        "NIV-0006",
+        "NIV-0013"
+      ],
+      "listings": [
+        {
+          "sku": "DZ-6AFI-SL6V",
+          "asin": "B0FMYBPBF7",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Paradise Garden & Himalayan Cedar",
+        "remarks": "Incense Sticks Combo Pack | Paradise Garden & Himalayan Cedar",
+        "shortname": "NIVAANA Incense Sticks Combo - Paradise Garden & Himalayan Cedar",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "paradise_garden,himalayan_cedar",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FMYBPBF7",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "6",
+            "requiredqty": 1
+          },
+          {
+            "productid": "13",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Paradise Garden + Kesar Chandan",
+      "componentPucs": [
+        "NIV-0006",
+        "NIV-0007"
+      ],
+      "listings": [
+        {
+          "sku": "JA-JNKL-9WT8",
+          "asin": "B0FLVQ7BPT",
+          "price": 290
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Paradise Garden & Kesar Chandan",
+        "remarks": "Incense Sticks Combo Pack | Paradise Garden & Kesar Chandan",
+        "shortname": "NIVAANA Incense Sticks Combo - Paradise Garden & Kesar Chandan",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "paradise_garden,kesar_chandan",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 290,
+        "asin": "B0FLVQ7BPT",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "6",
+            "requiredqty": 1
+          },
+          {
+            "productid": "7",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Paradise Garden + Spiritual Harmony",
+      "componentPucs": [
+        "NIV-0006",
+        "NIV-0008"
+      ],
+      "listings": [
+        {
+          "sku": "EB-SR0G-GMHF",
+          "asin": "B0FLY72ZPG",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Paradise Garden & Spiritual Harmony",
+        "remarks": "Incense Sticks Combo Pack | Paradise Garden & Spiritual Harmony",
+        "shortname": "NIVAANA Incense Sticks Combo - Paradise Garden & Spiritual Harmony",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "paradise_garden,spiritual_harmony",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FLY72ZPG",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "6",
+            "requiredqty": 1
+          },
+          {
+            "productid": "8",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Paradise Garden + Vanilla",
+      "componentPucs": [
+        "NIV-0006",
+        "NIV-0014"
+      ],
+      "listings": [
+        {
+          "sku": "IP-K0EB-87OQ",
+          "asin": "B0FMYNY8VY",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Paradise Garden & Vanilla",
+        "remarks": "Incense Sticks Combo Pack | Paradise Garden & Vanilla",
+        "shortname": "NIVAANA Incense Sticks Combo - Paradise Garden & Vanilla",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "paradise_garden,vanilla",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FMYNY8VY",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "6",
+            "requiredqty": 1
+          },
+          {
+            "productid": "14",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Paradise Garden + Wild Canopy",
+      "componentPucs": [
+        "NIV-0006",
+        "NIV-0011"
+      ],
+      "listings": [
+        {
+          "sku": "4Z-XWGE-6IMN",
+          "asin": "B0FMYNDP35",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Paradise Garden & Wild Canopy",
+        "remarks": "Incense Sticks Combo Pack | Paradise Garden & Wild Canopy",
+        "shortname": "NIVAANA Incense Sticks Combo - Paradise Garden & Wild Canopy",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "paradise_garden,wild_canopy",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FMYNDP35",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "6",
+            "requiredqty": 1
+          },
+          {
+            "productid": "11",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Parijat + Black Oudh",
+      "componentPucs": [
+        "NIV-0005",
+        "NIV-0012"
+      ],
+      "listings": [
+        {
+          "sku": "YI-IB4D-0DV2",
+          "asin": "B0FN83WQWZ",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Parijat & Black Oudh",
+        "remarks": "Incense Sticks Combo Pack | Parijat & Black Oudh",
+        "shortname": "NIVAANA Incense Sticks Combo - Parijat & Black Oudh",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "parijat,black_oudh",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FN83WQWZ",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "5",
+            "requiredqty": 1
+          },
+          {
+            "productid": "12",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Parijat + Floral Valley",
+      "componentPucs": [
+        "NIV-0005",
+        "NIV-0009"
+      ],
+      "listings": [
+        {
+          "sku": "JD-NVDJ-3UKF",
+          "asin": "B0FLWPZ9PL",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Parijat & Floral Valley",
+        "remarks": "Incense Sticks Combo Pack | Parijat & Floral Valley",
+        "shortname": "NIVAANA Incense Sticks Combo - Parijat & Floral Valley",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "parijat,floral_valley",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FLWPZ9PL",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "5",
+            "requiredqty": 1
+          },
+          {
+            "productid": "9",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Parijat + Himalayan Cedar",
+      "componentPucs": [
+        "NIV-0005",
+        "NIV-0013"
+      ],
+      "listings": [
+        {
+          "sku": "JD-GJTW-AR9V",
+          "asin": "B0FN85TDTT",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Parijat & Himalayan Cedar",
+        "remarks": "Incense Sticks Combo Pack | Parijat & Himalayan Cedar",
+        "shortname": "NIVAANA Incense Sticks Combo - Parijat & Himalayan Cedar",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "parijat,himalayan_cedar",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FN85TDTT",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "5",
+            "requiredqty": 1
+          },
+          {
+            "productid": "13",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Parijat + Wild Canopy",
+      "componentPucs": [
+        "NIV-0005",
+        "NIV-0011"
+      ],
+      "listings": [
+        {
+          "sku": "WN-SSDM-TBVY",
+          "asin": "B0FN8CSHZD",
+          "price": 276
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Parijat & Wild Canopy",
+        "remarks": "Incense Sticks Combo Pack | Parijat & Wild Canopy",
+        "shortname": "NIVAANA Incense Sticks Combo - Parijat & Wild Canopy",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "parijat,wild_canopy",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 276,
+        "asin": "B0FN8CSHZD",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "5",
+            "requiredqty": 1
+          },
+          {
+            "productid": "11",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Spiritual Harmony + Black Oudh",
+      "componentPucs": [
+        "NIV-0008",
+        "NIV-0012"
+      ],
+      "listings": [
+        {
+          "sku": "4N-PVOD-QU8T",
+          "asin": "B0FN4MQYZL",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Spiritual Harmony & Black Oudh",
+        "remarks": "Incense Sticks Combo Pack | Spiritual Harmony & Black Oudh",
+        "shortname": "NIVAANA Incense Sticks Combo - Spiritual Harmony & Black Oudh",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "spiritual_harmony,black_oudh",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FN4MQYZL",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "8",
+            "requiredqty": 1
+          },
+          {
+            "productid": "12",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Spiritual Harmony + First Rains",
+      "componentPucs": [
+        "NIV-0008",
+        "NIV-0015"
+      ],
+      "listings": [
+        {
+          "sku": "JR-PTBA-X5KZ",
+          "asin": "B0FN4PJGSW",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Spiritual Harmony & First Rains",
+        "remarks": "Incense Sticks Combo Pack | Spiritual Harmony & First Rains",
+        "shortname": "NIVAANA Incense Sticks Combo - Spiritual Harmony & First Rains",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "spiritual_harmony,first_rains",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FN4PJGSW",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "8",
+            "requiredqty": 1
+          },
+          {
+            "productid": "15",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Spiritual Harmony + Floral Valley",
+      "componentPucs": [
+        "NIV-0008",
+        "NIV-0009"
+      ],
+      "listings": [
+        {
+          "sku": "ZD-O4AJ-GVLL",
+          "asin": "B0FLVQYYQ8",
+          "price": 290
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Spiritual Harmony & Floral Valley",
+        "remarks": "Incense Sticks Combo Pack | Spiritual Harmony & Floral Valley",
+        "shortname": "NIVAANA Incense Sticks Combo - Spiritual Harmony & Floral Valley",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "spiritual_harmony,floral_valley",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 290,
+        "asin": "B0FLVQYYQ8",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "8",
+            "requiredqty": 1
+          },
+          {
+            "productid": "9",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Spiritual Harmony + Himalayan Cedar",
+      "componentPucs": [
+        "NIV-0008",
+        "NIV-0013"
+      ],
+      "listings": [
+        {
+          "sku": "62-9N0D-1IXN",
+          "asin": "B0FN4Q6G4B",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Spiritual Harmony & Himalayan Cedar",
+        "remarks": "Incense Sticks Combo Pack | Spiritual Harmony & Himalayan Cedar",
+        "shortname": "NIVAANA Incense Sticks Combo - Spiritual Harmony & Himalayan Cedar",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "spiritual_harmony,himalayan_cedar",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FN4Q6G4B",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "8",
+            "requiredqty": 1
+          },
+          {
+            "productid": "13",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Vanilla + Davana",
+      "componentPucs": [
+        "NIV-0010",
+        "NIV-0014"
+      ],
+      "listings": [
+        {
+          "sku": "ZO-6W4E-512A",
+          "asin": "B0FM8J8389",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Vanilla & Davana",
+        "remarks": "Incense Sticks Combo Pack | Vanilla & Davana",
+        "shortname": "NIVAANA Incense Sticks Combo - Vanilla & Davana",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "davana,vanilla",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM8J8389",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "10",
+            "requiredqty": 1
+          },
+          {
+            "productid": "14",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Vanilla + Himalayan Cedar",
+      "componentPucs": [
+        "NIV-0013",
+        "NIV-0014"
+      ],
+      "listings": [
+        {
+          "sku": "WG-NST9-BIO2",
+          "asin": "B0FM44W6H3",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Vanilla & Himalayan Cedar",
+        "remarks": "Incense Sticks Combo Pack | Vanilla & Himalayan Cedar",
+        "shortname": "NIVAANA Incense Sticks Combo - Vanilla & Himalayan Cedar",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "himalayan_cedar,vanilla",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM44W6H3",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "13",
+            "requiredqty": 1
+          },
+          {
+            "productid": "14",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Vanilla + Parijat",
+      "componentPucs": [
+        "NIV-0005",
+        "NIV-0014"
+      ],
+      "listings": [
+        {
+          "sku": "XC-CJWW-X263",
+          "asin": "B0FN8BYQ9B",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Vanilla & Parijat",
+        "remarks": "Incense Sticks Combo Pack | Vanilla & Parijat",
+        "shortname": "NIVAANA Incense Sticks Combo - Vanilla & Parijat",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "parijat,vanilla",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FN8BYQ9B",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "5",
+            "requiredqty": 1
+          },
+          {
+            "productid": "14",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Wild Canopy + First Rains",
+      "componentPucs": [
+        "NIV-0011",
+        "NIV-0015"
+      ],
+      "listings": [
+        {
+          "sku": "AS-LB5W-UOLN",
+          "asin": "B0FM8KX8LN",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Wild Canopy & First Rains",
+        "remarks": "Incense Sticks Combo Pack | Wild Canopy & First Rains",
+        "shortname": "NIVAANA Incense Sticks Combo - Wild Canopy & First Rains",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "wild_canopy,first_rains",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM8KX8LN",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "11",
+            "requiredqty": 1
+          },
+          {
+            "productid": "15",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Wild Canopy + Himalayan Cedar",
+      "componentPucs": [
+        "NIV-0011",
+        "NIV-0013"
+      ],
+      "listings": [
+        {
+          "sku": "OH-A8SZ-UV8D",
+          "asin": "B0FM48THBC",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Wild Canopy & Himalayan Cedar",
+        "remarks": "Incense Sticks Combo Pack | Wild Canopy & Himalayan Cedar",
+        "shortname": "NIVAANA Incense Sticks Combo - Wild Canopy & Himalayan Cedar",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "wild_canopy,himalayan_cedar",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM48THBC",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "11",
+            "requiredqty": 1
+          },
+          {
+            "productid": "13",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Wild Canopy + Kasturi",
+      "componentPucs": [
+        "NIV-0004",
+        "NIV-0011"
+      ],
+      "listings": [
+        {
+          "sku": "S5-AV0R-KJ05",
+          "asin": "B0FMFTNLBL",
+          "price": 260
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Wild Canopy & Kasturi",
+        "remarks": "Incense Sticks Combo Pack | Wild Canopy & Kasturi",
+        "shortname": "NIVAANA Incense Sticks Combo - Wild Canopy & Kasturi",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "kasturi,wild_canopy",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 260,
+        "asin": "B0FMFTNLBL",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "4",
+            "requiredqty": 1
+          },
+          {
+            "productid": "11",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Wild Canopy + Spiritual Harmony",
+      "componentPucs": [
+        "NIV-0008",
+        "NIV-0011"
+      ],
+      "listings": [
+        {
+          "sku": "ZG-1WB2-RELO",
+          "asin": "B0FN82XK2N",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Wild Canopy & Spiritual Harmony",
+        "remarks": "Incense Sticks Combo Pack | Wild Canopy & Spiritual Harmony",
+        "shortname": "NIVAANA Incense Sticks Combo - Wild Canopy & Spiritual Harmony",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "spiritual_harmony,wild_canopy",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FN82XK2N",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "8",
+            "requiredqty": 1
+          },
+          {
+            "productid": "11",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Wild Canopy + Vanilla",
+      "componentPucs": [
+        "NIV-0011",
+        "NIV-0014"
+      ],
+      "listings": [
+        {
+          "sku": "G3-DGCA-KMBW",
+          "asin": "B0FM8GWZ4T",
+          "price": 270
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Incense Sticks Combo Pack | Wild Canopy & Vanilla",
+        "remarks": "Incense Sticks Combo Pack | Wild Canopy & Vanilla",
+        "shortname": "NIVAANA Incense Sticks Combo - Wild Canopy & Vanilla",
+        "brand": "nivaana",
+        "category": "incense_rituals",
+        "subcategory": "incense_sticks",
+        "pack": "pack_of_2",
+        "fragnancetype": "wild_canopy,vanilla",
+        "hsn_code": "33074100",
+        "gst_rate": 5,
+        "price": 270,
+        "asin": "B0FM8GWZ4T",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "11",
+            "requiredqty": 1
+          },
+          {
+            "productid": "14",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Soap",
+      "scents": "Misty Rose + Holy Basil + Lemon Zest",
+      "componentPucs": [
+        "NIV-0079",
+        "NIV-0080",
+        "NIV-0086"
+      ],
+      "listings": [
+        {
+          "sku": "5E-QPQC-QCFB",
+          "asin": "B0HDSTQVLT",
+          "price": 279
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Premium Glycerine Bathing Bar Combo Pack | Misty Rose & Holy Basil & Lemon Zest",
+        "remarks": "Premium Glycerine Bathing Bar Combo Pack | Misty Rose & Holy Basil & Lemon Zest",
+        "shortname": "NIVAANA Premium Glycerine Bathing Bar Combo - Misty Rose & Holy Basil & Lemon Zest",
+        "brand": "nivaana",
+        "category": "personal_care",
+        "subcategory": "bath_body",
+        "pack": "pack_of_3",
+        "hsn_code": "34011190",
+        "gst_rate": 18,
+        "price": 279,
+        "asin": "B0HDSTQVLT",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "79",
+            "requiredqty": 1
+          },
+          {
+            "productid": "80",
+            "requiredqty": 1
+          },
+          {
+            "productid": "86",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Soap",
+      "scents": "Oudh Royale + Holy Basil + Lemon Zest",
+      "componentPucs": [
+        "NIV-0080",
+        "NIV-0083",
+        "NIV-0086"
+      ],
+      "listings": [
+        {
+          "sku": "2Q-38SG-XNU6",
+          "asin": "B0HDSJ54S5",
+          "price": 279
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Premium Glycerine Bathing Bar Combo Pack | Oudh Royale & Holy Basil & Lemon Zest",
+        "remarks": "Premium Glycerine Bathing Bar Combo Pack | Oudh Royale & Holy Basil & Lemon Zest",
+        "shortname": "NIVAANA Premium Glycerine Bathing Bar Combo - Oudh Royale & Holy Basil & Lemon Zest",
+        "brand": "nivaana",
+        "category": "personal_care",
+        "subcategory": "bath_body",
+        "pack": "pack_of_3",
+        "hsn_code": "34011190",
+        "gst_rate": 18,
+        "price": 279,
+        "asin": "B0HDSJ54S5",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "80",
+            "requiredqty": 1
+          },
+          {
+            "productid": "83",
+            "requiredqty": 1
+          },
+          {
+            "productid": "86",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Soap",
+      "scents": "Oudh Royale + Holy Basil + Smoked Vanilla",
+      "componentPucs": [
+        "NIV-0080",
+        "NIV-0083",
+        "NIV-0084"
+      ],
+      "listings": [
+        {
+          "sku": "GS_HB_SV_LZ_100_Pack 3",
+          "asin": "B0HDSRXVMJ",
+          "price": 279
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Premium Glycerine Bathing Bar Combo Pack | Oudh Royale & Holy Basil & Smoked Vanilla",
+        "remarks": "Premium Glycerine Bathing Bar Combo Pack | Oudh Royale & Holy Basil & Smoked Vanilla",
+        "shortname": "NIVAANA Premium Glycerine Bathing Bar Combo - Oudh Royale & Holy Basil & Smoked Vanilla",
+        "brand": "nivaana",
+        "category": "personal_care",
+        "subcategory": "bath_body",
+        "pack": "pack_of_3",
+        "hsn_code": "34011190",
+        "gst_rate": 18,
+        "price": 279,
+        "asin": "B0HDSRXVMJ",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "80",
+            "requiredqty": 1
+          },
+          {
+            "productid": "83",
+            "requiredqty": 1
+          },
+          {
+            "productid": "84",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Soap",
+      "scents": "Oudh Royale + Misty Rose + Black Ice",
+      "componentPucs": [
+        "NIV-0079",
+        "NIV-0083",
+        "NIV-0085"
+      ],
+      "listings": [
+        {
+          "sku": "4U-LZPY-VJ6U",
+          "asin": "B0HDSP9WHJ",
+          "price": 279
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Premium Glycerine Bathing Bar Combo Pack | Oudh Royale & Misty Rose & Black Ice",
+        "remarks": "Premium Glycerine Bathing Bar Combo Pack | Oudh Royale & Misty Rose & Black Ice",
+        "shortname": "NIVAANA Premium Glycerine Bathing Bar Combo - Oudh Royale & Misty Rose & Black Ice",
+        "brand": "nivaana",
+        "category": "personal_care",
+        "subcategory": "bath_body",
+        "pack": "pack_of_3",
+        "hsn_code": "34011190",
+        "gst_rate": 18,
+        "price": 279,
+        "asin": "B0HDSP9WHJ",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "79",
+            "requiredqty": 1
+          },
+          {
+            "productid": "83",
+            "requiredqty": 1
+          },
+          {
+            "productid": "85",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Soap",
+      "scents": "Oudh Royale + Misty Rose + Crimson Sandal",
+      "componentPucs": [
+        "NIV-0079",
+        "NIV-0081",
+        "NIV-0083"
+      ],
+      "listings": [
+        {
+          "sku": "UV-D5QY-TPI9",
+          "asin": "B0HDT2HSX7",
+          "price": 279
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Premium Glycerine Bathing Bar Combo Pack | Oudh Royale & Misty Rose & Crimson Sandal",
+        "remarks": "Premium Glycerine Bathing Bar Combo Pack | Oudh Royale & Misty Rose & Crimson Sandal",
+        "shortname": "NIVAANA Premium Glycerine Bathing Bar Combo - Oudh Royale & Misty Rose & Crimson Sandal",
+        "brand": "nivaana",
+        "category": "personal_care",
+        "subcategory": "bath_body",
+        "pack": "pack_of_3",
+        "hsn_code": "34011190",
+        "gst_rate": 18,
+        "price": 279,
+        "asin": "B0HDT2HSX7",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "79",
+            "requiredqty": 1
+          },
+          {
+            "productid": "81",
+            "requiredqty": 1
+          },
+          {
+            "productid": "83",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Soap",
+      "scents": "Oudh Royale + Misty Rose + Lemon Zest",
+      "componentPucs": [
+        "NIV-0079",
+        "NIV-0083",
+        "NIV-0086"
+      ],
+      "listings": [
+        {
+          "sku": "AC-ORAL-GVPX",
+          "asin": "B0HDSZTDFL",
+          "price": 279
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Premium Glycerine Bathing Bar Combo Pack | Oudh Royale & Misty Rose & Lemon Zest",
+        "remarks": "Premium Glycerine Bathing Bar Combo Pack | Oudh Royale & Misty Rose & Lemon Zest",
+        "shortname": "NIVAANA Premium Glycerine Bathing Bar Combo - Oudh Royale & Misty Rose & Lemon Zest",
+        "brand": "nivaana",
+        "category": "personal_care",
+        "subcategory": "bath_body",
+        "pack": "pack_of_3",
+        "hsn_code": "34011190",
+        "gst_rate": 18,
+        "price": 279,
+        "asin": "B0HDSZTDFL",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "79",
+            "requiredqty": 1
+          },
+          {
+            "productid": "83",
+            "requiredqty": 1
+          },
+          {
+            "productid": "86",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Cherry Blossom + Nishigandha",
+      "componentPucs": [
+        "AUO-0019",
+        "AUO-0021"
+      ],
+      "listings": [
+        {
+          "sku": "JE-1UND-J6IR",
+          "asin": "B0FQ248TSL",
+          "price": 180
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Cherry Blossom & Nishigandha",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Cherry Blossom & Nishigandha",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Cherry Blossom & Nishigandha",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_2",
+        "fragnancetype": "nishigandha,cherry_blossom",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 180,
+        "asin": "B0FQ248TSL",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "19",
+            "requiredqty": 1
+          },
+          {
+            "productid": "21",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Cherry Blossom + Nishigandha + Jungle Vibe + Pinacolada",
+      "componentPucs": [
+        "AUO-0019",
+        "AUO-0020",
+        "AUO-0021",
+        "AUO-0023"
+      ],
+      "listings": [
+        {
+          "sku": "QB-RO5J-B21W",
+          "asin": "B0FQ32F28L",
+          "price": 289
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Cherry Blossom & Nishigandha & Jungle Vibe & Pinacolada",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Cherry Blossom & Nishigandha & Jungle Vibe & Pinacolada",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Cherry Blossom & Nishigandha & Jungle Vibe & Pinacolada",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_4",
+        "fragnancetype": "nishigandha,pinacolada,cherry_blossom,jungle_vibe",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 289,
+        "asin": "B0FQ32F28L",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "19",
+            "requiredqty": 1
+          },
+          {
+            "productid": "20",
+            "requiredqty": 1
+          },
+          {
+            "productid": "21",
+            "requiredqty": 1
+          },
+          {
+            "productid": "23",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Cherry Blossom + Pinacolada",
+      "componentPucs": [
+        "AUO-0020",
+        "AUO-0021"
+      ],
+      "listings": [
+        {
+          "sku": "34-BNMQ-VL1K",
+          "asin": "B0FQ2HVS2P",
+          "price": 180
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Cherry Blossom & Pinacolada",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Cherry Blossom & Pinacolada",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Cherry Blossom & Pinacolada",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_2",
+        "fragnancetype": "pinacolada,cherry_blossom",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 180,
+        "asin": "B0FQ2HVS2P",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "20",
+            "requiredqty": 1
+          },
+          {
+            "productid": "21",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Cherry Blossom + Pinacolada + Jungle Vibe",
+      "componentPucs": [
+        "AUO-0020",
+        "AUO-0021",
+        "AUO-0023"
+      ],
+      "listings": [
+        {
+          "sku": "XK-I45F-NCMV",
+          "asin": "B0FQ2YBKG4",
+          "price": 250
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Cherry Blossom & Pinacolada & Jungle Vibe",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Cherry Blossom & Pinacolada & Jungle Vibe",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Cherry Blossom & Pinacolada & Jungle Vibe",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_3",
+        "fragnancetype": "pinacolada,cherry_blossom,jungle_vibe",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 250,
+        "asin": "B0FQ2YBKG4",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "20",
+            "requiredqty": 1
+          },
+          {
+            "productid": "21",
+            "requiredqty": 1
+          },
+          {
+            "productid": "23",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Cool Aqua + Cherry Blossom",
+      "componentPucs": [
+        "AUO-0021",
+        "AUO-0022"
+      ],
+      "listings": [
+        {
+          "sku": "AC-1D57-NKSP",
+          "asin": "B0FQ2LFZ1M",
+          "price": 180
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Cherry Blossom",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Cherry Blossom",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Cool Aqua & Cherry Blossom",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_2",
+        "fragnancetype": "cherry_blossom,cool_aqua",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 180,
+        "asin": "B0FQ2LFZ1M",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "21",
+            "requiredqty": 1
+          },
+          {
+            "productid": "22",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Cool Aqua + Cherry Blossom + Jungle Vibe",
+      "componentPucs": [
+        "AUO-0021",
+        "AUO-0022",
+        "AUO-0023"
+      ],
+      "listings": [
+        {
+          "sku": "BT-UK20-ILIG",
+          "asin": "B0FQ2XGMJW",
+          "price": 250
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Cherry Blossom & Jungle Vibe",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Cherry Blossom & Jungle Vibe",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Cool Aqua & Cherry Blossom & Jungle Vibe",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_3",
+        "fragnancetype": "cherry_blossom,cool_aqua,jungle_vibe",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 250,
+        "asin": "B0FQ2XGMJW",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "21",
+            "requiredqty": 1
+          },
+          {
+            "productid": "22",
+            "requiredqty": 1
+          },
+          {
+            "productid": "23",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Cool Aqua + Cherry Blossom + Nishigandha",
+      "componentPucs": [
+        "AUO-0019",
+        "AUO-0021",
+        "AUO-0022"
+      ],
+      "listings": [
+        {
+          "sku": "PU-OR8P-O14M",
+          "asin": "B0FQ2YXYSN",
+          "price": 250
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Cherry Blossom & Nishigandha",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Cherry Blossom & Nishigandha",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Cool Aqua & Cherry Blossom & Nishigandha",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_3",
+        "fragnancetype": "nishigandha,cherry_blossom,cool_aqua",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 250,
+        "asin": "B0FQ2YXYSN",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "19",
+            "requiredqty": 1
+          },
+          {
+            "productid": "21",
+            "requiredqty": 1
+          },
+          {
+            "productid": "22",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Cool Aqua + Jungle Vibe",
+      "componentPucs": [
+        "AUO-0022",
+        "AUO-0023"
+      ],
+      "listings": [
+        {
+          "sku": "IN-U7SK-GS5O",
+          "asin": "B0FPXHF8V7",
+          "price": 180
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Jungle Vibe",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Jungle Vibe",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Cool Aqua & Jungle Vibe",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_2",
+        "fragnancetype": "cool_aqua,jungle_vibe",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 180,
+        "asin": "B0FPXHF8V7",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "22",
+            "requiredqty": 1
+          },
+          {
+            "productid": "23",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Cool Aqua + Nishigandha",
+      "componentPucs": [
+        "AUO-0019",
+        "AUO-0022"
+      ],
+      "listings": [
+        {
+          "sku": "NP-9P7S-P597",
+          "asin": "B0FQ241Q32",
+          "price": 180
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Nishigandha",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Nishigandha",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Cool Aqua & Nishigandha",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_2",
+        "fragnancetype": "nishigandha,cool_aqua",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 180,
+        "asin": "B0FQ241Q32",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "19",
+            "requiredqty": 1
+          },
+          {
+            "productid": "22",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Cool Aqua + Pinacolada",
+      "componentPucs": [
+        "AUO-0020",
+        "AUO-0022"
+      ],
+      "listings": [
+        {
+          "sku": "46-VB0G-ERRH",
+          "asin": "B0FQ2M1FCY",
+          "price": 180
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Pinacolada",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Pinacolada",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Cool Aqua & Pinacolada",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_2",
+        "fragnancetype": "pinacolada,cool_aqua",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 180,
+        "asin": "B0FQ2M1FCY",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "20",
+            "requiredqty": 1
+          },
+          {
+            "productid": "22",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Cool Aqua + Vanilla",
+      "componentPucs": [
+        "AUO-0018",
+        "AUO-0022"
+      ],
+      "listings": [
+        {
+          "sku": "5Y-2X6T-0XHO",
+          "asin": "B0FQ2BY6ZF",
+          "price": 180
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Vanilla",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Cool Aqua & Vanilla",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Cool Aqua & Vanilla",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_2",
+        "fragnancetype": "vanilla,cool_aqua",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 180,
+        "asin": "B0FQ2BY6ZF",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "18",
+            "requiredqty": 1
+          },
+          {
+            "productid": "22",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Jungle Vibe + Nishigandha",
+      "componentPucs": [
+        "AUO-0019",
+        "AUO-0023"
+      ],
+      "listings": [
+        {
+          "sku": "99-ZQC7-4QTK",
+          "asin": "B0FPXQ3ZDB",
+          "price": 180
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Jungle Vibe & Nishigandha",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Jungle Vibe & Nishigandha",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Jungle Vibe & Nishigandha",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_2",
+        "fragnancetype": "nishigandha,jungle_vibe",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 180,
+        "asin": "B0FPXQ3ZDB",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "19",
+            "requiredqty": 1
+          },
+          {
+            "productid": "23",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Jungle Vibe + Pinacolada",
+      "componentPucs": [
+        "AUO-0020",
+        "AUO-0023"
+      ],
+      "listings": [
+        {
+          "sku": "I7-XNF0-MWX5",
+          "asin": "B0FPXQQGWC",
+          "price": 180
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Jungle Vibe & Pinacolada",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Jungle Vibe & Pinacolada",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Jungle Vibe & Pinacolada",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_2",
+        "fragnancetype": "pinacolada,jungle_vibe",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 180,
+        "asin": "B0FPXQQGWC",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "20",
+            "requiredqty": 1
+          },
+          {
+            "productid": "23",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Nishigandha + Cherry Blossom + Cool Aqua + Pinacolada",
+      "componentPucs": [
+        "AUO-0019",
+        "AUO-0020",
+        "AUO-0021",
+        "AUO-0022"
+      ],
+      "listings": [
+        {
+          "sku": "33-096Z-J0TF",
+          "asin": "B0FQ2ZH444",
+          "price": 299
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Cherry Blossom & Cool Aqua & Pinacolada",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Cherry Blossom & Cool Aqua & Pinacolada",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Nishigandha & Cherry Blossom & Cool Aqua & Pinacolada",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_4",
+        "fragnancetype": "nishigandha,pinacolada,cherry_blossom,cool_aqua",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 299,
+        "asin": "B0FQ2ZH444",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "19",
+            "requiredqty": 1
+          },
+          {
+            "productid": "20",
+            "requiredqty": 1
+          },
+          {
+            "productid": "21",
+            "requiredqty": 1
+          },
+          {
+            "productid": "22",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Nishigandha + Cherry Blossom + Jungle Vibe",
+      "componentPucs": [
+        "AUO-0019",
+        "AUO-0021",
+        "AUO-0023"
+      ],
+      "listings": [
+        {
+          "sku": "1X-8STP-XATG",
+          "asin": "B0FQ2ZKK6B",
+          "price": 230
+        },
+        {
+          "sku": "VN-XH3G-6JI3",
+          "asin": "B0FQ2XLBZY",
+          "price": 250
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Cherry Blossom & Jungle Vibe",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Cherry Blossom & Jungle Vibe",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Nishigandha & Cherry Blossom & Jungle Vibe",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_3",
+        "fragnancetype": "nishigandha,cherry_blossom,jungle_vibe",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 230,
+        "asin": "B0FQ2ZKK6B",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "19",
+            "requiredqty": 1
+          },
+          {
+            "productid": "21",
+            "requiredqty": 1
+          },
+          {
+            "productid": "23",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Nishigandha + Cherry Blossom + Pinacolada",
+      "componentPucs": [
+        "AUO-0019",
+        "AUO-0020",
+        "AUO-0021"
+      ],
+      "listings": [
+        {
+          "sku": "7S-12H9-ZUV2",
+          "asin": "B0FQ2WZHDT",
+          "price": 230
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Cherry Blossom & Pinacolada",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Cherry Blossom & Pinacolada",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Nishigandha & Cherry Blossom & Pinacolada",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_3",
+        "fragnancetype": "nishigandha,pinacolada,cherry_blossom",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 230,
+        "asin": "B0FQ2WZHDT",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "19",
+            "requiredqty": 1
+          },
+          {
+            "productid": "20",
+            "requiredqty": 1
+          },
+          {
+            "productid": "21",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Nishigandha + Cherry Blossom + Vanilla",
+      "componentPucs": [
+        "AUO-0018",
+        "AUO-0019",
+        "AUO-0021"
+      ],
+      "listings": [
+        {
+          "sku": "QR-WG9B-WNEL",
+          "asin": "B0FQ2YGCCW",
+          "price": 250
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Cherry Blossom & Vanilla",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Cherry Blossom & Vanilla",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Nishigandha & Cherry Blossom & Vanilla",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_3",
+        "fragnancetype": "vanilla,nishigandha,cherry_blossom",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 250,
+        "asin": "B0FQ2YGCCW",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "18",
+            "requiredqty": 1
+          },
+          {
+            "productid": "19",
+            "requiredqty": 1
+          },
+          {
+            "productid": "21",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Nishigandha + Cherry Blossom + Vanilla + Cool Aqua + Pinacolada",
+      "componentPucs": [
+        "AUO-0018",
+        "AUO-0019",
+        "AUO-0020",
+        "AUO-0021",
+        "AUO-0022"
+      ],
+      "listings": [
+        {
+          "sku": "A6-M867-NNUQ",
+          "asin": "B0FQ31SBLK",
+          "price": 399
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Cherry Blossom & Vanilla & Cool Aqua & Pinacolada",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Cherry Blossom & Vanilla & Cool Aqua & Pinacolada",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Nishigandha & Cherry Blossom & Vanilla & Cool Aqua & Pinacolada",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_5",
+        "fragnancetype": "vanilla,nishigandha,pinacolada,cherry_blossom,cool_aqua",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 399,
+        "asin": "B0FQ31SBLK",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "18",
+            "requiredqty": 1
+          },
+          {
+            "productid": "19",
+            "requiredqty": 1
+          },
+          {
+            "productid": "20",
+            "requiredqty": 1
+          },
+          {
+            "productid": "21",
+            "requiredqty": 1
+          },
+          {
+            "productid": "22",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Nishigandha + Cherry Blossom + Vanilla + Pinacolada",
+      "componentPucs": [
+        "AUO-0018",
+        "AUO-0019",
+        "AUO-0020",
+        "AUO-0021"
+      ],
+      "listings": [
+        {
+          "sku": "WC-1SK8-1OD8",
+          "asin": "B0FQ32Q9DC",
+          "price": 299
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Cherry Blossom & Vanilla & Pinacolada",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Cherry Blossom & Vanilla & Pinacolada",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Nishigandha & Cherry Blossom & Vanilla & Pinacolada",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_4",
+        "fragnancetype": "vanilla,nishigandha,pinacolada,cherry_blossom",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 299,
+        "asin": "B0FQ32Q9DC",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "18",
+            "requiredqty": 1
+          },
+          {
+            "productid": "19",
+            "requiredqty": 1
+          },
+          {
+            "productid": "20",
+            "requiredqty": 1
+          },
+          {
+            "productid": "21",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Nishigandha + Pinacolada",
+      "componentPucs": [
+        "AUO-0019",
+        "AUO-0020"
+      ],
+      "listings": [
+        {
+          "sku": "GW-YP32-6KDM",
+          "asin": "B0FQ282NJQ",
+          "price": 180
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Pinacolada",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Pinacolada",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Nishigandha & Pinacolada",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_2",
+        "fragnancetype": "nishigandha,pinacolada",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 180,
+        "asin": "B0FQ282NJQ",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "19",
+            "requiredqty": 1
+          },
+          {
+            "productid": "20",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Nishigandha + Vanilla",
+      "componentPucs": [
+        "AUO-0018",
+        "AUO-0019"
+      ],
+      "listings": [
+        {
+          "sku": "6W-2VM1-04WF",
+          "asin": "B0FQ26KQRY",
+          "price": 180
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Vanilla",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Nishigandha & Vanilla",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Nishigandha & Vanilla",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_2",
+        "fragnancetype": "vanilla,nishigandha",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 180,
+        "asin": "B0FQ26KQRY",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "18",
+            "requiredqty": 1
+          },
+          {
+            "productid": "19",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Vanilla + Cherry Blossom",
+      "componentPucs": [
+        "AUO-0018",
+        "AUO-0021"
+      ],
+      "listings": [
+        {
+          "sku": "EA-RNVH-9R4Y",
+          "asin": "B0FQ2DN3GX",
+          "price": 180
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Vanilla & Cherry Blossom",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Vanilla & Cherry Blossom",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Vanilla & Cherry Blossom",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_2",
+        "fragnancetype": "vanilla,cherry_blossom",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 180,
+        "asin": "B0FQ2DN3GX",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "18",
+            "requiredqty": 1
+          },
+          {
+            "productid": "21",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Vanilla + Cherry Blossom + Jungle Vibe",
+      "componentPucs": [
+        "AUO-0018",
+        "AUO-0021",
+        "AUO-0023"
+      ],
+      "listings": [
+        {
+          "sku": "LV-FHBJ-C0VS",
+          "asin": "B0FQ2V75FV",
+          "price": 250
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Vanilla & Cherry Blossom & Jungle Vibe",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Vanilla & Cherry Blossom & Jungle Vibe",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Vanilla & Cherry Blossom & Jungle Vibe",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_3",
+        "fragnancetype": "vanilla,cherry_blossom,jungle_vibe",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 250,
+        "asin": "B0FQ2V75FV",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "18",
+            "requiredqty": 1
+          },
+          {
+            "productid": "21",
+            "requiredqty": 1
+          },
+          {
+            "productid": "23",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Vanilla + Pinacolada",
+      "componentPucs": [
+        "AUO-0018",
+        "AUO-0020"
+      ],
+      "listings": [
+        {
+          "sku": "NU-OIVO-AQ2V",
+          "asin": "B0FQ29DX9Z",
+          "price": 180
+        }
+      ],
+      "action": "CREATE",
+      "input": {
+        "name": "Wardrobe Fragrance Sachets Combo Pack | Vanilla & Pinacolada",
+        "remarks": "Wardrobe Fragrance Sachets Combo Pack | Vanilla & Pinacolada",
+        "shortname": "AUORA Wardrobe Fragrance Sachets Combo - Vanilla & Pinacolada",
+        "brand": "auora",
+        "category": "home_car_fragrance",
+        "subcategory": "wardrobe_fragrance",
+        "pack": "pack_of_2",
+        "fragnancetype": "vanilla,pinacolada",
+        "hsn_code": "33074900",
+        "gst_rate": 18,
+        "price": 180,
+        "asin": "B0FQ29DX9Z",
+        "iscombo": true,
+        "combotype": "fixed",
+        "components": [
+          {
+            "productid": "18",
+            "requiredqty": 1
+          },
+          {
+            "productid": "20",
+            "requiredqty": 1
+          }
+        ]
+      }
+    },
+    {
+      "family": "Wardrobe sachet (AUORA)",
+      "scents": "Cool Aqua + Vanilla + Cherry Blossom + Jungle Vibe + Pinacolada + Nishigandha",
+      "componentPucs": [
+        "AUO-0018",
+        "AUO-0019",
+        "AUO-0020",
+        "AUO-0021",
+        "AUO-0022",
+        "AUO-0023"
+      ],
+      "listings": [
+        {
+          "sku": "5P-GPQ1-FKCA",
+          "asin": "B0FQ33YPYD",
+          "price": 510
+        },
+        {
+          "sku": "Auora_Pack6",
+          "asin": "B0HM78LB8P",
+          "price": 399
+        }
+      ],
+      "action": "EXISTS",
+      "existingPuc": "AUO-0098"
+    },
+    {
+      "family": "Incense sticks",
+      "scents": "Meditation Collection + Luxury Evening Collection",
+      "componentPucs": [
+        "NIV-0056",
+        "NIV-0058"
+      ],
+      "listings": [
+        {
+          "sku": "Nivaana_10Pack_LuxuryMeditation_P6",
+          "asin": "B0GFXLTB97",
+          "price": 259
+        }
+      ],
+      "action": "SKIP",
+      "reason": "Components differ in brand, category or subcategory: create this combo by hand"
+    }
+  ],
+  "results": []
+}

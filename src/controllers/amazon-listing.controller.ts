@@ -12,6 +12,7 @@ import {
   amazonInventorySyncSchema,
   bulkMapAmazonListingsSchema,
   mapAmazonListingSchema,
+  mapAmazonListingAsComboSchema,
 } from '../schemas/amazon-listing.schema.js';
 import {
   amazonListingImportService,
@@ -22,6 +23,7 @@ import {
   AmazonListingMappingError,
   amazonListingMappingService,
 } from '../services/amazon-listing-mapping.service.js';
+import { amazonComboMappingService } from '../services/amazon-combo-mapping.service.js';
 import { amazonListingScopeService, AmazonListingScopeError } from '../services/amazon-listing-scope.service.js';
 import { amazonListingWorkspaceService } from '../services/amazon-listing-workspace.service.js';
 import {
@@ -191,6 +193,33 @@ export class AmazonListingController {
       return reply.code(200).send(
         createSuccessResponse('Amazon listing mapped to Nivaana product successfully', listing)
       );
+    } catch (error) { logAmazonFailure(request, error);
+      return mappingErrorResponse(reply, error);
+    }
+  };
+
+  mapListingAsCombo = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { listingId } = amazonListingParamsSchema.parse(request.params);
+      const body = mapAmazonListingAsComboSchema.parse(request.body);
+      const user = (request as AuthenticatedRequest).user;
+      const scope = await this.resolveScope(request);
+      const result = await amazonComboMappingService.mapAsCombo({
+        listingId,
+        components: body.components.map((component) => ({ productId: component.productId, requiredQty: component.requiredQty })),
+        unitsPerListing: body.unitsPerListing,
+        allowRemap: body.allowRemap,
+        sellerId: scope.sellerId,
+        marketplaceId: scope.marketplaceId,
+        ...(user?.id !== undefined ? { requestedByUserId: user.id } : {}),
+        ...(user?.userType !== undefined ? { requestedByUserType: user.userType } : {}),
+      });
+      return reply.code(200).send(createSuccessResponse(
+        result.combo.created
+          ? `Combo ${result.combo.puc} created and the Amazon listing mapped to it`
+          : `Amazon listing mapped to the existing combo ${result.combo.puc}`,
+        result,
+      ));
     } catch (error) { logAmazonFailure(request, error);
       return mappingErrorResponse(reply, error);
     }

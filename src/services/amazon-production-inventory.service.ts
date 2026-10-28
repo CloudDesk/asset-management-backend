@@ -11,6 +11,7 @@ import {
   normalizeAmazonListingStatus,
 } from './amazon-listing-normalizer.js';
 import { amazonProductionWriteGuardService } from './amazon-production-write-guard.service.js';
+import { amazonAvailableByProduct } from './amazon-combo-stock.service.js';
 
 export type AmazonInventoryActor = {
   requestedByUserId?: number;
@@ -179,14 +180,16 @@ export class AmazonProductionInventoryService {
     if (!listing) throw new AmazonProductionInventoryError('Amazon listing was not found', 404, 'AMAZON_LISTING_NOT_FOUND');
     assertAmazonInventoryListingEligible(listing);
 
-    const platformStock = await prisma.platformStock.findFirst({
-      where: { productid: listing.productId!, platform: { equals: 'amazon', mode: 'insensitive' } },
-      select: { availableqty: true },
-    });
-    if (!platformStock) {
+    // A combo has no stock of its own: its Amazon stock is what its components allow (AMZ-PLAN-27)
+    const { available, combos } = await amazonAvailableByProduct([listing.productId!]);
+    const components = combos.get(String(listing.productId));
+    if (components && components.length === 0) {
+      throw new AmazonProductionInventoryError('The mapped combo product has no active components; map its components in Inventory first', 409, 'AMAZON_COMBO_NO_COMPONENTS');
+    }
+    const nivaanaQuantity = available.get(String(listing.productId));
+    if (nivaanaQuantity === undefined) {
       throw new AmazonProductionInventoryError('No Amazon platform stock exists for the mapped Nivaana product', 409, 'AMAZON_PLATFORM_STOCK_MISSING');
     }
-    const nivaanaQuantity = Math.max(0, Math.trunc(platformStock.availableqty));
     const targetQuantity = calculateAmazonTargetQuantity(nivaanaQuantity, listing.unitsPerListing);
     return { listing, nivaanaQuantity, targetQuantity };
   }
@@ -620,31 +623,42 @@ export class AmazonProductionInventoryService {
     if (platformStock.platform.trim().toLowerCase() !== 'amazon') {
       return { status: 'SKIPPED' as const, reason: 'Platform stock is not for Amazon' };
     }
+    // A component's stock also changes what every combo containing it can offer (AMZ-PLAN-27 P3)
+    const comboIds = (await prisma.productBundleMap.findMany({
+      where: { componentproductid: platformStock.productid, isactive: true, bundleproduct: { iscombo: true } },
+      select: { bundleproductid: true },
+    })).map((bundle) => bundle.bundleproductid);
+    const productIds = [platformStock.productid, ...comboIds];
     const listings = await prisma.marketplaceListing.findMany({
       where: {
         marketplace: 'AMAZON',
         environment: 'PRODUCTION',
-        productId: platformStock.productid,
+        productId: { in: productIds },
         mappingStatus: 'MAPPED',
         fulfilmentChannel: { in: ['MFN', 'EASY_SHIP'] },
         inventorySyncMode: 'AUTOMATIC',
       },
-      select: { id: true, sellerId: true, marketplaceId: true, sellerSku: true },
+      select: { id: true, sellerId: true, marketplaceId: true, sellerSku: true, productId: true },
     });
     if (listings.length === 0) {
       return { status: 'SKIPPED' as const, reason: 'No automatic seller-fulfilled listing is mapped to this stock' };
     }
-    // P7: publishing the full stock to several listings oversells; setMode prevents this, older data may not
-    if (listings.length > 1) {
-      return {
-        status: 'FAILED' as const,
-        reason: `Several automatic listings share this product (${listings.map((listing) => listing.sellerSku).join(', ')}); keep one Automatic and set the others to Manual or Off`,
-        results: [],
-      };
+    // P7: publishing the full stock to several listings of one product oversells; setMode prevents this, older data may not
+    const byProduct = new Map<string, typeof listings>();
+    for (const listing of listings) byProduct.set(String(listing.productId), [...(byProduct.get(String(listing.productId)) ?? []), listing]);
+    const shared = [...byProduct.values()].filter((group) => group.length > 1);
+    const sharedReason = (group: typeof listings) =>
+      `Several automatic listings share this product (${group.map((listing) => listing.sellerSku).join(', ')}); keep one Automatic and set the others to Manual or Off`;
+    if (shared.length === byProduct.size) {
+      return { status: 'FAILED' as const, reason: shared.map(sharedReason).join('; '), results: [] };
     }
 
-    const results: Array<Record<string, unknown>> = [];
-    for (const listing of listings) {
+    const results: Array<Record<string, unknown>> = shared.map((group) => ({
+      listingId: group.map((listing) => String(listing.id)).join(','), success: false, message: sharedReason(group),
+    }));
+    for (const [, group] of byProduct) {
+      if (group.length > 1) continue;
+      const listing = group[0]!;
       try {
         await amazonProductionWriteGuardService.assertEnabled(listing.sellerId, listing.marketplaceId);
         const scope = await amazonListingScopeService.resolveForSeller(listing.sellerId, listing.marketplaceId);

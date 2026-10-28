@@ -88,6 +88,8 @@ const serializeOrder = (order: any) => ({
     id: String(reservation.id),
     amazonOrderItemId: reservation.amazonOrderItemId,
     productId: String(reservation.productId),
+    product: reservation.product ? { puc: reservation.product.puc, name: reservation.product.name } : null,
+    comboProductId: reservation.comboProductId ? String(reservation.comboProductId) : null,
     listingId: reservation.listingId === null ? null : String(reservation.listingId),
     inventoryOwnership: reservation.inventoryOwnership,
     quantity: reservation.quantity,
@@ -357,7 +359,8 @@ export class AmazonOrderImportService {
             },
           },
           routeHandoff: true,
-          stockReservations: true,
+          // Product per row: a combo item has one row per component (AMZ-PLAN-27)
+          stockReservations: { include: { product: { select: { puc: true, name: true } } } },
           fulfillment: true,
         },
       }),

@@ -3,6 +3,7 @@ import { prisma } from '../models/prisma.js';
 import { NormalizedAmazonListing, isIncompleteAmazonListing } from '../services/amazon-listing-normalizer.js';
 import { buildCatalogWordStats, keyWords, scoreNameMatch, isSameAsin } from '../utils/amazonProductMatch.js';
 import { calculateAmazonTargetQuantity } from '../utils/amazonStockTarget.js';
+import { amazonAvailableByProduct } from '../services/amazon-combo-stock.service.js';
 
 export type AmazonListingUpsertResult = {
   outcome: 'CREATED' | 'UPDATED' | 'UNCHANGED';
@@ -43,6 +44,7 @@ export type AmazonListingMappingRepositoryResult =
   | { status: 'MAPPED'; listing: Record<string, unknown> }
   | { status: 'LISTING_NOT_FOUND' }
   | { status: 'PRODUCT_NOT_FOUND' }
+  | { status: 'COMBO_WITHOUT_COMPONENTS' }
   | { status: 'REMAP_REQUIRES_CONFIRMATION'; currentProductId: string };
 
 export interface AmazonListingMappingPersistence {
@@ -287,6 +289,8 @@ const serializeListing = (
     id: String(listing.product.id),
     puc: listing.product.puc,
     name: listing.product.name,
+    // Combo: Amazon stock comes from its components (AMZ-PLAN-27)
+    iscombo: listing.product.iscombo === true,
   } : null,
 });
 
@@ -622,7 +626,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
         orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
         include: {
           product: {
-            select: { id: true, puc: true, name: true },
+            select: { id: true, puc: true, name: true, iscombo: true },
           },
         },
       }),
@@ -631,14 +635,29 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     const fbaAccounting = await getFbaOrderAccounting(
       items.filter((item) => item.fulfilmentChannel === 'FBA').map((item) => item.id)
     );
-    // Stock Sync columns: Nivaana "amazon" platform stock and the quantity a sync would publish
+    // Stock Sync columns: Nivaana "amazon" platform stock (a combo: what its components allow) and the quantity a sync would publish
     const sellerFulfilledProductIds = [...new Set(items.flatMap((item) =>
-      item.productId !== null && item.mappingStatus === 'MAPPED' && item.fulfilmentChannel !== 'FBA' ? [item.productId] : []))];
-    const platformStocks = sellerFulfilledProductIds.length === 0 ? [] : await prisma.platformStock.findMany({
-      where: { productid: { in: sellerFulfilledProductIds }, platform: { equals: 'amazon', mode: 'insensitive' } },
-      select: { productid: true, availableqty: true },
+      item.productId !== null && item.mappingStatus === 'MAPPED' && item.fulfilmentChannel !== 'FBA' ? [String(item.productId)] : []))].map(BigInt);
+    const { available: amazonStockByProduct, combos, own } = await amazonAvailableByProduct(sellerFulfilledProductIds);
+    const componentIds = [...new Set([...combos.values()].flat().map((component) => String(component.productId)))].map(BigInt);
+    const componentProducts = componentIds.length === 0 ? [] : await prisma.product.findMany({
+      where: { id: { in: componentIds } },
+      select: { id: true, puc: true, name: true },
     });
-    const amazonStockByProduct = new Map(platformStocks.map((stock) => [String(stock.productid), Math.max(0, Math.trunc(stock.availableqty))]));
+    const componentById = new Map(componentProducts.map((product) => [String(product.id), product]));
+    // What each combo is made of, with each component's Amazon stock (the combo shows the lowest)
+    const comboDetail = (productId: bigint | null) => {
+      const components = productId === null ? undefined : combos.get(String(productId));
+      return components ? {
+        components: components.map((component) => ({
+          productId: String(component.productId),
+          puc: componentById.get(String(component.productId))?.puc ?? String(component.productId),
+          name: componentById.get(String(component.productId))?.name ?? null,
+          requiredQty: component.requiredQty,
+          available: own.get(String(component.productId)) ?? 0,
+        })),
+      } : null;
+    };
     const totalPages = Math.ceil(total / query.limit);
 
     return {
@@ -649,6 +668,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           nivaanaStock: available === undefined ? null : {
             available,
             target: calculateAmazonTargetQuantity(available, item.unitsPerListing),
+            combo: comboDetail(item.productId),
           },
         };
       }),
@@ -714,7 +734,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
     )];
     // Whole catalogue: word frequencies need every product name, and every product can be scored
     const products = await prisma.product.findMany({
-      select: { id: true, puc: true, name: true, productstatus: true, asin: true },
+      select: { id: true, puc: true, name: true, productstatus: true, asin: true, iscombo: true },
       orderBy: { id: 'asc' },
       take: SUGGESTION_CATALOG_LIMIT,
     });
@@ -754,7 +774,7 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
           reasons.push(`Name match ${nameMatch.matched.length}/${nameMatch.total}: ${nameMatch.matched.join(', ')}`);
         }
         return {
-          product: { id: String(product.id), puc: product.puc, name: product.name, status: product.productstatus },
+          product: { id: String(product.id), puc: product.puc, name: product.name, status: product.productstatus, iscombo: product.iscombo === true },
           score: Math.min(score, 100),
           confidence: score >= 80 ? 'HIGH' : score >= 45 ? 'MEDIUM' : 'LOW',
           reasons,
@@ -866,9 +886,14 @@ export class AmazonListingRepository implements AmazonListingPersistence, Amazon
 
       const product = await transaction.product.findUnique({
         where: { id: BigInt(input.productId) },
-        select: { id: true },
+        select: { id: true, iscombo: true },
       });
       if (!product) return { status: 'PRODUCT_NOT_FOUND' } as const;
+      // A combo's Amazon stock comes from its components (AMZ-PLAN-27): without any it would always sync 0
+      if (product.iscombo) {
+        const components = await transaction.productBundleMap.count({ where: { bundleproductid: product.id, isactive: true } });
+        if (components === 0) return { status: 'COMBO_WITHOUT_COMPONENTS' } as const;
+      }
 
       if (
         listing.productId !== null
