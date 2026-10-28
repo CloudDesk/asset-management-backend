@@ -852,6 +852,44 @@ export async function amazonChannelRoutes(fastify: FastifyInstance) {
     },
   }, controller.mapListing);
 
+  fastify.post('/listings/:listingId/map-combo', {
+    preHandler: [requireAuthentication, requireAmazonChannelPermission(['create', 'edit', 'modifyall'])],
+    schema: {
+      description: 'Map an Amazon listing that sells several Nivaana products together: reuses the combo with exactly these products or creates it (Amazon stock only), then maps the listing to it',
+      tags: ['Amazon Production Listings'],
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        required: ['listingId'],
+        properties: { listingId: { type: 'string', pattern: '^[1-9]\\d*$' } },
+        additionalProperties: false,
+      },
+      body: {
+        type: 'object',
+        required: ['components'],
+        properties: {
+          components: {
+            type: 'array',
+            minItems: 2,
+            maxItems: 12,
+            items: {
+              type: 'object',
+              required: ['productId'],
+              properties: {
+                productId: { anyOf: [{ type: 'string', pattern: '^[1-9]\\d*$' }, { type: 'integer', minimum: 1 }] },
+                requiredQty: { type: 'integer', minimum: 1, maximum: 100, default: 1 },
+              },
+              additionalProperties: false,
+            },
+          },
+          unitsPerListing: { type: 'integer', minimum: 1, maximum: 10_000, default: 1 },
+          allowRemap: { type: 'boolean', default: false },
+        },
+        additionalProperties: false,
+      },
+    },
+  }, controller.mapListingAsCombo);
+
   fastify.delete('/listings/:listingId/map', {
     preHandler: [requireAuthentication, requireAmazonChannelPermission(['delete', 'edit', 'modifyall'])],
     schema: {

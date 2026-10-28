@@ -64,6 +64,13 @@ export class AmazonListingMappingService {
         'NIVAANA_PRODUCT_NOT_FOUND'
       );
     }
+    if (result.status === 'COMBO_WITHOUT_COMPONENTS') {
+      throw new AmazonListingMappingError(
+        'This combo has no active products in it, so its Amazon stock would always be 0; add its products in Inventory first',
+        409,
+        'AMAZON_COMBO_NO_COMPONENTS'
+      );
+    }
     if (result.status === 'REMAP_REQUIRES_CONFIRMATION') {
       throw new AmazonListingMappingError(
         `Listing is already mapped to product ${result.currentProductId}; set allowRemap=true to replace it`,

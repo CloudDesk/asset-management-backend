@@ -73,7 +73,9 @@ model Product {
   componentproducts       ProductBundleMap[]            @relation("ComponentProducts")
   marketplaceListings     MarketplaceListing[]
   amazonOrderItems        AmazonMarketplaceOrderItem[]
-  amazonOrderReservations AmazonOrderStockReservation[]
+  amazonOrderReservations AmazonOrderStockReservation[] @relation("AmazonReservationProduct")
+  // Reservations of this product's components when it is a combo sold on Amazon (AMZ-PLAN-27)
+  amazonComboReservations AmazonOrderStockReservation[] @relation("AmazonReservationCombo")
   amazonPublishDrafts     AmazonListingPublishDraft[]
   amazonReturns           AmazonReturnEvent[]
 
@@ -2065,6 +2067,9 @@ model AmazonOrderStockReservation {
   orderId            BigInt    @db.BigInt
   amazonOrderItemId  String    @db.VarChar(255)
   productId          BigInt    @db.BigInt
+  // The mapped combo when this row is one of its components (AMZ-PLAN-27); null for single products.
+  // Column added by scripts/migrations/20261027_amazon_combo_stock_reservations.sql
+  comboProductId     BigInt?   @db.BigInt
   listingId          BigInt?   @db.BigInt
   platformStockId    BigInt?   @db.BigInt
   quantity           Int
@@ -2078,11 +2083,12 @@ model AmazonOrderStockReservation {
   updatedAt          DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
 
   order         AmazonMarketplaceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product       Product                @relation(fields: [productId], references: [id], onDelete: Restrict)
+  product       Product                @relation("AmazonReservationProduct", fields: [productId], references: [id], onDelete: Restrict)
+  comboProduct  Product?               @relation("AmazonReservationCombo", fields: [comboProductId], references: [id], onDelete: SetNull)
   listing       MarketplaceListing?    @relation(fields: [listingId], references: [id], onDelete: SetNull)
   platformStock PlatformStock?         @relation(fields: [platformStockId], references: [id], onDelete: SetNull)
 
-  @@unique([orderId, amazonOrderItemId], map: "amazon_order_stock_reservations_order_item_unique")
+  @@unique([orderId, amazonOrderItemId, productId], map: "amazon_order_stock_reservations_order_item_product_unique")
   @@index([productId, status], map: "amazon_order_stock_reservations_product_status_idx")
   @@index([listingId, inventoryOwnership, status], map: "amazon_order_stock_reservations_listing_owner_status_idx")
   @@index([status, soldAt], map: "amazon_order_stock_reservations_status_sold_idx")

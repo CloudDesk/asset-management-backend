@@ -31,6 +31,7 @@ import { buildStorefrontListingConditions, isStorefrontFilterMode } from '../uti
 import { buildProductNaming } from '../utils/productNaming.js';
 
 const DEFAULT_PLATFORM_STOCK_PLATFORMS = ['amazon', 'flipkart', 'nivapp'] as const;
+export type DefaultPlatform = typeof DEFAULT_PLATFORM_STOCK_PLATFORMS[number];
 const DEFAULT_PLATFORM_STATUS = 'outofstock';
 
 // Storefront Home section sizes (GET /products/platform/:platform/home).
@@ -948,7 +949,12 @@ export class ProductService {
   }
 
 
-  async create(data: CreateProductInput & Record<string, any>) {
+  /**
+   * `platforms`: which channel stock rows to create (default amazon, flipkart, nivapp). Amazon-only combos
+   * (AMZ-PLAN-27) pass ['amazon'] so they do not appear on the Nivaana website, which lists every product
+   * with a nivapp row.
+   */
+  async create(data: CreateProductInput & Record<string, any>, options: { platforms?: readonly DefaultPlatform[] } = {}) {
     try {
       // ProductService is called by more than the standard POST controller
       // (upsert, file upload and internal callers). Validate here as the final
@@ -1056,7 +1062,7 @@ export class ProductService {
       // Create platform stock for ALL products (including combo products)
       // Combo products still need platform stock records for tracking, even though availability is calculated dynamically
       try {
-        await this.createDefaultPlatformStocks(product.id);
+        await this.createDefaultPlatformStocks(product.id, options.platforms);
       } catch (platformStockError: any) {
         logger.error(
           {
@@ -2375,7 +2381,7 @@ export class ProductService {
   }
 
 
-  private async createDefaultPlatformStocks(productId: number | string) {
+  private async createDefaultPlatformStocks(productId: number | string, platforms: readonly DefaultPlatform[] = DEFAULT_PLATFORM_STOCK_PLATFORMS) {
     const numericId = typeof productId === 'string' ? parseInt(productId, 10) : Number(productId);
 
     if (!Number.isFinite(numericId)) {
@@ -2393,7 +2399,7 @@ export class ProductService {
       platformstatus: this.calculatePlatformStatus(0), // Calculate status based on availableqty = 0
     };
 
-    for (const platform of DEFAULT_PLATFORM_STOCK_PLATFORMS) {
+    for (const platform of platforms) {
       try {
         const existing = await prisma.platformStock.findUnique({
           where: {

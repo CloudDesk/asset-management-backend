@@ -52,6 +52,19 @@ export const mapAmazonListingSchema = z.object({
   ),
 }).strict();
 
+// "Map as combo" (AMZ-PLAN-27): the products one Amazon unit contains, each with its quantity
+export const mapAmazonListingAsComboSchema = z.object({
+  components: z.array(z.object({
+    productId: positiveBigIntId,
+    requiredQty: z.coerce.number().int().min(1).max(100).default(1),
+  }).strict()).min(2, 'A combo needs at least 2 different products').max(12, 'A combo can have at most 12 products'),
+  unitsPerListing: z.coerce.number().int().min(1).max(10_000).default(1),
+  allowRemap: z.preprocess(
+    (value) => value === 'true' ? true : value === 'false' ? false : value,
+    z.boolean().default(false)
+  ),
+}).strict();
+
 export const bulkMapAmazonListingsSchema = z.object({
   items: z.array(z.object({
     listingId: positiveBigIntId,
