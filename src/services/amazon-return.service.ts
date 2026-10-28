@@ -4,6 +4,7 @@ import { prisma } from '../models/prisma.js';
 import { AmazonListingScope, amazonListingScopeService } from './amazon-listing-scope.service.js';
 import { amazonInventorySyncService } from './amazon-inventory-sync.service.js';
 import { AmazonComboStockError, expandAmazonStockLines, loadComboComponents } from './amazon-combo-stock.service.js';
+import { MIGRATION_MISSING_NOTE, returnAmazonUnits } from './amazon-stock-units.service.js';
 
 export type AmazonReturnFulfilmentType = 'FBA' | 'FBM';
 export type AmazonReturnQcDisposition = 'RESTOCKABLE' | 'DAMAGED' | 'UNSELLABLE';
@@ -21,6 +22,8 @@ const value = (row: Record<string, string>, ...keys: string[]) => {
   }
   return null;
 };
+
+const platformStatus = (available: number) => available > 5 ? 'in_stock' : available > 0 ? 'low_stock' : 'out_of_stock';
 
 const parseDate = (input: string | null) => {
   const parsed = input ? new Date(input) : new Date();
@@ -346,6 +349,7 @@ export class AmazonReturnService {
   ) {
     if (!/^[1-9]\d*$/.test(returnId)) throw new AmazonReturnError('Invalid return ID');
     const platformStockIds: bigint[] = [];
+    const stockNotes: string[] = [];
     const result = await prisma.$transaction(async (transaction) => {
       const item = await transaction.amazonReturnEvent.findFirst({
         where: { id: BigInt(returnId), sellerId: scope.sellerId, marketplaceId: scope.marketplaceId },
@@ -357,32 +361,85 @@ export class AmazonReturnService {
       if (input.quantityReceived < 1 || input.quantityReceived > item.quantity) {
         throw new AmazonReturnError(`Received quantity must be between 1 and ${item.quantity}`);
       }
-      let inventoryAction = input.qcDisposition === 'RESTOCKABLE' ? 'RESTOCKED' : 'QUARANTINED';
-      if (input.qcDisposition === 'RESTOCKABLE') {
-        // A returned combo goes back as its components (AMZ-PLAN-27: restock every component)
-        let lines: Array<{ productId: bigint; quantity: number }>;
-        try {
-          lines = expandAmazonStockLines(item.productId, input.quantityReceived, await loadComboComponents([item.productId], transaction));
-        } catch (error) {
-          if (error instanceof AmazonComboStockError) throw new AmazonReturnError(error.message, 409, error.code);
-          throw error;
-        }
-        for (const line of lines) {
-          const stock = await transaction.platformStock.findFirst({
-            where: { productid: line.productId, platform: { equals: 'amazon', mode: 'insensitive' } },
-          });
-          if (!stock) throw new AmazonReturnError('Amazon platform stock is missing for the returned product', 409, 'AMAZON_PLATFORM_STOCK_MISSING');
+      const restock = input.qcDisposition === 'RESTOCKABLE';
+      const inventoryAction = restock ? 'RESTOCKED' : 'QUARANTINED';
+      // A returned combo goes back as its components (AMZ-PLAN-27: every component restocked or quarantined)
+      let lines: Array<{ productId: bigint; quantity: number }>;
+      try {
+        lines = expandAmazonStockLines(item.productId, input.quantityReceived, await loadComboComponents([item.productId], transaction));
+      } catch (error) {
+        if (error instanceof AmazonComboStockError) throw new AmazonReturnError(error.message, 409, error.code);
+        throw error;
+      }
+      for (const line of lines) {
+        const stock = await transaction.platformStock.findFirst({
+          where: { productid: line.productId, platform: { equals: 'amazon', mode: 'insensitive' } },
+        });
+        if (!stock) throw new AmazonReturnError('Amazon platform stock is missing for the returned product', 409, 'AMAZON_PLATFORM_STOCK_MISSING');
+        const product = await transaction.product.findUnique({
+          where: { id: line.productId },
+          select: { puc: true, availablequantity: true, soldquantity: true, ecompublishedquantity: true, damagedquantity: true },
+        });
+        // AMZ-PLAN-28: the same units the order sold come back (or are marked damaged)
+        const units = await returnAmazonUnits(transaction, {
+          orderId: item.orderId ?? null,
+          productId: line.productId,
+          puc: product?.puc ?? String(line.productId),
+          quantity: line.quantity,
+          to: restock ? 'available' : 'damaged',
+          amazonOrderId: item.amazonOrderId,
+        });
+        if (units.note) stockNotes.push(units.note);
+        const now = BigInt(Date.now());
+        if (units.note === MIGRATION_MISSING_NOTE) {
+          // Migration not run yet: the behaviour before AMZ-PLAN-28 (counters only, restockable returns only)
+          if (!restock) continue;
           const changed = await transaction.platformStock.updateMany({
             where: { id: stock.id, soldqty: { gte: line.quantity } },
-            data: {
-              availableqty: { increment: line.quantity },
-              soldqty: { decrement: line.quantity },
-              modifieddate: BigInt(Date.now()),
-            },
+            data: { availableqty: { increment: line.quantity }, soldqty: { decrement: line.quantity }, modifieddate: now },
           });
           if (changed.count !== 1) throw new AmazonReturnError('Returned quantity exceeds sold Amazon stock', 409, 'AMAZON_RETURN_STOCK_CONFLICT');
           platformStockIds.push(stock.id);
+          continue;
         }
+        if (units.moved === 0) continue;
+        // Counters follow the units actually moved, so they keep matching the unit rows
+        await transaction.platformStock.update({
+          where: { id: stock.id },
+          data: restock
+            ? {
+              availableqty: stock.availableqty + units.moved,
+              ecomqty: stock.ecomqty + units.moved,
+              soldqty: Math.max(0, stock.soldqty - units.moved),
+              platformstatus: platformStatus(stock.availableqty + units.moved),
+              modifieddate: now,
+            }
+            : {
+              soldqty: Math.max(0, stock.soldqty - units.moved),
+              damagedqty: stock.damagedqty + units.moved,
+              modifieddate: now,
+            },
+        });
+        if (product) {
+          const available = Number(product.availablequantity ?? 0) + units.moved;
+          await transaction.product.update({
+            where: { id: line.productId },
+            data: restock
+              ? {
+                availablequantity: available,
+                soldquantity: Math.max(0, Number(product.soldquantity ?? 0) - units.moved),
+                ecompublishedquantity: Number(product.ecompublishedquantity ?? 0) + units.moved,
+                productstatus: platformStatus(available),
+                modifieddate: now,
+              }
+              : {
+                soldquantity: Math.max(0, Number(product.soldquantity ?? 0) - units.moved),
+                damagedquantity: Number(product.damagedquantity ?? 0) + units.moved,
+                modifieddate: now,
+              },
+          });
+        }
+        platformStockIds.push(stock.id);
       }
       return transaction.amazonReturnEvent.update({
         where: { id: item.id },
@@ -396,7 +453,7 @@ export class AmazonReturnService {
       });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     for (const platformStockId of platformStockIds) await amazonInventorySyncService.syncPlatformStockById(platformStockId).catch(() => undefined);
-    return serialize(result);
+    return { ...serialize(result), stockNote: stockNotes.length > 0 ? stockNotes.join('; ') : null };
   }
 
   private serializeJob(job: any) {

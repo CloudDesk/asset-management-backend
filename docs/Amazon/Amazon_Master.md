@@ -314,6 +314,9 @@ The time shown is the latest job, whatever its status (AMZ-PLAN-07).
 
 ## 8. Change log
 
+### 2026-10-28: Amazon — sales mark stock units sold (FIX-174, AMZ-PLAN-28, backend + Inventory DEV-NEW, not committed)
+- Shipped seller-fulfilled orders mark the oldest available Amazon units `sold` (linked to the reservation; combos per component) and lower `ecomqty`; returns put the same units back or mark them `damaged`; shortfalls reported. New column `stock."amazonReservationId"` (SQL `20261028_amazon_sold_stock_units.sql`, not in Prisma; without it the old behaviour stays with a "migration missing" note). Backfill `npm run amazon:sold-units`. `sold:update` without credentials in the file, available units only, `ecomqty` too. Details: Master.md FIX-2026-10-28-174.
+
 ### 2026-10-28: Amazon — sold Amazon units are not marked in stock; AMZ-PLAN-28 (docs only)
 - Found while checking order → stock after the combo SIT test: a shipped Amazon order moves `platformstock` counters but never marks unit rows `sold` or lowers `ecomqty`, so the next stock-in or recount brings the sold units back (single and combo). Plan AMZ-PLAN-28 in section 9 (unit marking on sold, returns, SQL column, data clean-up, decisions). SIT / UAT have no integrated Amazon sales yet (read-only check); Prod to be checked. Also noted: `scripts/external-sold-update.ts` has a database password in the file (gap H3).
 
@@ -661,7 +664,7 @@ The website already expands combos into components for orders (`orders.service.t
 
 ### AMZ-PLAN-28: Amazon sales must mark stock units sold (single and combo)
 
-**Status:** Plan only (2026-10-28), no code. Found while checking whether Amazon orders move Nivaana stock correctly after the combo work (FIX-173). Affects **single products and combos alike**; it existed before AMZ-PLAN-27.
+**Status:** **Implemented 2026-10-28 (FIX-2026-10-28-174, not committed)** with the 28.7 proposed defaults; SQL run on Dev/SIT 2026-10-28 (UAT / Prod pending). Found while checking whether Amazon orders move Nivaana stock correctly after the combo work (FIX-173). Affects **single products and combos alike**; it existed before AMZ-PLAN-27.
 
 #### 28.1 The problem
 
@@ -784,7 +787,7 @@ Every known gap across the Amazon modules, in one list. Severity: **Critical** =
 | D6 | Nivaana "amazon" platform allocation must be maintained correctly (it is what Stock Sync publishes); e.g. KRA-0049 = 5 vs Amazon 29 | High | Section 5a | Business process |
 | D7 | Mappings are stored per database (local+SIT share one; UAT and Prod separate) — mapping done outside Prod does not reach Prod | High | AMZ-PLAN-23 | ✅ Tool ready 2026-10-22 (FIX-144): `npm run amazon:mappings -- export <env>` / `import <env> --file=…` (dry run, then `--apply --confirm=NIVAANA_AMAZON_MAPPINGS`); matches by seller SKU + PUC |
 | D8 | All environments use the same live Amazon account — writes or fulfilment from SIT / UAT would change the real listings | High | Section 1a | Writes off outside Prod |
-| D9 | Shipped Amazon (MFN) orders move `platformstock` counters only: unit rows stay `available` and `ecomqty` is not lowered, so the next stock-in / recount brings sold units back (single and combo); old `sold:update` drift 150 units on SIT / UAT | High | AMZ-PLAN-28 | Open — plan 2026-10-28 |
+| D9 | Shipped Amazon (MFN) orders move `platformstock` counters only: unit rows stay `available` and `ecomqty` is not lowered, so the next stock-in / recount brings sold units back (single and combo); old `sold:update` drift 150 units on SIT / UAT | High | AMZ-PLAN-28 | 🟡 Implemented 2026-10-28 (FIX-174, not committed); SQL + release pending |
 
 ### 10.3 Inventory screens
 
@@ -809,4 +812,4 @@ Every known gap across the Amazon modules, in one list. Severity: **Critical** =
 | --- | --- | --- |
 | H1 | Work from 2026-10-21 not committed: backend FIX-124 – FIX-129 + docs; Inventory Channels / Amazon Operations UI | ✅ Committed 2026-10-22 (backend `ff24126`, Inventory `3d8da3a`; FIX-124 – FIX-140) |
 | H2 | Inventory UI backup branch `backup/amazon-ui-before-redesign-2026-10-21` (pushed) | Keep until the redesign is released |
-| H3 | `scripts/external-sold-update.ts` (tracked, on DEV-NEW and other branches) has a database host, user and password written in the file; move it to the environment-file pattern (`scripts/lib/release-environments.ts`) and rotate the password | Open 2026-10-28 (AMZ-PLAN-28.6) |
+| H3 | `scripts/external-sold-update.ts` (tracked, on DEV-NEW and other branches) has a database host, user and password written in the file; move it to the environment-file pattern (`scripts/lib/release-environments.ts`) and rotate the password | 🟡 Credentials removed from the file 2026-10-28 (FIX-174, not committed); **rotate the password** (it is still in git history) |

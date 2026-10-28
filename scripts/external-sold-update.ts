@@ -10,7 +10,12 @@
  *   2. platformstock  → soldqty++, availableqty--, platformstatus recalculated
  *   3. stock          → stockstatus='sold', solddate, description (oldest N units FIFO)
  *
+ * Amazon: orders of listings mapped in Nivaana mark their units sold automatically
+ * (AMZ-PLAN-28); use this script only for sales of listings that are NOT mapped.
+ *
  * ── HOW TO RUN ─────────────────────────────────────────────
+ *   Connection: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME (or DATABASE_URL) in the
+ *   environment — never in this file.
  *   STEP 1 — Dry run (read-only, shows before → after, NO writes):
  *     npm run sold:update
  *
@@ -36,11 +41,12 @@ import * as path from 'path';
 
 // ============================================================
 function resolveDbUrl(): string {
-    const host = "centerbeam.proxy.rlwy.net";
-    const port = "34305";
-    const user = "postgres";
-    const password = "zPjXkWvnHzvaVonPhQRYQitsWXpITBbp";
-    const dbName = "railway";
+    // Never write credentials in this file (it is in git). PowerShell: $env:DB_PASSWORD="…"; npm run sold:update
+    const host = process.env.DB_HOST;
+    const port = process.env.DB_PORT || "5432";
+    const user = process.env.DB_USER;
+    const password = process.env.DB_PASSWORD;
+    const dbName = process.env.DB_NAME;
 
     if (host && user && password && dbName) {
         // Encode password in case it has special characters
@@ -338,7 +344,8 @@ async function buildPreview(
           WHERE
             puc                       = ${puc}
             AND LOWER(platform)       = ${platform}
-            AND LOWER(stockstatus)   != 'sold'
+            AND LOWER(stockstatus)    = 'available'
+            AND ecompublish           = true
             AND (isdeleted  IS NULL OR isdeleted  = false)
             AND (isarchive  IS NULL OR isarchive  = false)
           ORDER BY createddate ASC
@@ -351,7 +358,8 @@ async function buildPreview(
           WHERE
             puc                       = $1
             AND LOWER(platform)       = $2
-            AND LOWER(stockstatus)   != 'sold'
+            AND LOWER(stockstatus)    = 'available'
+            AND ecompublish           = true
             AND (isdeleted  IS NULL OR isdeleted  = false)
             AND (isarchive  IS NULL OR isarchive  = false)
             AND id NOT IN (${excludedList})
@@ -429,6 +437,10 @@ function formatPreview(p: Preview, idx: number, total: number): string[] {
 
     out(``);
     out(`┌─ [${idx + 1}/${total}]  productId=${p.entry.id}  |  platform='${p.platform}'  |  qty=${p.entry.quantity}`);
+    if (p.platform === 'amazon') {
+        // Orders of Amazon listings mapped in Nivaana are sold automatically (AMZ-PLAN-28); entering them here counts them twice
+        out(`│  ⚠ AMAZON: only for sales of listings NOT mapped in Nivaana — mapped listings' orders already mark their units sold`);
+    }
 
     if (!p.ok) {
         out(`│  ❌ WILL SKIP — ${p.reason}`);
@@ -445,6 +457,7 @@ function formatPreview(p: Preview, idx: number, total: number): string[] {
     out(`│  🏪 PLATFORMSTOCK  (productid=${p.entry.id}, platform='${p.platform}')`);
     out(`│    availableqty      :  ${p.cur_ps_avail}  →  ${p.new_ps_avail}`);
     out(`│    soldqty           :  ${p.cur_ps_sold}  →  ${p.new_ps_sold}`);
+    out(`│    ecomqty           :  −${p.stockIds.length}`);
     out(`│    platformstatus    :  '${p.cur_ps_status}'  →  '${p.new_ps_status}'`);
     out(`│`);
     out(`│  📋 STOCK  (${p.stockIds.length} unit(s) → 'sold')`);
@@ -472,12 +485,18 @@ async function applyUpdate(p: Preview & { ok: true }) {
     const soldDateEpoch = p.soldDateEpoch;                      // already converted in buildPreview
 
     await prisma.$transaction(async (tx) => {
+        // The sold units leave the e-com published count too, so a later recount keeps the sale (AMZ-PLAN-28)
+        const units = p.stockIds.length;
+        const currentProduct = await tx.product.findUnique({ where: { id: BigInt(p.entry.id) }, select: { ecompublishedquantity: true } });
+        const currentStock = await tx.platformStock.findUnique({ where: { id: p.ps_id }, select: { ecomqty: true } });
+
         // 1. product
         await tx.product.update({
             where: { id: BigInt(p.entry.id) },
             data: {
                 soldquantity: p.new_prod_sold,
                 availablequantity: p.new_prod_avail,
+                ecompublishedquantity: Math.max(0, Number(currentProduct?.ecompublishedquantity ?? 0) - units),
                 productstatus: p.new_prod_status,
                 modifieddate,
             },
@@ -489,6 +508,7 @@ async function applyUpdate(p: Preview & { ok: true }) {
             data: {
                 availableqty: p.new_ps_avail,
                 soldqty: p.new_ps_sold,
+                ecomqty: Math.max(0, Number(currentStock?.ecomqty ?? 0) - units),
                 platformstatus: p.new_ps_status,
                 modifieddate,
             },

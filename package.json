@@ -16,6 +16,7 @@
     "db:sql": "npx tsx scripts/run-sql-migrations.ts",
     "amazon:mappings": "npx tsx scripts/move-amazon-mappings.ts",
     "amazon:combos": "npx tsx scripts/create-amazon-combos.ts",
+    "amazon:sold-units": "npx tsx scripts/amazon-mark-sold-units.ts",
     "verify:amazon-inventory": "npx tsx scripts/verify-amazon-inventory-handoff.ts",
     "test": "tsx --test src/**/*.test.ts tests/**/*.test.ts",
     "verify:return-module": "npm run test && npx prisma validate && npm run build -- --pretty false",
