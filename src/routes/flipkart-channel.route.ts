@@ -9,6 +9,7 @@ import {
 import { createSuccessResponse } from '../utils/errorHandler.js';
 import { FlipkartListingError, flipkartListingService } from '../services/flipkart-listing.service.js';
 import { FlipkartApiError } from '../services/flipkart-api.client.js';
+import { flipkartComboMappingService } from '../services/flipkart-combo-mapping.service.js';
 import { FlipkartInventoryError, flipkartInventoryService } from '../services/flipkart-inventory.service.js';
 import { FlipkartOrderError, flipkartOrderService } from '../services/flipkart-order.service.js';
 
@@ -85,6 +86,41 @@ export async function flipkartChannelRoutes(fastify: FastifyInstance) {
       const params = request.params as { listingId: string };
       const body = request.body as { productId: string; unitsPerListing?: number };
       return reply.code(200).send(createSuccessResponse('Flipkart listing mapped successfully', await flipkartListingService.map(params.listingId, body.productId, body.unitsPerListing ?? 1, { userId: user?.id, userType: user?.userType })));
+    } catch (error) { return listingError(error, reply); }
+  });
+
+  fastify.post('/listings/:listingId/map-combo', {
+    preHandler: [requireAuthentication, requireFlipkartChannelPermission(['create', 'edit', 'modifyall'])],
+    schema: {
+      description: 'Map a Flipkart listing that sells several Nivaana products together: reuses the combo with exactly these products and quantities or creates it (Flipkart stock only, listing FSN), then maps the listing to it',
+      tags: ['Flipkart Integration'], security: [{ bearerAuth: [] }],
+      params: { type: 'object', required: ['listingId'], properties: { listingId: { type: 'string', pattern: '^\\d+$' } } },
+      body: {
+        type: 'object', required: ['components'], additionalProperties: false,
+        properties: {
+          components: {
+            type: 'array', minItems: 2, maxItems: 12,
+            items: {
+              type: 'object', required: ['productId'], additionalProperties: false,
+              properties: { productId: { type: 'string', pattern: '^\\d+$' }, requiredQty: { type: 'integer', minimum: 1, maximum: 100, default: 1 } },
+            },
+          },
+          allowRemap: { type: 'boolean', default: false },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    try {
+      const user = (request as any).user;
+      const params = request.params as { listingId: string };
+      const body = request.body as { components: Array<{ productId: string; requiredQty?: number }>; allowRemap?: boolean };
+      const result = await flipkartComboMappingService.mapAsCombo({
+        listingId: params.listingId,
+        components: body.components.map((component) => ({ productId: component.productId, requiredQty: component.requiredQty ?? 1 })),
+        allowRemap: body.allowRemap ?? false,
+        actor: { userId: user?.id, userType: user?.userType },
+      });
+      return reply.code(200).send(createSuccessResponse(result.combo.created ? `Combo ${result.combo.puc} created and listing mapped` : `Listing mapped to combo ${result.combo.puc}`, result));
     } catch (error) { return listingError(error, reply); }
   });
 

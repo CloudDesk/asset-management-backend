@@ -113,6 +113,8 @@ export function buildComboProductInput(options: {
   scentText?: string;
   price: number | null;
   asin: string | null;
+  /** Flipkart FSN of the listing the combo is made for (FKT-PLAN-02b) */
+  fsn?: string | null;
   allowMixedTaxonomy?: boolean;
 }): { input: Record<string, unknown> } | { reason: string } {
   const { components } = options;
@@ -153,6 +155,7 @@ export function buildComboProductInput(options: {
       gst_rate: Number(gst),
       ...(options.price !== null && options.price > 0 ? { price: options.price } : {}),
       ...(options.asin ? { asin: options.asin } : {}),
+      ...(options.fsn ? { fsn: options.fsn } : {}),
       iscombo: true,
       combotype: 'fixed',
       components: components.map((product) => ({ productid: String(product.id), requiredqty: product.requiredQty })),

@@ -57,7 +57,7 @@ Rules: same live account for every environment (one seller, four databases). Sec
 | --- | --- | --- |
 | **FKT-PLAN-01** Safety and connection — ✅ implemented 2026-10-29 (FIX-176, not committed) | `FLIPKART_INTEGRATION_ENABLED` (backend) + `integrationFeatures.flipkart` (Inventory); hide mock buttons when not in mock mode; Overview "Test connection" with saved result; clear dev-DB mock rows (script, dry run first) | no |
 | **FKT-PLAN-02** Real listings import — ✅ implemented 2026-10-29 (FIX-177, not committed; 287 live listings imported on dev DB) | Real client listing search (all states, paging); store listings, prices, locations (gives the Location ID); `product.fsn` SQL + product form field; mapping suggestions (SKU = PUC, FSN) | no |
-| **FKT-PLAN-02b** Combo mapping | 148 of 238 active listings are mixed combos (e.g. `Auora_VaniVaniJungle_Pack3` = 2 × Vanilla + 1 × Jungle Vibe). Reuse Amazon "Map as combo" (FIX-171: find or create the combo product from products × quantity) for Flipkart listings, so stock and orders use components | no |
+| **FKT-PLAN-02b** Combo mapping — ✅ implemented 2026-10-29 (FIX-178, not committed) | 148 of 238 active listings are mixed combos (e.g. `Auora_VaniVaniJungle_Pack3` = 2 × Vanilla + 1 × Jungle Vibe). Reuse Amazon "Map as combo" (FIX-171: find or create the combo product from products × quantity) for Flipkart listings, so stock and orders use components | no |
 | **FKT-PLAN-03** Stock sync | Real inventory update per location, preview → confirm → send, Prod-only write guard, history; combo stock | yes (Prod) |
 | **FKT-PLAN-04** Order import | Real shipment search + details, reservations (combo aware), scheduler job, FBF orders shown but not reserved | no |
 | **FKT-PLAN-05** Fulfilment | Pack with invoice, label PDF, Ready to dispatch; Self Ship dispatch via Ekart / Shipmozo and delivered | yes (Prod) |
@@ -91,3 +91,6 @@ Backend switch `FLIPKART_INTEGRATION_ENABLED`; Inventory flag `integrationFeatur
 ### 2026-10-29: FKT-PLAN-02 — live listings import, product FSN, suggestions (FIX-2026-10-29-177)
 Live client reads listings (search + details); Import listings stores them as PRODUCTION with price, HSN / GST, fulfilment and location stock; `product.fsn` (SQL on Dev/SIT); mapping suggestions with Same FSN and pack hint. Read only.
 Live import on dev DB: 287 listings (238 active, 49 inactive), one location `LOCf859…` with 12,363 units; 85 s after batching. 148 active listings look like combos → FKT-PLAN-02b (combo mapping) recommended before stock sync.
+
+### 2026-10-29: FKT-PLAN-02b — map as combo (FIX-2026-10-29-178)
+Mapping dialog: One product / Several products (combo); combo found or created (Flipkart stock only, listing FSN) and the listing mapped to it. Products proposed from the title list: 94 of 148 live combos complete, 15 partial, 39 by hand. Combo stock and orders follow in FKT-PLAN-03 / 04.

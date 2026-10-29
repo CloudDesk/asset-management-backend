@@ -1,6 +1,6 @@
 import { env } from '../config/env.js';
 import { prisma } from '../models/prisma.js';
-import { buildCatalogWordStats, keyWords, scoreNameMatch } from '../utils/amazonProductMatch.js';
+import { buildCatalogWordStats, keyWords, scoreNameMatch, type CatalogWordStats } from '../utils/amazonProductMatch.js';
 import {
   FlipkartListing,
   FlipkartListingState,
@@ -41,6 +41,34 @@ export const flipkartLooksLikeCombo = (sku: string, title?: string | null) => {
   if ((flipkartPackHint(sku, title) ?? 1) < 2) return false;
   const head = (title ?? '').split('|')[0]!.replace(/\([^)]*\)/g, ' ');
   return /[,&+]/.test(head);
+};
+
+type ComboCandidate = { id: string; puc: string; name: string };
+
+// Products of a combo listing from its title list: "Auora Vanilla, Vanilla, Jungle Vibe Blocks …" →
+// 2 × Vanilla + 1 × Jungle Vibe. Each name is matched to the best-covered candidate; numbers in the
+// title ("30 Units") help pick the 30-stick product over the 10-stick one. Unmatched names are returned.
+export const proposeFlipkartCombo = (title: string, candidates: ComboCandidate[], stats: CatalogWordStats) => {
+  const head = title.split('|')[0]!.replace(/\([^)]*\)/g, ' ');
+  const numbers = (title.match(/\b\d+\b/g) ?? []);
+  const picks = new Map<string, { product: ComboCandidate; quantity: number }>();
+  const unmatched: string[] = [];
+  for (const segment of head.split(/[,&+]/).map((part) => part.trim()).filter(Boolean)) {
+    const words = new Set([...keyWords(segment, stats), ...numbers]);
+    let best: { product: ComboCandidate; score: number } | null = null;
+    for (const product of candidates) {
+      const match = scoreNameMatch(product.name, words, stats);
+      if (!match.matched.some((word) => !/^\d+$/.test(word))) continue;
+      if (!best || match.score > best.score || (match.score === best.score && product.name.length < best.product.name.length)) {
+        best = { product, score: match.score };
+      }
+    }
+    if (!best) { unmatched.push(segment); continue; }
+    const current = picks.get(best.product.id);
+    picks.set(best.product.id, { product: best.product, quantity: (current?.quantity ?? 0) + 1 });
+  }
+  const components = [...picks.values()];
+  return { components, unmatched, itemCount: components.reduce((sum, item) => sum + item.quantity, 0) };
 };
 
 // A RUNNING job older than this is treated as interrupted and does not block a new import
@@ -302,10 +330,23 @@ export class FlipkartListingService {
       };
     })
       .filter((suggestion) => suggestion.score >= SUGGESTION_MIN_SCORE)
-      .sort((left, right) => right.score - left.score || left.product.name.length - right.product.name.length)
-      .slice(0, SUGGESTION_LIMIT);
-    const comboHint = flipkartLooksLikeCombo(listing.sellerSku, listing.title);
-    return { fsn, packHint: flipkartPackHint(listing.sellerSku, listing.title), comboHint, suggestions };
+      .sort((left, right) => right.score - left.score || left.product.name.length - right.product.name.length);
+    let comboHint = flipkartLooksLikeCombo(listing.sellerSku, listing.title);
+    let packHint = flipkartPackHint(listing.sellerSku, listing.title);
+    // Combo components come from single products only (a combo cannot contain a combo)
+    const comboProposal = comboHint && listing.title
+      ? proposeFlipkartCombo(listing.title, suggestions.filter((item) => !item.product.iscombo).map((item) => item.product), stats)
+      : null;
+    // "Jungle Vibe, Jungle Vibe, Jungle Vibe" names one product three times: a pack of 3, not a combo
+    if (comboProposal && comboProposal.components.length === 1 && comboProposal.unmatched.length === 0) {
+      comboHint = false;
+      packHint = comboProposal.itemCount;
+    }
+    return {
+      fsn, packHint, comboHint,
+      comboProposal: comboHint && comboProposal && comboProposal.components.length >= 2 ? comboProposal : null,
+      suggestions: suggestions.slice(0, SUGGESTION_LIMIT),
+    };
   }
 
   async map(listingId: string, productId: string, unitsPerListing: number, actor: Actor = {}) {
