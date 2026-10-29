@@ -174,6 +174,11 @@ export class FlipkartConnectionService {
     }
   }
 
+  // Bearer token for Seller API calls (cached until a minute before expiry)
+  async accessToken(): Promise<string> {
+    return (await this.getAccessToken()).value;
+  }
+
   private async getAccessToken() {
     if (this.cachedToken && this.cachedToken.expiresAt - 60_000 > this.now()) {
       return this.cachedToken;

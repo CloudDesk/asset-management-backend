@@ -1,4 +1,6 @@
+import { env } from '../config/env.js';
 import { prisma } from '../models/prisma.js';
+import { buildCatalogWordStats, keyWords, scoreNameMatch } from '../utils/amazonProductMatch.js';
 import {
   FlipkartListing,
   FlipkartListingState,
@@ -6,6 +8,55 @@ import {
   flipkartDataEnvironment,
   getFlipkartSellerApiClient,
 } from './flipkart-api.client.js';
+
+const SUGGESTION_MIN_SCORE = 25;
+const SUGGESTION_CATALOG_LIMIT = 5000;
+const SUGGESTION_LIMIT = 10;
+
+// Flipkart FSN on the product equals the listing's product_id; case and spaces ignored
+export const isSameFsn = (productFsn?: string | null, listingFsn?: string | null) => {
+  const left = (productFsn ?? '').trim().toUpperCase();
+  return left.length > 0 && left === (listingFsn ?? '').trim().toUpperCase();
+};
+
+// Items in one Flipkart listing from the SKU or title: "_Pack3", "_P3", "3Unit", "Pack of 3",
+// "Set of 3" → 3; "_Single" → 1
+const SKU_COUNT_PATTERNS = [/pack[\s_-]*(\d{1,3})(?!\d)/i, /set[\s_-]*(\d{1,2})(?!\d)/i, /(?:^|_)p(\d{1,2})(?!\d)/i, /unit[\s_-]*(\d{1,2})(?!\d)/i, /(?:^|_)(\d{1,2})[\s_-]*unit/i];
+const TITLE_COUNT_PATTERNS = [/pack[\s_-]*of[\s_-]*(\d{1,3})(?!\d)/i, /set[\s_-]*of[\s_-]*(\d{1,3})(?!\d)/i];
+export const flipkartPackHint = (sku: string, title?: string | null): number | null => {
+  for (const [text, patterns] of [[sku, SKU_COUNT_PATTERNS], [title ?? '', TITLE_COUNT_PATTERNS]] as const) {
+    for (const pattern of patterns) {
+      const units = Number(text.match(pattern)?.[1] ?? 0);
+      if (units >= 1) return units;
+    }
+  }
+  return /(^|[\s_-])single($|[\s_-])/i.test(sku) ? 1 : null;
+};
+
+// Several different products in one listing ("Vanilla, Vanilla, Jungle Vibe … Pack of 3",
+// "…Combo"): "Pack3" then counts products, not units of one product (decision D4: map as combo).
+// A list in the title alone is not enough ("Aroma Oil, Diffuser, Refill (10 ml)" is one product).
+export const flipkartLooksLikeCombo = (sku: string, title?: string | null) => {
+  if (/combo/i.test(`${sku} ${title ?? ''}`)) return true;
+  if ((flipkartPackHint(sku, title) ?? 1) < 2) return false;
+  const head = (title ?? '').split('|')[0]!.replace(/\([^)]*\)/g, ' ');
+  return /[,&+]/.test(head);
+};
+
+// A RUNNING job older than this is treated as interrupted and does not block a new import
+const IMPORT_STALE_AFTER_MS = 15 * 60 * 1000;
+// Listings saved at the same time within one search batch
+const IMPORT_WRITE_CONCURRENCY = 5;
+
+const forEachLimit = async <T>(items: T[], limit: number, work: (item: T) => Promise<void>) => {
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) await work(items[next++]!);
+  }));
+};
+
+// Safety stop: 100 batches of 20 = 2,000 listings per state
+const MAX_PAGES_PER_STATE = 100;
 
 const IMPORT_STATES: FlipkartListingState[] = [
   'ACTIVE', 'INACTIVE', 'READY_FOR_ACTIVATION', 'INACTIVATED_BY_FLIPKART', 'ARCHIVED',
@@ -18,16 +69,17 @@ export class FlipkartListingError extends Error {
   }
 }
 
-export const normalizeFlipkartListing = (listing: FlipkartListing) => ({
+export const normalizeFlipkartListing = (listing: FlipkartListing, environment: 'MOCK' | 'PRODUCTION' = 'MOCK') => ({
   marketplace: 'FLIPKART',
-  environment: 'MOCK',
+  environment,
   marketplaceId: 'IN',
   sellerId: listing.sellerId.trim(),
   sellerSku: listing.sku.trim(),
   title: listing.productName.trim(),
   productType: listing.vertical.trim() || null,
   listingStatus: listing.status,
-  fulfilmentChannel: 'SELLER',
+  // FBF stock sits in a Flipkart warehouse (decision D1); everything else is shipped by us
+  fulfilmentChannel: listing.fulfilmentProfile === 'FBF' ? 'FLIPKART' : 'SELLER',
   publishedQuantity: listing.locations.reduce((total, location) => total + Math.max(0, Math.trunc(location.inventory)), 0),
   price: listing.sellingPrice.toFixed(2),
   currency: 'INR',
@@ -42,17 +94,40 @@ export class FlipkartListingService {
     if (this.client.mode !== 'MOCK') {
       throw new FlipkartListingError('Pre-approval listing imports are restricted to mock mode', 409, 'FLIPKART_MOCK_MODE_REQUIRED');
     }
+    return this.importListings(actor);
+  }
 
-    const connection = await prisma.flipkartConnection.upsert({
-      where: { environment_connectionType: { environment: 'MOCK', connectionType: 'SELF_ACCESS' } },
-      create: { environment: 'MOCK', status: 'SIMULATED', sellerId: 'MOCK-NIVAANA-SELLER' },
-      update: { status: 'SIMULATED', sellerId: 'MOCK-NIVAANA-SELLER' },
+  // Reads every listing state from Flipkart (mock or live) and stores listings, prices and
+  // per-location stock. Read only: nothing is sent to Flipkart (FKT-PLAN-02).
+  async importListings(actor: Actor = {}) {
+    const environment = this.client.mode === 'MOCK' ? 'MOCK' : 'PRODUCTION';
+    // Close runs a stopped server left RUNNING, so history never shows a run that will not finish
+    await prisma.flipkartImportJob.updateMany({
+      where: { environment, resourceType: 'LISTINGS', status: 'RUNNING', startedAt: { lte: new Date(Date.now() - IMPORT_STALE_AFTER_MS) } },
+      data: { status: 'FAILED', errorCode: 'INTERRUPTED', errorMessage: 'Import stopped before it finished (server stopped or restarted)', finishedAt: new Date() },
     });
+    const running = await prisma.flipkartImportJob.findFirst({
+      where: { environment, resourceType: 'LISTINGS', status: 'RUNNING', startedAt: { gt: new Date(Date.now() - IMPORT_STALE_AFTER_MS) } },
+      select: { id: true },
+    });
+    if (running) throw new FlipkartListingError('A Flipkart listing import is already running', 409, 'FLIPKART_IMPORT_RUNNING');
+
+    const connection = environment === 'MOCK'
+      ? await prisma.flipkartConnection.upsert({
+        where: { environment_connectionType: { environment: 'MOCK', connectionType: 'SELF_ACCESS' } },
+        create: { environment: 'MOCK', status: 'SIMULATED', sellerId: 'MOCK-NIVAANA-SELLER' },
+        update: { status: 'SIMULATED', sellerId: 'MOCK-NIVAANA-SELLER' },
+      })
+      : await prisma.flipkartConnection.upsert({
+        where: { environment_connectionType: { environment: env.FLIPKART_ENVIRONMENT, connectionType: 'SELF_ACCESS' } },
+        create: { environment: env.FLIPKART_ENVIRONMENT, status: 'CONNECTED' },
+        update: {},
+      });
     const job = await prisma.flipkartImportJob.create({
       data: {
         connectionId: connection.id,
-        environment: 'MOCK',
-        mode: 'MOCK',
+        environment,
+        mode: environment,
         status: 'RUNNING',
         startedAt: new Date(),
         ...(actor.userId !== undefined ? { requestedByUserId: actor.userId } : {}),
@@ -64,20 +139,33 @@ export class FlipkartListingService {
     let created = 0;
     let updated = 0;
     let pagesProcessed = 0;
+    let sellerId: string | null = null;
+    const sellerLocationIds = new Map<string, bigint>();
     try {
       for (const state of IMPORT_STATES) {
         let page = 0;
         do {
           const result = await this.client.searchListings({ state, page });
           pagesProcessed += 1;
-          for (const raw of result.items) {
-            const normalized = normalizeFlipkartListing(raw);
-            const existing = await prisma.marketplaceListing.findUnique({
-              where: { marketplace_marketplaceId_sellerId_sellerSku: {
-                marketplace: 'FLIPKART', marketplaceId: 'IN', sellerId: normalized.sellerId, sellerSku: normalized.sellerSku,
-              } },
-              select: { id: true },
+          const items = result.items.filter((raw) => raw.sellerId && raw.sku);
+          sellerId ??= items[0]?.sellerId ?? null;
+          // One lookup per page instead of per listing (the database can be ~300 ms away)
+          const existingSkus = new Set((await prisma.marketplaceListing.findMany({
+            where: { marketplace: 'FLIPKART', marketplaceId: 'IN', sellerId: { in: [...new Set(items.map((raw) => raw.sellerId))] }, sellerSku: { in: items.map((raw) => raw.sku) } },
+            select: { sellerId: true, sellerSku: true },
+          })).map((row) => `${row.sellerId}|${row.sellerSku}`));
+          for (const location of items.flatMap((raw) => raw.locations)) {
+            if (sellerLocationIds.has(location.id)) continue;
+            const sellerLocation = await prisma.flipkartSellerLocation.upsert({
+              where: { connectionId_externalLocationId: { connectionId: connection.id, externalLocationId: location.id } },
+              create: { connectionId: connection.id, externalLocationId: location.id, name: environment === 'MOCK' ? 'Mock Bengaluru Warehouse' : null, status: location.status, lastImportedAt: new Date() },
+              update: { status: location.status, lastImportedAt: new Date() },
             });
+            sellerLocationIds.set(location.id, sellerLocation.id);
+          }
+
+          await forEachLimit(items, IMPORT_WRITE_CONCURRENCY, async (raw) => {
+            const normalized = normalizeFlipkartListing(raw, environment);
             const listing = await prisma.marketplaceListing.upsert({
               where: { marketplace_marketplaceId_sellerId_sellerSku: {
                 marketplace: 'FLIPKART', marketplaceId: 'IN', sellerId: normalized.sellerId, sellerSku: normalized.sellerSku,
@@ -85,51 +173,44 @@ export class FlipkartListingService {
               create: normalized,
               update: { ...normalized, lastImportedAt: new Date() },
             });
-            existing ? updated += 1 : created += 1;
+            existingSkus.has(`${normalized.sellerId}|${normalized.sellerSku}`) ? updated += 1 : created += 1;
             fetched += 1;
 
+            const detail = {
+              flipkartListingId: raw.listingId,
+              flipkartProductId: raw.productId,
+              vertical: raw.vertical,
+              mrp: raw.mrp,
+              sellingPrice: raw.sellingPrice,
+              rawPayload: (raw.raw ?? raw) as any,
+            };
             await prisma.flipkartListingDetail.upsert({
               where: { listingId: listing.id },
-              create: {
-                listingId: listing.id,
-                flipkartListingId: raw.listingId,
-                flipkartProductId: raw.productId,
-                vertical: raw.vertical,
-                mrp: raw.mrp,
-                sellingPrice: raw.sellingPrice,
-                rawPayload: raw as any,
-              },
-              update: {
-                flipkartListingId: raw.listingId,
-                flipkartProductId: raw.productId,
-                vertical: raw.vertical,
-                mrp: raw.mrp,
-                sellingPrice: raw.sellingPrice,
-                rawPayload: raw as any,
-              },
+              create: { listingId: listing.id, ...detail },
+              update: detail,
             });
 
             for (const rawLocation of raw.locations) {
-              const sellerLocation = await prisma.flipkartSellerLocation.upsert({
-                where: { connectionId_externalLocationId: { connectionId: connection.id, externalLocationId: rawLocation.id } },
-                create: { connectionId: connection.id, externalLocationId: rawLocation.id, name: 'Mock Bengaluru Warehouse', status: rawLocation.status, lastImportedAt: new Date() },
-                update: { status: rawLocation.status, lastImportedAt: new Date() },
-              });
+              const sellerLocationId = sellerLocationIds.get(rawLocation.id)!;
               await prisma.flipkartListingLocation.upsert({
                 where: { listingId_externalLocationId: { listingId: listing.id, externalLocationId: rawLocation.id } },
-                create: { listingId: listing.id, sellerLocationId: sellerLocation.id, externalLocationId: rawLocation.id, status: rawLocation.status, publishedQuantity: rawLocation.inventory, lastImportedAt: new Date() },
-                update: { sellerLocationId: sellerLocation.id, status: rawLocation.status, publishedQuantity: rawLocation.inventory, lastImportedAt: new Date() },
+                create: { listingId: listing.id, sellerLocationId, externalLocationId: rawLocation.id, status: rawLocation.status, publishedQuantity: rawLocation.inventory, lastImportedAt: new Date() },
+                update: { sellerLocationId, status: rawLocation.status, publishedQuantity: rawLocation.inventory, lastImportedAt: new Date() },
               });
             }
-          }
+          });
           if (!result.hasMore) break;
           page += 1;
-        } while (true);
+        } while (page < MAX_PAGES_PER_STATE);
       }
 
+      if (sellerId && environment === 'PRODUCTION') {
+        await prisma.flipkartConnection.update({ where: { id: connection.id }, data: { sellerId } });
+      }
+      const unmapped = await prisma.marketplaceListing.count({ where: { marketplace: 'FLIPKART', environment, mappingStatus: { not: 'MAPPED' } } });
       const finished = await prisma.flipkartImportJob.update({
         where: { id: job.id },
-        data: { status: 'SUCCESS', fetched, created, updated, unmapped: fetched, pagesProcessed, finishedAt: new Date() },
+        data: { status: 'SUCCESS', fetched, created, updated, unmapped, pagesProcessed, finishedAt: new Date() },
       });
       return this.serializeJob(finished);
     } catch (error) {
@@ -144,13 +225,87 @@ export class FlipkartListingService {
   async list() {
     const listings = await prisma.marketplaceListing.findMany({
       where: { marketplace: 'FLIPKART', environment: flipkartDataEnvironment() },
-      include: { flipkartDetail: { include: { locations: true } }, product: { select: { id: true, name: true, puc: true } } },
+      include: { flipkartDetail: { include: { locations: true } }, product: { select: { id: true, name: true, puc: true, fsn: true } } },
       orderBy: { sellerSku: 'asc' },
     });
-    return listings.map((listing) => ({ ...listing, id: String(listing.id), productId: listing.productId ? String(listing.productId) : null,
-      product: listing.product ? { ...listing.product, id: String(listing.product.id) } : null,
-      flipkartDetail: listing.flipkartDetail ? { ...listing.flipkartDetail, listingId: String(listing.flipkartDetail.listingId), locations: listing.flipkartDetail.locations.map((location) => ({ ...location, id: String(location.id), listingId: String(location.listingId), sellerLocationId: location.sellerLocationId ? String(location.sellerLocationId) : null })) } : null,
-    }));
+    return listings.map((listing) => {
+      const detail = listing.flipkartDetail;
+      // rawPayload stays in the database (debugging); the screens get the fields they show
+      const raw = (detail?.rawPayload ?? {}) as { details?: { fulfillment_profile?: string; tax?: { hsn?: string; tax_code?: string } } };
+      return {
+        ...listing, id: String(listing.id), productId: listing.productId ? String(listing.productId) : null,
+        product: listing.product ? { ...listing.product, id: String(listing.product.id) } : null,
+        fsn: detail?.flipkartProductId ?? null,
+        fulfilmentProfile: raw.details?.fulfillment_profile ?? null,
+        hsn: raw.details?.tax?.hsn ?? null,
+        taxCode: raw.details?.tax?.tax_code ?? null,
+        flipkartStock: detail ? detail.locations.reduce((total, location) => total + (location.publishedQuantity ?? 0), 0) : null,
+        packHint: flipkartPackHint(listing.sellerSku, listing.title),
+        comboHint: flipkartLooksLikeCombo(listing.sellerSku, listing.title),
+        flipkartDetail: detail ? {
+          listingId: String(detail.listingId), flipkartListingId: detail.flipkartListingId, flipkartProductId: detail.flipkartProductId,
+          vertical: detail.vertical, mrp: detail.mrp, sellingPrice: detail.sellingPrice,
+          locations: detail.locations.map((location) => ({ ...location, id: String(location.id), listingId: String(location.listingId), sellerLocationId: location.sellerLocationId ? String(location.sellerLocationId) : null })),
+        } : null,
+      };
+    });
+  }
+
+  // Ranked Nivaana products for one Flipkart listing, same scoring idea as Amazon (FIX-126 / FIX-140)
+  async suggestProducts(listingId: string) {
+    const listing = await prisma.marketplaceListing.findFirst({
+      where: { id: BigInt(listingId), marketplace: 'FLIPKART', environment: flipkartDataEnvironment() },
+      select: { sellerSku: true, title: true, productId: true, flipkartDetail: { select: { flipkartProductId: true } } },
+    });
+    if (!listing) throw new FlipkartListingError('Flipkart listing not found', 404, 'FLIPKART_LISTING_NOT_FOUND');
+    const fsn = listing.flipkartDetail?.flipkartProductId ?? null;
+
+    const relatedMappings = await prisma.marketplaceListing.findMany({
+      where: {
+        marketplace: 'FLIPKART', productId: { not: null },
+        OR: [
+          { sellerSku: { equals: listing.sellerSku, mode: 'insensitive' } },
+          ...(fsn ? [{ flipkartDetail: { flipkartProductId: fsn } }] : []),
+        ],
+      },
+      select: { productId: true },
+      take: 20,
+    });
+    const historicalIds = new Set(relatedMappings.flatMap((item) => item.productId === null ? [] : [item.productId]));
+    const products = await prisma.product.findMany({
+      select: { id: true, puc: true, name: true, productstatus: true, fsn: true, iscombo: true, pack: true },
+      orderBy: { id: 'asc' },
+      take: SUGGESTION_CATALOG_LIMIT,
+    });
+    const stats = buildCatalogWordStats(products.map((product) => product.name));
+    // SKUs join words with underscores (Nivaana_BlackOudh_Single): split camel case too
+    const skuWords = listing.sellerSku.replace(/([a-z])([A-Z])/g, '$1 $2');
+    const listingWords = keyWords(`${skuWords} ${listing.title ?? ''}`, stats);
+
+    const suggestions = products.map((product) => {
+      const reasons: string[] = [];
+      let score = 0;
+      if (product.id === listing.productId) { score += 100; reasons.push('Current mapping'); }
+      if (isSameFsn(product.fsn, fsn)) { score += 90; reasons.push('Same FSN'); }
+      if (product.puc.toLowerCase() === listing.sellerSku.toLowerCase()) { score += 80; reasons.push('Exact SKU and PUC match'); }
+      if (historicalIds.has(product.id)) { score += 35; reasons.push('Previously mapped signal'); }
+      const nameMatch = scoreNameMatch(product.name, listingWords, stats);
+      if (nameMatch.score > 0) {
+        score += nameMatch.score;
+        reasons.push(`Name match ${nameMatch.matched.length}/${nameMatch.total}: ${nameMatch.matched.join(', ')}`);
+      }
+      return {
+        product: { id: String(product.id), puc: product.puc, name: product.name, status: product.productstatus, fsn: product.fsn, iscombo: product.iscombo === true, pack: product.pack ?? null },
+        score: Math.min(score, 100),
+        confidence: score >= 80 ? 'HIGH' : score >= 45 ? 'MEDIUM' : 'LOW',
+        reasons,
+      };
+    })
+      .filter((suggestion) => suggestion.score >= SUGGESTION_MIN_SCORE)
+      .sort((left, right) => right.score - left.score || left.product.name.length - right.product.name.length)
+      .slice(0, SUGGESTION_LIMIT);
+    const comboHint = flipkartLooksLikeCombo(listing.sellerSku, listing.title);
+    return { fsn, packHint: flipkartPackHint(listing.sellerSku, listing.title), comboHint, suggestions };
   }
 
   async map(listingId: string, productId: string, unitsPerListing: number, actor: Actor = {}) {
@@ -182,7 +337,7 @@ export class FlipkartListingService {
     return { id: String(updated.id), productId: String(updated.productId), unitsPerListing: updated.unitsPerListing, mappingStatus: updated.mappingStatus };
   }
 
-  private serializeJob(job: { id: bigint; connectionId: bigint | null; [key: string]: unknown }) {
+  private serializeJob<T extends { id: bigint; connectionId: bigint | null }>(job: T) {
     return { ...job, id: String(job.id), connectionId: job.connectionId ? String(job.connectionId) : null };
   }
 }

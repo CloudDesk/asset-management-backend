@@ -8,11 +8,12 @@ import {
 } from '../services/flipkart-connection.service.js';
 import { createSuccessResponse } from '../utils/errorHandler.js';
 import { FlipkartListingError, flipkartListingService } from '../services/flipkart-listing.service.js';
+import { FlipkartApiError } from '../services/flipkart-api.client.js';
 import { FlipkartInventoryError, flipkartInventoryService } from '../services/flipkart-inventory.service.js';
 import { FlipkartOrderError, flipkartOrderService } from '../services/flipkart-order.service.js';
 
 const listingError = (error: unknown, reply: any) => {
-  if (error instanceof FlipkartListingError) return reply.code(error.statusCode).send({
+  if (error instanceof FlipkartListingError || error instanceof FlipkartApiError || error instanceof FlipkartConnectionError) return reply.code(error.statusCode).send({
     success: false, message: error.message, statusCode: error.statusCode, code: error.code,
   });
   throw error;
@@ -38,6 +39,31 @@ export async function flipkartChannelRoutes(fastify: FastifyInstance) {
     try {
       const user = (request as any).user;
       return reply.code(201).send(createSuccessResponse('Mock Flipkart listings imported successfully', await flipkartListingService.importMockListings({ userId: user?.id, userType: user?.userType })));
+    } catch (error) { return listingError(error, reply); }
+  });
+
+  fastify.post('/listings/import', {
+    preHandler: [requireAuthentication, requireFlipkartChannelPermission(['import', 'create'])],
+    schema: { description: 'Import all Flipkart listings (every state) with prices and location stock; read only, nothing is sent to Flipkart', tags: ['Flipkart Integration'], security: [{ bearerAuth: [] }] },
+  }, async (request, reply) => {
+    try {
+      const user = (request as any).user;
+      const job = await flipkartListingService.importListings({ userId: user?.id, userType: user?.userType });
+      return reply.code(201).send(createSuccessResponse(`Flipkart listings imported: ${job.fetched} read, ${job.created} new, ${job.updated} updated`, job));
+    } catch (error) { return listingError(error, reply); }
+  });
+
+  fastify.get('/listings/:listingId/suggestions', {
+    preHandler: [requireAuthentication, requireFlipkartChannelRead],
+    schema: {
+      description: 'Ranked Nivaana products for a Flipkart listing (Same FSN, SKU = PUC, name match, earlier mappings) and the pack size read from the SKU / title',
+      tags: ['Flipkart Integration'], security: [{ bearerAuth: [] }],
+      params: { type: 'object', required: ['listingId'], properties: { listingId: { type: 'string', pattern: '^\\d+$' } } },
+    },
+  }, async (request, reply) => {
+    try {
+      const params = request.params as { listingId: string };
+      return reply.code(200).send(createSuccessResponse('Flipkart mapping suggestions retrieved', await flipkartListingService.suggestProducts(params.listingId)));
     } catch (error) { return listingError(error, reply); }
   });
 

@@ -31,6 +31,8 @@ model Product {
   // Amazon ASIN of this product (gap D4): a listing with the same ASIN is a Strong mapping match.
   // Column added by scripts/migrations/20261022_add_product_asin.sql
   asin             String?                  @db.VarChar(20)
+  // Flipkart Serial Number; column added by scripts/migrations/20261029_add_product_fsn.sql
+  fsn              String?                  @db.VarChar(20)
 
   averagerating Decimal? @db.Decimal(2, 1)
   discount      Int?
@@ -81,6 +83,7 @@ model Product {
   amazonReturns             AmazonReturnEvent[]
 
   @@index([asin], map: "product_asin_idx")
+  @@index([fsn], map: "product_fsn_idx")
   @@map("product")
 }
 

@@ -31,6 +31,11 @@ const asinField = z.preprocess(
   (value) => (typeof value === 'string' ? (value.trim() === '' ? null : value.trim().toUpperCase()) : value),
   z.string().regex(/^[A-Z0-9]{10}$/, 'ASIN must be 10 letters or digits (e.g. B0ABC12345)').nullable().optional(),
 );
+// Flipkart FSN (FKT-PLAN-02): 16 letters/digits, stored upper case; empty clears it
+const fsnField = z.preprocess(
+  (value) => (typeof value === 'string' ? (value.trim() === '' ? null : value.trim().toUpperCase()) : value),
+  z.string().regex(/^[A-Z0-9]{16}$/, 'FSN must be 16 letters or digits (e.g. INSHEVBUPWBJGCHQ)').nullable().optional(),
+);
 
 export const createProductSchema = z.object({
   // Core required fields
@@ -62,6 +67,7 @@ export const createProductSchema = z.object({
   hsn_code: z.string().trim().min(1, 'HSN code is required').max(50, 'HSN code too long'),
   gst_rate: z.coerce.number().min(0, 'GST rate cannot be negative').max(100, 'GST rate cannot exceed 100%'),
   asin: asinField,
+  fsn: fsnField,
 
   // Quantity fields
   quantity: z.number().int().min(0).optional(),
@@ -145,6 +151,7 @@ export const updateProductSchema = z.object({
   hsn_code: z.string().trim().min(1, 'HSN code cannot be empty').max(50, 'HSN code too long').optional(),
   gst_rate: z.coerce.number().min(0, 'GST rate cannot be negative').max(100, 'GST rate cannot exceed 100%').optional(),
   asin: asinField,
+  fsn: fsnField,
 
   // Quantity fields
   quantity: z.number().int().min(0).optional(),
@@ -220,6 +227,7 @@ export const upsertProductSchema = z.object({
   hsn_code: z.string().trim().min(1, 'HSN code cannot be empty').max(50, 'HSN code too long').optional(),
   gst_rate: z.coerce.number().min(0, 'GST rate cannot be negative').max(100, 'GST rate cannot exceed 100%').optional(),
   asin: asinField,
+  fsn: fsnField,
 
   // Quantity fields
   quantity: z.number().int().min(0).optional(),

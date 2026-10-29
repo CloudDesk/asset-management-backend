@@ -9,7 +9,7 @@ One place for Flipkart status, credentials, decisions and the build plan (FKT-PL
 | Code on `DEV-NEW` | Base setup from `Flipkart-Integration` (FIX-2026-10-29-175): tables, mock client, mapping, stock preview, order reservations, Inventory workspace (Overview, Listings & Mapping, Stock Sync, Orders, Fulfillment, Activity). |
 | Seller Hub app | **Self Access** app "Nivaana Inventory", status **Approved**, never expires (Seller Hub → Manage Profile → Developer Access). |
 | Credentials in local `.env` | `FLIPKART_APP_ID`, `FLIPKART_APP_SECRET` set. **Connection test passed 2026-10-29**: token scope `Seller_Api`, seller ID `3b08d2518bc0424b` found from live listings (`/listings/v3/product/search`). |
-| Real API calls | Only the connection test. Every other call goes to the mock client or `UnavailableProductionFlipkartClient` (throws). |
+| Real API calls | Connection test and listing reads (FKT-PLAN-02, `LiveFlipkartSellerApiClient`). Stock and order calls answer "not built yet" (501) until FKT-PLAN-03 / 04 / 05. |
 | Feature switch | `FLIPKART_INTEGRATION_ENABLED` (backend, default off; on in local `.env`) and `integrationFeatures.flipkart` (Inventory: local dev + SIT, hidden on UAT / Prod) — FKT-PLAN-01. |
 | Shared dev DB | MOCK listings / shipments from the branch are hidden when mock mode is off; `npm run flipkart:clear-mock` removes them (dry run done, not applied). Saved connection row: PRODUCTION, CONNECTED. |
 
@@ -20,7 +20,7 @@ One place for Flipkart status, credentials, decisions and the build plan (FKT-PL
 | `FLIPKART_APP_ID` | Self Access "API Key" | Seller Hub → Developer Access | everything |
 | `FLIPKART_APP_SECRET` | Self Access secret ("Copy Secret") | same | everything |
 | `FLIPKART_SELLER_ID` | Optional; found automatically (`3b08d2518bc0424b`) | connection test | — |
-| Location ID (`LOC…`) | Flipkart warehouse / pickup location; required on every stock update | read from listing data (P1) or Seller Hub → Manage Profile → Locations | stock sync (P2), order actions |
+| Location ID (`LOC…`) | Flipkart warehouse / pickup location; required on every stock update | **found in listing details: one location `LOCf859a88d49c54d04846571124f047535`** (ENABLED) | stock sync (P3), order actions |
 | `FLIPKART_MOCK_MODE` | `true` = simulated data only | env | off once the real client exists |
 | `FLIPKART_INVENTORY_WRITES_ENABLED` | Allows real stock / order writes | env | **Prod only** (decision D2) |
 | Scheduler secret (P3) | Header secret for Cloud Scheduler jobs, like `AMAZON_SCHEDULER_SECRET` | `openssl rand -hex 24`, one per environment | order / listing auto-sync |
@@ -56,7 +56,8 @@ Rules: same live account for every environment (one seller, four databases). Sec
 | Plan | Scope | Writes to Flipkart? |
 | --- | --- | --- |
 | **FKT-PLAN-01** Safety and connection — ✅ implemented 2026-10-29 (FIX-176, not committed) | `FLIPKART_INTEGRATION_ENABLED` (backend) + `integrationFeatures.flipkart` (Inventory); hide mock buttons when not in mock mode; Overview "Test connection" with saved result; clear dev-DB mock rows (script, dry run first) | no |
-| **FKT-PLAN-02** Real listings import | Real client listing search (all states, paging); store listings, prices, locations (gives the Location ID); `product.fsn` SQL + product form field; mapping suggestions (SKU = PUC, FSN) | no |
+| **FKT-PLAN-02** Real listings import — ✅ implemented 2026-10-29 (FIX-177, not committed; 287 live listings imported on dev DB) | Real client listing search (all states, paging); store listings, prices, locations (gives the Location ID); `product.fsn` SQL + product form field; mapping suggestions (SKU = PUC, FSN) | no |
+| **FKT-PLAN-02b** Combo mapping | 148 of 238 active listings are mixed combos (e.g. `Auora_VaniVaniJungle_Pack3` = 2 × Vanilla + 1 × Jungle Vibe). Reuse Amazon "Map as combo" (FIX-171: find or create the combo product from products × quantity) for Flipkart listings, so stock and orders use components | no |
 | **FKT-PLAN-03** Stock sync | Real inventory update per location, preview → confirm → send, Prod-only write guard, history; combo stock | yes (Prod) |
 | **FKT-PLAN-04** Order import | Real shipment search + details, reservations (combo aware), scheduler job, FBF orders shown but not reserved | no |
 | **FKT-PLAN-05** Fulfilment | Pack with invoice, label PDF, Ready to dispatch; Self Ship dispatch via Ekart / Shipmozo and delivered | yes (Prod) |
@@ -64,10 +65,20 @@ Rules: same live account for every environment (one seller, four databases). Sec
 
 Each phase: Master.md FIX entry, checklist rows for SQL / env changes, tests, and a short change-log line below.
 
+## 5a. Seller API endpoints in use
+
+| Purpose | Call | Notes |
+| --- | --- | --- |
+| Token | `GET /oauth-service/oauth/token?grant_type=client_credentials&scope=Seller_Api` (Basic app ID:secret) | ~30 days validity, cached |
+| Listing search | `POST /listings/v3/product/search` `{ batchNo, internalState }` | 20 per batch; `productId` = FSN; states ACTIVE, INACTIVE, READY_FOR_ACTIVATION, INACTIVATED_BY_FLIPKART, ARCHIVED |
+| Listing details | `GET /sellers/listings/v3/{sku1,sku2,…}` | up to 10 SKUs; price, tax, `fulfillment_profile`, `locations[]` with stock |
+
+Live account 2026-10-29: 238 active, 41 inactive, 1 ready for activation, 1 inactivated by Flipkart, 6 archived; all checked listings `NON_FBF`, shipping provider FLIPKART (Flipkart pickup).
+
 ## 6. Open questions
 
 - Which fulfilment types are really used (D1)? Answer decides whether FKT-PLAN-05 starts with Flipkart pickup or Self Ship.
-- Location ID(s): one warehouse or several? (P2 import will list them.)
+- Location ID(s): one so far (`LOCf859…`); the full import will confirm.
 
 ## 7. Change log
 
@@ -76,3 +87,7 @@ FIX-2026-10-29-175 brought the branch to `DEV-NEW`. Connection test with the Sel
 
 ### 2026-10-29: FKT-PLAN-01 — switch, connection status, mock data apart (FIX-2026-10-29-176)
 Backend switch `FLIPKART_INTEGRATION_ENABLED`; Inventory flag `integrationFeatures.flipkart`; Overview "Test connection" saved in `flipkart_connections`; screens show only the current mode's rows; `flipkart:clear-mock` script. SIT merge needs the 4e settings in `.env.sit`.
+
+### 2026-10-29: FKT-PLAN-02 — live listings import, product FSN, suggestions (FIX-2026-10-29-177)
+Live client reads listings (search + details); Import listings stores them as PRODUCTION with price, HSN / GST, fulfilment and location stock; `product.fsn` (SQL on Dev/SIT); mapping suggestions with Same FSN and pack hint. Read only.
+Live import on dev DB: 287 listings (238 active, 49 inactive), one location `LOCf859…` with 12,363 units; 85 s after batching. 148 active listings look like combos → FKT-PLAN-02b (combo mapping) recommended before stock sync.

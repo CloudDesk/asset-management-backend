@@ -1661,6 +1661,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               maxLength: 20,
               description: "Amazon ASIN (10 letters/digits); empty or null clears it",
             },
+            fsn: {
+              type: ["string", "null"],
+              maxLength: 20,
+              description: "Flipkart FSN (16 letters/digits); empty or null clears it",
+            },
             // Additional Product Information
             material: {
               type: "string",
@@ -2226,6 +2231,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: ["string", "null"],
               maxLength: 20,
               description: "Amazon ASIN (10 letters/digits); empty or null clears it",
+            },
+            fsn: {
+              type: ["string", "null"],
+              maxLength: 20,
+              description: "Flipkart FSN (16 letters/digits); empty or null clears it",
             },
             // Size array fields
             large: {
@@ -2926,6 +2936,11 @@ export async function productRoutes(fastify: FastifyInstance) {
               type: ["string", "null"],
               maxLength: 20,
               description: "Amazon ASIN (10 letters/digits); empty or null clears it",
+            },
+            fsn: {
+              type: ["string", "null"],
+              maxLength: 20,
+              description: "Flipkart FSN (16 letters/digits); empty or null clears it",
             },
             // Size-related fields
             large: {
