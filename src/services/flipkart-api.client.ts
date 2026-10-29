@@ -258,5 +258,10 @@ class UnavailableProductionFlipkartClient implements FlipkartSellerApiClient {
   async getTracking(_shipmentId: string): Promise<FlipkartTrackingSnapshot> { return this.unavailable(); }
 }
 
+// Rows written by the mock client are tagged MOCK; screens only show rows of the
+// current mode so simulated data never mixes with the live seller account.
+export const flipkartDataEnvironment = (): 'MOCK' | 'PRODUCTION' =>
+  env.FLIPKART_MOCK_MODE ? 'MOCK' : 'PRODUCTION';
+
 export const getFlipkartSellerApiClient = (): FlipkartSellerApiClient =>
   env.FLIPKART_MOCK_MODE ? new MockFlipkartSellerApiClient() : new UnavailableProductionFlipkartClient();

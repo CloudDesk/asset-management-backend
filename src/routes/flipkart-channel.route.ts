@@ -180,7 +180,7 @@ export async function flipkartChannelRoutes(fastify: FastifyInstance) {
     },
   }, async (_request, reply) => reply.code(200).send(createSuccessResponse(
     'Flipkart integration status retrieved successfully',
-    flipkartConnectionService.configurationStatus()
+    { ...flipkartConnectionService.configurationStatus(), savedConnection: await flipkartConnectionService.savedConnection() }
   )));
 
   fastify.post('/connection/test', {
@@ -192,7 +192,7 @@ export async function flipkartChannelRoutes(fastify: FastifyInstance) {
     },
   }, async (_request, reply) => {
     try {
-      const result = await flipkartConnectionService.testConnection();
+      const result = await flipkartConnectionService.testAndSave();
       return reply.code(200).send(createSuccessResponse(
         result.sellerId
           ? 'Flipkart connected and seller ID discovered successfully'

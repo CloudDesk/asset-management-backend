@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
-import { FlipkartSellerApiClient, getFlipkartSellerApiClient } from './flipkart-api.client.js';
+import { FlipkartSellerApiClient, flipkartDataEnvironment, getFlipkartSellerApiClient } from './flipkart-api.client.js';
 import { flipkartOrderRoutingService } from './flipkart-order-routing.service.js';
 
 type Actor = { userId?: number; userType?: string };
@@ -91,7 +91,7 @@ export class FlipkartOrderService {
 
   async list(filters: { search?: string; status?: string; fulfilmentType?: string } = {}) {
     const where: Prisma.FlipkartShipmentWhereInput = {
-      environment: 'MOCK',
+      environment: flipkartDataEnvironment(),
       ...(filters.status ? { shipmentStatus: filters.status } : {}),
       ...(filters.fulfilmentType ? { fulfilmentType: filters.fulfilmentType } : {}),
       ...(filters.search ? { OR: [{ shipmentId: { contains: filters.search, mode: 'insensitive' } }, { orderId: { contains: filters.search, mode: 'insensitive' } }, { buyerName: { contains: filters.search, mode: 'insensitive' } }, { items: { some: { sellerSku: { contains: filters.search, mode: 'insensitive' } } } }] } : {}),
@@ -101,13 +101,13 @@ export class FlipkartOrderService {
   }
 
   async get(id: string) {
-    const shipment = await prisma.flipkartShipment.findFirst({ where: { id: BigInt(id), environment: 'MOCK' }, include: { items: true, stockReservations: true, actions: { orderBy: { createdAt: 'desc' } }, trackingEvents: { orderBy: { eventTime: 'desc' } } } });
+    const shipment = await prisma.flipkartShipment.findFirst({ where: { id: BigInt(id), environment: flipkartDataEnvironment() }, include: { items: true, stockReservations: true, actions: { orderBy: { createdAt: 'desc' } }, trackingEvents: { orderBy: { eventTime: 'desc' } } } });
     if (!shipment) throw new FlipkartOrderError('Flipkart shipment not found', 404, 'FLIPKART_SHIPMENT_NOT_FOUND');
     return serialize(shipment);
   }
 
   async perform(id: string, action: Action, payload: Record<string, unknown>, actor: Actor = {}) {
-    const shipment = await prisma.flipkartShipment.findFirst({ where: { id: BigInt(id), environment: 'MOCK' }, include: { items: true } });
+    const shipment = await prisma.flipkartShipment.findFirst({ where: { id: BigInt(id), environment: flipkartDataEnvironment() }, include: { items: true } });
     if (!shipment) throw new FlipkartOrderError('Flipkart shipment not found', 404, 'FLIPKART_SHIPMENT_NOT_FOUND');
     if (action !== 'CANCEL') {
       if (shipment.items.some((item) => item.mappingStatus !== 'MAPPED')) throw new FlipkartOrderError('Map every shipment SKU before fulfilment', 409, 'FLIPKART_ORDER_UNMAPPED');

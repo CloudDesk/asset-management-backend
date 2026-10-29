@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { logger } from '../config/logger.js';
 import { prisma } from '../models/prisma.js';
-import { FlipkartSellerApiClient, getFlipkartSellerApiClient } from './flipkart-api.client.js';
+import { FlipkartSellerApiClient, flipkartDataEnvironment, getFlipkartSellerApiClient } from './flipkart-api.client.js';
 
 export class FlipkartInventoryError extends Error {
   constructor(message: string, readonly statusCode = 400, readonly code = 'FLIPKART_INVENTORY_ERROR') {
@@ -136,7 +136,7 @@ export class FlipkartInventoryService {
 
   async setMode(listingId: string, mode: 'DISABLED' | 'MANUAL' | 'AUTOMATIC') {
     const listing = await prisma.marketplaceListing.findFirst({
-      where: { id: BigInt(listingId), marketplace: 'FLIPKART', environment: 'MOCK' },
+      where: { id: BigInt(listingId), marketplace: 'FLIPKART', environment: flipkartDataEnvironment() },
       select: { id: true, productId: true, mappingStatus: true, listingStatus: true },
     });
     if (!listing) throw new FlipkartInventoryError('Flipkart listing not found', 404, 'FLIPKART_LISTING_NOT_FOUND');
@@ -175,7 +175,7 @@ export class FlipkartInventoryService {
     if (!stock) throw new FlipkartInventoryError(`PlatformStock ${platformStockId} was not found`, 404, 'PLATFORM_STOCK_NOT_FOUND');
     if (stock.platform.trim().toLowerCase() !== 'flipkart') return { status: 'SKIPPED', reason: 'Platform stock is not for Flipkart' };
     const listings = await prisma.marketplaceListing.findMany({ where: {
-      marketplace: 'FLIPKART', environment: 'MOCK', productId: stock.productid,
+      marketplace: 'FLIPKART', environment: flipkartDataEnvironment(), productId: stock.productid,
       mappingStatus: 'MAPPED', listingStatus: 'ACTIVE', inventorySyncMode: 'AUTOMATIC',
     }, select: { id: true, sellerSku: true } });
     if (listings.length === 0) return { status: 'SKIPPED', reason: 'No automatic mapped Flipkart listing uses this stock' };
@@ -198,7 +198,7 @@ export class FlipkartInventoryService {
   }
 
   async syncAllDryRun(safetyBuffer: number, actor: Actor = {}) {
-    const listings = await prisma.marketplaceListing.findMany({ where: { marketplace: 'FLIPKART', environment: 'MOCK', mappingStatus: 'MAPPED', listingStatus: 'ACTIVE' }, orderBy: { sellerSku: 'asc' } });
+    const listings = await prisma.marketplaceListing.findMany({ where: { marketplace: 'FLIPKART', environment: flipkartDataEnvironment(), mappingStatus: 'MAPPED', listingStatus: 'ACTIVE' }, orderBy: { sellerSku: 'asc' } });
     const results: Array<{ listingId: string; sellerSku: string; status: string; targetQuantity?: number; issues?: unknown; error?: string }> = [];
     for (const listing of listings) {
       try {

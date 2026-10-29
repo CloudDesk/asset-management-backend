@@ -390,6 +390,9 @@ const envSchema = z.object({
 
   // Flipkart Marketplace Seller API (self-access application).
   // Credentials must remain backend-only. Production writes stay opt-in.
+  // Loads the Flipkart routes (FKT-PLAN-01). Off unless set, so UAT / Prod stay
+  // unchanged until Flipkart is released there.
+  FLIPKART_INTEGRATION_ENABLED: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
   FLIPKART_APP_ID: z.string().trim().optional(),
   FLIPKART_APP_SECRET: z.string().trim().optional(),
   FLIPKART_SELLER_ID: z.string().trim().optional(),

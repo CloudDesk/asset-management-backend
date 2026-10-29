@@ -1,4 +1,5 @@
 import { env } from '../config/env.js';
+import { prisma } from '../models/prisma.js';
 
 type FetchLike = typeof fetch;
 
@@ -66,6 +67,16 @@ const LISTING_STATES = [
   'ARCHIVED',
 ] as const;
 
+export type FlipkartSavedConnection = {
+  status: 'CONNECTED' | 'FAILED';
+  sellerId: string | null;
+  lastAuthenticatedAt: string | null;
+  tokenExpiresAt: string | null;
+  lastCheckedAt: string;
+  lastErrorCode: string | null;
+  lastErrorMessage: string | null;
+};
+
 export class FlipkartConnectionService {
   private readonly fetchImpl: FetchLike;
   private readonly options: FlipkartConnectionServiceOptions;
@@ -115,6 +126,52 @@ export class FlipkartConnectionService {
       expiresInSeconds: Math.max(0, Math.trunc(token.metadata.expires_in ?? 0)),
       inventoryWritesEnabled: this.options.inventoryWritesEnabled ?? env.FLIPKART_INVENTORY_WRITES_ENABLED,
     };
+  }
+
+  // Last saved "Test connection" result for the configured environment (FKT-PLAN-01).
+  async savedConnection(): Promise<FlipkartSavedConnection | null> {
+    const row = await prisma.flipkartConnection.findUnique({
+      where: { environment_connectionType: { environment: this.options.environment ?? env.FLIPKART_ENVIRONMENT, connectionType: 'SELF_ACCESS' } },
+    });
+    if (!row) return null;
+    return {
+      status: row.status === 'CONNECTED' ? 'CONNECTED' : 'FAILED',
+      sellerId: row.sellerId,
+      lastAuthenticatedAt: row.lastAuthenticatedAt?.toISOString() ?? null,
+      tokenExpiresAt: row.tokenExpiresAt?.toISOString() ?? null,
+      lastCheckedAt: row.updatedAt.toISOString(),
+      lastErrorCode: row.lastErrorCode,
+      lastErrorMessage: row.lastErrorMessage,
+    };
+  }
+
+  // Runs the connection test and keeps the outcome, so the Overview can show it
+  // without calling Flipkart on every page load. Errors are saved and re-thrown.
+  async testAndSave(): Promise<FlipkartConnectionResult> {
+    const environment = this.options.environment ?? env.FLIPKART_ENVIRONMENT;
+    const where = { environment_connectionType: { environment, connectionType: 'SELF_ACCESS' } };
+    try {
+      const result = await this.testConnection();
+      const now = new Date(this.now());
+      const data = {
+        status: 'CONNECTED',
+        lastAuthenticatedAt: now,
+        tokenExpiresAt: new Date(now.getTime() + result.expiresInSeconds * 1000),
+        lastErrorCode: null,
+        lastErrorMessage: null,
+        ...(result.sellerId ? { sellerId: result.sellerId } : {}),
+      };
+      await prisma.flipkartConnection.upsert({ where, create: { environment, connectionType: 'SELF_ACCESS', ...data }, update: data });
+      return result;
+    } catch (error) {
+      const data = {
+        status: 'FAILED',
+        lastErrorCode: error instanceof FlipkartConnectionError ? error.code : 'FLIPKART_CONNECTION_ERROR',
+        lastErrorMessage: error instanceof Error ? error.message : 'Flipkart connection test failed',
+      };
+      await prisma.flipkartConnection.upsert({ where, create: { environment, connectionType: 'SELF_ACCESS', ...data }, update: data });
+      throw error;
+    }
   }
 
   private async getAccessToken() {

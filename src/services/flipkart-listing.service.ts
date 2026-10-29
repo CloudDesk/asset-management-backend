@@ -3,6 +3,7 @@ import {
   FlipkartListing,
   FlipkartListingState,
   FlipkartSellerApiClient,
+  flipkartDataEnvironment,
   getFlipkartSellerApiClient,
 } from './flipkart-api.client.js';
 
@@ -142,7 +143,7 @@ export class FlipkartListingService {
 
   async list() {
     const listings = await prisma.marketplaceListing.findMany({
-      where: { marketplace: 'FLIPKART', environment: 'MOCK' },
+      where: { marketplace: 'FLIPKART', environment: flipkartDataEnvironment() },
       include: { flipkartDetail: { include: { locations: true } }, product: { select: { id: true, name: true, puc: true } } },
       orderBy: { sellerSku: 'asc' },
     });

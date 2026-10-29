@@ -174,7 +174,9 @@ export async function routes(fastify: FastifyInstance) {
     await fastify.register(amazonOperationsRoutes, { prefix: '/api/channels/amazon/operations' });
     await fastify.register(amazonSchedulerJobsRoutes, { prefix: '/api/channels/amazon/jobs' });
   }
-  await fastify.register(flipkartChannelRoutes, { prefix: '/api/channels/flipkart' });
+  if (env.FLIPKART_INTEGRATION_ENABLED) {
+    await fastify.register(flipkartChannelRoutes, { prefix: '/api/channels/flipkart' });
+  }
 
   // API v2 routes
   await fastify.register(async function (fastify) {

@@ -1,0 +1,51 @@
+{
+  "env": "sit",
+  "db": "assetmanagement_dev",
+  "apply": false,
+  "counts": {
+    "shipments": 3,
+    "shipmentItems": 3,
+    "reservations": 0,
+    "fulfillmentActions": 0,
+    "trackingEvents": 0,
+    "listings": 3,
+    "inventoryPreviews": 0,
+    "inventoryAttempts": 0,
+    "connections": 1,
+    "sellerLocations": 1,
+    "listingImportJobs": 2,
+    "orderImportJobs": 2
+  },
+  "sampleListings": [
+    {
+      "sellerSku": "NV-MOCK-INCENSE-001",
+      "title": "Nivaana Premium Incense Sticks",
+      "mappingStatus": "UNMAPPED"
+    },
+    {
+      "sellerSku": "NV-MOCK-CANDLE-002",
+      "title": "Nivaana Aromatherapy Candle",
+      "mappingStatus": "UNMAPPED"
+    },
+    {
+      "sellerSku": "NV-MOCK-DIFFUSER-003",
+      "title": "Nivaana Reed Diffuser",
+      "mappingStatus": "UNMAPPED"
+    }
+  ],
+  "sampleShipments": [
+    {
+      "shipmentId": "FKS-MOCK-1001",
+      "shipmentStatus": "APPROVED"
+    },
+    {
+      "shipmentId": "FKS-MOCK-1002",
+      "shipmentStatus": "APPROVED"
+    },
+    {
+      "shipmentId": "FKS-MOCK-1003",
+      "shipmentStatus": "SHIPPED"
+    }
+  ],
+  "blocking": []
+}
